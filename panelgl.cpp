@@ -5,11 +5,14 @@
 // http://code.google.com/p/opencamlib/source/browse/trunk/cpp_examples/qt_opengl_vbo/glwidget.h?spec=svn688&r=688
 
 #include <QVarLengthArray>
+#include <QMouseEvent>
 
 #include <iostream>
 using namespace std;
 
 LineRenderer* mainGrid = NULL;
+int workMode = WorkMode::FREE;
+int workButton = -1;
 
 PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
 {
@@ -21,15 +24,22 @@ PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
     if (mainGrid == NULL) {
         int range[] = {-10,10};
         int numSegments = range[1]-range[0]+1;
-        QVector<LineSegment> segments(numSegments);
-        for (int i = 0; i < numSegments; i++) {
-            segments[i].p1 = Point3(i, 0, 10);
-            segments[i].p2 = Point3(i, 0, -10);
+
+        QVector<LineSegment> segments(numSegments*2);
+        for (int i = 0; i < numSegments*2; i += 2) {
+            segments[i].p1 = Point3(range[0]+i/2, 0, 10);
+            segments[i].p2 = Point3(range[0]+i/2, 0, -10);
             segments[i].r = 0.4f;
             segments[i].g = 0.4f;
             segments[i].b = 0.4f;
+
+            segments[i+1].p1 = Point3(-10, 0, range[0]+i/2);
+            segments[i+1].p2 = Point3(10, 0, range[0]+i/2);
+            segments[i+1].r = 0.4f;
+            segments[i+1].g = 0.4f;
+            segments[i+1].b = 0.4f;
         }
-        mainGrid = new LineRenderer(segments, 2);
+        mainGrid = new LineRenderer(segments, 1);
     }
 }
 
@@ -82,14 +92,14 @@ void PanelGL::resizeGL(int width, int height)
 LineRenderer::LineRenderer(QVector<LineSegment> segments, float lineWidth)
 {
     _validVBOs = FALSE;
-    //_segments = segments;
+    _segments = segments;
     _lineWidth = lineWidth;
 }
 
-struct VertexData
+struct VertexColorData
 {
     Vector3 position;
-    Vector2 texCoord;
+    Vector4 color;
 };
 
 void LineRenderer::render(PanelGL* panel)
@@ -110,39 +120,6 @@ void LineRenderer::render(PanelGL* panel)
 
     QGLShaderProgram* flatShader = panel->getFlatShader();
 
-    /*
-    glLineWidth(_lineWidth);
-    flatShader->bind();
-    int objToWorldLoc = flatShader->attributeLocation("objToWorld");
-    flatShader->setUniformValue(objToWorldLoc, objToWorld);
-    int cameraPVLoc = flatShader->attributeLocation("cameraPV");
-    flatShader->setUniformValue(cameraPVLoc, cameraProjViewM);
-    int overrideStrengthLoc = flatShader->attributeLocation("overrideStrength");
-    flatShader->setUniformValue(overrideStrengthLoc, 0.0f);
-
-    // Tell OpenGL which VBOs to use
-    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
-    // Offset for position
-    int offset = 0;
-    // Tell OpenGL programmable pipeline how to locate vertex position data
-    int vertexLocation = flatShader->attributeLocation("vertex");
-    flatShader->enableAttributeArray(vertexLocation);
-    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
-    // Offset for texture coordinate
-    offset += sizeof(QVector3D);
-    // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
-    int texcoordLocation = flatShader->attributeLocation("a_texcoord");
-    flatShader->enableAttributeArray(texcoordLocation);
-    glVertexAttribPointer(texcoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
-    // Draw cube geometry using indices from VBO 1
-    glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
-
-    //drawSegments.call
-    flatShader->release();
-    */
-
-
     glLineWidth(_lineWidth);
     flatShader->bind();
     flatShader->setUniformValue("objToWorld", objToWorld);
@@ -153,102 +130,114 @@ void LineRenderer::render(PanelGL* panel)
     // Tell OpenGL programmable pipeline how to locate vertex position data
     int vertexLocation = flatShader->attributeLocation("vertex");
     flatShader->enableAttributeArray(vertexLocation);
-    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
+    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
     // Offset for texture coordinate
     offset += sizeof(QVector3D);
     // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
-    int texcoordLocation = flatShader->attributeLocation("a_texcoord");
-    flatShader->enableAttributeArray(texcoordLocation);
-    glVertexAttribPointer(texcoordLocation, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
+    int colorLocation = flatShader->attributeLocation("color");
+    flatShader->enableAttributeArray(colorLocation);
+    glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
     // Draw cube geometry using indices from VBO 1
-    glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
-
-
-    /*
-    // Tell OpenGL which VBOs to use
-    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
-    //glVertexPointer(3, GL_FLOAT, GL_UNSIGNED_BYTE, 0);
-
-    // Draw cube geometry using indices from VBO 1
-    glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    */
+    //glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_LINES, _segments.size()*2, GL_UNSIGNED_SHORT, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    /*
-    glBegin(GL_QUADS);
-    glVertex2f(0,0);
-    glVertex2f(0,1);
-    glVertex2f(1,1);
-    glVertex2f(1,0);
-    glEnd();
-    */
-
-    //drawSegments.call
     flatShader->release();
 }
 
 void LineRenderer::loadVBOs(PanelGL* panel)
 {
-    VertexData vertices[] = {
-            // Vertex data for face 0
-            {QVector3D(-1.0, -1.0,  1.0), QVector2D(0.0, 0.0)},  // v0
-            {QVector3D( 1.0, -1.0,  1.0), QVector2D(0.33, 0.0)}, // v1
-            {QVector3D(-1.0,  1.0,  1.0), QVector2D(0.0, 0.5)},  // v2
-            {QVector3D( 1.0,  1.0,  1.0), QVector2D(0.33, 0.5)}, // v3
-            // Vertex data for face 1
-            {QVector3D( 1.0, -1.0,  1.0), QVector2D( 0.0, 0.5)}, // v4
-            {QVector3D( 1.0, -1.0, -1.0), QVector2D(0.33, 0.5)}, // v5
-            {QVector3D( 1.0,  1.0,  1.0), QVector2D(0.0, 1.0)},  // v6
-            {QVector3D( 1.0,  1.0, -1.0), QVector2D(0.33, 1.0)}, // v7
-            // Vertex data for face 2
-            {QVector3D( 1.0, -1.0, -1.0), QVector2D(0.66, 0.5)}, // v8
-            {QVector3D(-1.0, -1.0, -1.0), QVector2D(1.0, 0.5)},  // v9
-            {QVector3D( 1.0,  1.0, -1.0), QVector2D(0.66, 1.0)}, // v10
-            {QVector3D(-1.0,  1.0, -1.0), QVector2D(1.0, 1.0)},  // v11
-            // Vertex data for face 3
-            {QVector3D(-1.0, -1.0, -1.0), QVector2D(0.66, 0.0)}, // v12
-            {QVector3D(-1.0, -1.0,  1.0), QVector2D(1.0, 0.0)},  // v13
-            {QVector3D(-1.0,  1.0, -1.0), QVector2D(0.66, 0.5)}, // v14
-            {QVector3D(-1.0,  1.0,  1.0), QVector2D(1.0, 0.5)},  // v15
-            // Vertex data for face 4
-            {QVector3D(-1.0, -1.0, -1.0), QVector2D(0.33, 0.0)}, // v16
-            {QVector3D( 1.0, -1.0, -1.0), QVector2D(0.66, 0.0)}, // v17
-            {QVector3D(-1.0, -1.0,  1.0), QVector2D(0.33, 0.5)}, // v18
-            {QVector3D( 1.0, -1.0,  1.0), QVector2D(0.66, 0.5)}, // v19
-            // Vertex data for face 5
-            {QVector3D(-1.0,  1.0,  1.0), QVector2D(0.33, 0.5)}, // v20
-            {QVector3D( 1.0,  1.0,  1.0), QVector2D(0.66, 0.5)}, // v21
-            {QVector3D(-1.0,  1.0, -1.0), QVector2D(0.33, 1.0)}, // v22
-            {QVector3D( 1.0,  1.0, -1.0), QVector2D(0.66, 1.0)}  // v23
-        };
-        // Indices for drawing cube faces using triangle strips.
-        // Triangle strips can be connected by duplicating indices
-        // between the strips. If connecting strips have opposite
-        // vertex order then last index of the first strip and first
-        // index of the second strip needs to be duplicated. If
-        // connecting strips have same vertex order then only last
-        // index of the first strip needs to be duplicated.
-        GLushort indices[] = {
-             0,  1,  2,  3,  3,     // Face 0 - triangle strip ( v0,  v1,  v2,  v3)
-             4,  4,  5,  6,  7,  7, // Face 1 - triangle strip ( v4,  v5,  v6,  v7)
-             8,  8,  9, 10, 11, 11, // Face 2 - triangle strip ( v8,  v9, v10, v11)
-            12, 12, 13, 14, 15, 15, // Face 3 - triangle strip (v12, v13, v14, v15)
-            16, 16, 17, 18, 19, 19, // Face 4 - triangle strip (v16, v17, v18, v19)
-            20, 20, 21, 22, 23      // Face 5 - triangle strip (v20, v21, v22, v23)
-        };
-        // Transfer vertex data to VBO 0
-        glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-        glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(VertexData), vertices, GL_STATIC_DRAW);
+    VertexColorData vertices[_segments.size()*2];
+    for (int i = 0; i < _segments.size(); i++) {
+        vertices[2*i] = { _segments[i].p1, QVector4D(_segments[i].r, _segments[i].g, _segments[i].b, 1.0) };
+        vertices[2*i+1] = { _segments[i].p2, QVector4D(_segments[i].r, _segments[i].g, _segments[i].b, 1.0) };
+    }
 
-        // Transfer index data to VBO 1
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 34 * sizeof(GLushort), indices, GL_STATIC_DRAW);
+    GLushort indices[_segments.size()*2];
+    for (int i = 0; i < _segments.size()*2; i++)
+        indices[i] = i;
+
+    // Transfer vertex data to VBO 0
+    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
+    glBufferData(GL_ARRAY_BUFFER, _segments.size()*2*sizeof(VertexColorData), vertices, GL_STATIC_DRAW);
+
+    // Transfer index data to VBO 1
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STATIC_DRAW);
+}
+
+void PanelGL::mousePressEvent(QMouseEvent* event)
+{
+    bool altDown = event->modifiers() & Qt::AltModifier;
+
+    if (workMode == WorkMode::TOOL) {
+        //workTool.mousePressed(event);
+    }
+    else if (workMode == WorkMode::FREE && altDown) {
+        workMode = WorkMode::CAMERA;
+        workButton = event->button();
+        camera->mousePressed(event);
+    }
+    else if (workMode == WorkMode::FREE && event->button() & Qt::LeftButton) {
+        workMode = WorkMode::SELECT;
+        workButton = event->button();
+        //basicSelect = BasicSelect.instance
+        //basic_select.mousePressed(self,event)
+    }
+}
+
+void PanelGL::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (workMode == WorkMode::TOOL) {
+        //workTool->mouseReleased
+        workButton = WorkMode::FREE;
+        workButton = -1;
+    }
+    else if (workMode == WorkMode::CAMERA && event->button() == workButton) {
+        workMode = WorkMode::FREE;
+        workButton = -1;
+        camera->mouseReleased(event);
+    }
+    else if (workMode == WorkMode::SELECT && event->button() == workButton) {
+        workMode = WorkMode::FREE;
+        workButton = -1;
+        //basic_select = BasicSelect.instance
+        //basic_select.mouseRelease(self, event)
+    }
+    else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
+        cout << "Popup menu" << endl;
+    }
+
+    update();
+}
+
+void PanelGL::mouseMoveEvent(QMouseEvent* event)
+{
+    if (workMode == WorkMode::FREE) {
+
+    }
+    else if (workMode == WorkMode::TOOL) {
+        //work_tool.mouseMoved(event)
+        update();
+    }
+    else {
+        mouseDragEvent(event);
+    }
+}
+
+void PanelGL::mouseDragEvent(QMouseEvent* event)
+{
+    if (workMode == WorkMode::CAMERA) {
+        camera->mouseDragged(event);
+
+    }
+    else if (workMode == WorkMode::SELECT) {
+        //basic_select = BasicSelect.instance
+        //basic_select.mouseDrag(self, event)
+    }
+
+    update();
+
 }

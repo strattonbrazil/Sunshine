@@ -60,6 +60,7 @@ public:
     QMatrix4x4    objectToWorld();
 
 
+
 protected:
     Point3        _center;
     Vector3       _scale;
@@ -77,5 +78,8 @@ void printMatrix(QMatrix4x4 m);
 void printVector3(Vector3 v);
 void printQuat(QQuaternion q);
 
+namespace WorkMode {
+    enum { FREE, CAMERA, TOOL, SELECT };
+}
 
 #endif // UTIL_H

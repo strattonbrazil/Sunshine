@@ -3,6 +3,7 @@
 
 #include <QMatrix4x4>
 #include "util.h"
+#include <QMouseEvent>
 
 class Camera : Transformable
 {
@@ -15,7 +16,14 @@ public:
     Point3                       lookat();
     Vector3                      lookDir();
     Vector3                      leftDir();
-    Point3                       center;
+    //Point3                       center;
+
+    int                          pickX;
+    int                          pickY;
+    int                          moveType;
+    void                         mousePressed(QMouseEvent* event);
+    void                         mouseReleased(QMouseEvent* event);
+    void                         mouseDragged(QMouseEvent* event);
 };
 
 #endif // CAMERA_H

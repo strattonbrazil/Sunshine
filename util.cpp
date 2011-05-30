@@ -1,5 +1,8 @@
 #include "util.h"
 
+#include <iostream>
+using namespace std;
+
 Quat4::Quat4() : QQuaternion()
 {
 
@@ -99,9 +102,11 @@ void Transformable::resetLook()
 void Transformable::updateLook()
 {
     // setups the rotation based on the two-camera controls
-    Quat4 ySpin = Quat4(_yRot, _startRotate.rotatedVector(Vector3(0,1,0)));
+    //Quat4 ySpin = Quat4(_yRot, _startRotate.rotatedVector(Vector3(0,1,0)));
+    Quat4 ySpin = Quat4::fromAxisAndAngle(_startRotate.rotatedVector(Vector3(0,1,0)), _yRot);
     Vector3 tmpVec = ySpin.rotatedVector(_startRotate.rotatedVector(Vector3(1,0,0)));
-    Quat4 upSpin = Quat4(_upRot, tmpVec);
+    //Quat4 upSpin = Quat4(_upRot, tmpVec);
+    Quat4 upSpin = Quat4::fromAxisAndAngle(tmpVec, _upRot);
     const Quat4 mv = upSpin * ySpin;
     _rotate = mv * _startRotate;
     _rotate.normalize();

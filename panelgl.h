@@ -19,6 +19,10 @@ public:
     QGLFormat             defaultFormat();
     Camera*               camera;
     QGLShaderProgram*     getFlatShader() { return _flatShader; }
+    void                  mousePressEvent(QMouseEvent* event);
+    void                  mouseReleaseEvent(QMouseEvent* event);
+    void                  mouseMoveEvent(QMouseEvent* event);
+    void                  mouseDragEvent(QMouseEvent* event);
 private:
     bool                  _validShaders;
     QGLShaderProgram*     _flatShader;
@@ -40,6 +44,7 @@ public:
     void                  render(PanelGL* panel);
     void                  loadVBOs(PanelGL* panel);
 private:
+    QVector<LineSegment>  _segments;
     bool                  _validVBOs;
     float                 _lineWidth;
     GLuint                _vboIds[2];
