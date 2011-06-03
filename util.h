@@ -6,7 +6,9 @@
 #include <QVector4D>
 #include <QQuaternion>
 #include <QMatrix4x4>
+#include <QTextStream>
 #include <math.h>
+#include <iostream>
 
 typedef QVector2D Vector2;
 typedef QVector3D Vector3;

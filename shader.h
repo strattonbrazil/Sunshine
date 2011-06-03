@@ -4,7 +4,7 @@
 #include <string>
 #include <QGLShaderProgram>
 
-using namespace std;
+//using namespace std;
 
 class ShaderFactory
 {

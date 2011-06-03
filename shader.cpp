@@ -1,25 +1,26 @@
 #include "shader.h"
+#include "util.h"
 
-#include <iostream>
-using namespace std;
+//#include <iostream>
+//using namespace std;
 
 QGLShaderProgram* ShaderFactory::buildFlatShader(QObject *parent)
 {
-    string vertSource = string("in vec3 vertex;\n" \
-                               "in vec4 color;\n" \
-                               "in vec2 a_texcoord;\n" \
-                               "uniform mat4 objToWorld;\n" \
-                               "uniform mat4 cameraPV;\n" \
-                               "void main() {\n" \
-                               "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0) + vec4(0.0001*a_texcoord.r);\n" \
-                               "  gl_FrontColor = color;\n" \
-                               "}\n");
+    QString vertSource("in vec3 vertex;\n" \
+                                "in vec4 color;\n" \
+                                "in vec2 a_texcoord;\n" \
+                                "uniform mat4 objToWorld;\n" \
+                                "uniform mat4 cameraPV;\n" \
+                                "void main() {\n" \
+                                "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0) + vec4(0.0001*a_texcoord.r);\n" \
+                                "  gl_FrontColor = color;\n" \
+                                "}\n");
 
-    string fragSource = string("uniform vec4 overrideColor;\n" \
-                               "uniform float overrideStrength;\n" \
-                               "void main() {\n" \
-                               "  gl_FragColor = (1.0-overrideStrength) * gl_Color + overrideStrength * overrideColor;\n" \
-                               "}\n");
+    QString fragSource("uniform vec4 overrideColor;\n" \
+                                 "uniform float overrideStrength;\n" \
+                                 "void main() {\n" \
+                                 "  gl_FragColor = (1.0-overrideStrength) * gl_Color + overrideStrength * overrideColor;\n" \
+                                 "}\n");
 /*
     string vertSource = string("uniform mat4 objToWorld;\n" \
                                "uniform mat4 cameraPV;\n" \
@@ -36,10 +37,10 @@ QGLShaderProgram* ShaderFactory::buildFlatShader(QObject *parent)
                                */
 
     QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
-    vertShader->compileSourceCode(vertSource.c_str());
+    vertShader->compileSourceCode(vertSource);
 
     QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
-    fragShader->compileSourceCode(fragSource.c_str());
+    fragShader->compileSourceCode(fragSource);
 
     QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
@@ -47,15 +48,15 @@ QGLShaderProgram* ShaderFactory::buildFlatShader(QObject *parent)
 
     program->link();
 
-    cout << program->log().toStdString() << endl;
-    cout << "Log end--" << endl;
+    cout << program->log() << endl;
+    cout << QString("Log end--") << endl;
 
     return program;
 }
 
 QGLShaderProgram* ShaderFactory::buildShader(QObject *parent)
 {
-    string vertSource = string("in vec3 vertex;\n" \
+    QString vertSource("in vec3 vertex;\n" \
                                "in vec3 normal;\n" \
                                "in vec4 color;\n" \
                                "varying vec3 worldNormal;\n" \
@@ -73,7 +74,7 @@ QGLShaderProgram* ShaderFactory::buildShader(QObject *parent)
                                "  worldNormal = normal;\n" \
                                "}\n");
 
-    string fragSource = string("varying vec3 worldNormal;\n" \
+    QString fragSource("varying vec3 worldNormal;\n" \
                                "varying vec3 worldPos;\n" \
                                "uniform vec3 cameraPos;\n" \
                                "uniform vec3 lightDir;\n" \
@@ -94,10 +95,10 @@ QGLShaderProgram* ShaderFactory::buildShader(QObject *parent)
                                "}\n");
 
     QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
-    vertShader->compileSourceCode(vertSource.c_str());
+    vertShader->compileSourceCode(vertSource);
 
     QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
-    fragShader->compileSourceCode(fragSource.c_str());
+    fragShader->compileSourceCode(fragSource);
 
     QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);

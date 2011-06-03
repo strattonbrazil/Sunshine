@@ -4,11 +4,13 @@
 #include <QMatrix4x4>
 #include "util.h"
 #include <QMouseEvent>
+#include <QSharedPointer>
 
 class Camera : Transformable
 {
 public:
-    Camera();
+
+    Camera(QString name);
     static QMatrix4x4            getViewMatrix(Camera* camera, int width, int height);
     static QMatrix4x4            getProjMatrix(Camera* camera, int width, int height);
     Point3                       eye();
@@ -16,8 +18,8 @@ public:
     Point3                       lookat();
     Vector3                      lookDir();
     Vector3                      leftDir();
-    //Point3                       center;
 
+    QString                      name;
     int                          pickX;
     int                          pickY;
     int                          moveType;
@@ -25,5 +27,6 @@ public:
     void                         mouseReleased(QMouseEvent* event);
     void                         mouseDragged(QMouseEvent* event);
 };
+typedef QSharedPointer<Camera> CameraP;
 
 #endif // CAMERA_H

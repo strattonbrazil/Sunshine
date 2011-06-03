@@ -10,14 +10,17 @@ namespace Ui {
 class Sunshine : public QMainWindow {
     Q_OBJECT
 public:
-    Sunshine(QWidget *parent = 0);
-    ~Sunshine();
-
+                               Sunshine(QWidget *parent = 0);
+                               ~Sunshine();
+    void                       clearScene(void);
+    void                       setupDefaultCameras(void);
+    void                       setupDefaultMeshes(void);
+    void                       setupDefaultLights(void);
 protected:
-    void changeEvent(QEvent *e);
+    void                       changeEvent(QEvent *e);
 
 private:
-    Ui::Sunshine *ui;
+    Ui::Sunshine*              ui;
 };
 
 #endif // SUNSHINE_H

@@ -12,10 +12,14 @@ SOURCES += main.cpp \
     panelgl.cpp \
     shader.cpp \
     camera.cpp \
-    util.cpp
+    util.cpp \
+    geometry.cpp \
+    register.cpp
 HEADERS += sunshine.h \
     panelgl.h \
     shader.h \
     util.h \
-    camera.h
+    camera.h \
+    geometry.h \
+    register.h
 FORMS += sunshine.ui

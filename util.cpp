@@ -1,7 +1,7 @@
 #include "util.h"
 
-#include <iostream>
-using namespace std;
+//#include <iostream>
+//using namespace std;
 
 Quat4::Quat4() : QQuaternion()
 {

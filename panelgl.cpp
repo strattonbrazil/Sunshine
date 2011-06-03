@@ -1,5 +1,4 @@
 #include "panelgl.h"
-#include "camera.h"
 
 // possible reference
 // http://code.google.com/p/opencamlib/source/browse/trunk/cpp_examples/qt_opengl_vbo/glwidget.h?spec=svn688&r=688
@@ -7,8 +6,8 @@
 #include <QVarLengthArray>
 #include <QMouseEvent>
 
-#include <iostream>
-using namespace std;
+//#include <iostream>
+//using namespace std;
 
 LineRenderer* mainGrid = NULL;
 int workMode = WorkMode::FREE;
@@ -19,7 +18,7 @@ PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
     setMouseTracking(true);
     _validShaders = false;
 
-    camera = new Camera();
+    camera = new Camera("dummy");
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -60,7 +59,7 @@ void PanelGL::initializeGL()
         if (GLEW_OK != err)
         {
             /* Problem: glewInit failed, something is seriously wrong. */
-            cerr << "Error: " << glewGetErrorString(err) << endl;
+            std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
         }
     }
 }
@@ -89,18 +88,18 @@ void PanelGL::resizeGL(int width, int height)
     glViewport(0,0,width,height);
 }
 
+struct VertexColorData
+{
+    Vector3 position;
+    Vector4 color;
+};
+
 LineRenderer::LineRenderer(QVector<LineSegment> segments, float lineWidth)
 {
     _validVBOs = FALSE;
     _segments = segments;
     _lineWidth = lineWidth;
 }
-
-struct VertexColorData
-{
-    Vector3 position;
-    Vector4 color;
-};
 
 void LineRenderer::render(PanelGL* panel)
 {
@@ -168,6 +167,84 @@ void LineRenderer::loadVBOs(PanelGL* panel)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STATIC_DRAW);
 }
 
+MeshRenderer::MeshRenderer(int meshKey)
+{
+    _validVBOs = FALSE;
+    _meshKey = meshKey;
+}
+
+void MeshRenderer::render(PanelGL* panel)
+{
+    if (!_validVBOs) {
+        glGenBuffers(5, _vboIds);
+
+        _validVBOs = TRUE;
+    }
+
+    loadVBOs(panel, NULL);
+
+    /*
+    Camera* camera = panel->camera;
+    QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
+    QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
+    QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+    QMatrix4x4 objToWorld;
+
+    QGLShaderProgram* flatShader = panel->getFlatShader();
+
+    glLineWidth(_lineWidth);
+    flatShader->bind();
+    flatShader->setUniformValue("objToWorld", objToWorld);
+    flatShader->setUniformValue("cameraPV", cameraProjViewM);
+    flatShader->setUniformValue("overrideStrength", 0.0f);
+
+    int offset = 0;
+    // Tell OpenGL programmable pipeline how to locate vertex position data
+    int vertexLocation = flatShader->attributeLocation("vertex");
+    flatShader->enableAttributeArray(vertexLocation);
+    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
+    // Offset for texture coordinate
+    offset += sizeof(QVector3D);
+    // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
+    int colorLocation = flatShader->attributeLocation("color");
+    flatShader->enableAttributeArray(colorLocation);
+    glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
+    // Draw cube geometry using indices from VBO 1
+    //glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_LINES, _segments.size()*2, GL_UNSIGNED_SHORT, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    flatShader->release();
+    */
+}
+
+void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
+{
+    const int numTriangles = mesh->numTriangles();
+
+    /*
+    VertexColorData vertices[_segments.size()*2];
+    for (int i = 0; i < _segments.size(); i++) {
+        vertices[2*i] = { _segments[i].p1, QVector4D(_segments[i].r, _segments[i].g, _segments[i].b, 1.0) };
+        vertices[2*i+1] = { _segments[i].p2, QVector4D(_segments[i].r, _segments[i].g, _segments[i].b, 1.0) };
+    }
+
+    GLushort indices[_segments.size()*2];
+    for (int i = 0; i < _segments.size()*2; i++)
+        indices[i] = i;
+
+    // Transfer vertex data to VBO 0
+    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
+    glBufferData(GL_ARRAY_BUFFER, _segments.size()*2*sizeof(VertexColorData), vertices, GL_STATIC_DRAW);
+
+    // Transfer index data to VBO 1
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STATIC_DRAW);
+    */
+}
+
 void PanelGL::mousePressEvent(QMouseEvent* event)
 {
     bool altDown = event->modifiers() & Qt::AltModifier;
@@ -207,7 +284,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
         //basic_select.mouseRelease(self, event)
     }
     else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
-        cout << "Popup menu" << endl;
+        std::cout << "Popup menu" << std::endl;
     }
 
     update();

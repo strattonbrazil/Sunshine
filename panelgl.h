@@ -7,6 +7,7 @@
 #include "shader.h"
 #include "util.h"
 #include "camera.h"
+#include "geometry.h"
 
 
 class PanelGL : public QGLWidget
@@ -48,6 +49,18 @@ private:
     bool                  _validVBOs;
     float                 _lineWidth;
     GLuint                _vboIds[2];
+};
+
+class MeshRenderer
+{
+public:
+                          MeshRenderer(int meshKey);
+    void                  render(PanelGL* panel);
+    void                  loadVBOs(PanelGL* panel, Mesh* mesh);
+private:
+    int                   _meshKey;
+    bool                  _validVBOs;
+    GLuint                _vboIds[5];
 };
 
 #endif // PANELGL_H
