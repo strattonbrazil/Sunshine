@@ -48,8 +48,8 @@ QGLShaderProgram* ShaderFactory::buildFlatShader(QObject *parent)
 
     program->link();
 
-    cout << program->log() << endl;
-    cout << QString("Log end--") << endl;
+    //cout << program->log() << endl;
+    //cout << QString("Log end--") << endl;
 
     return program;
 }

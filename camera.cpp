@@ -24,14 +24,14 @@ Point3 Camera::lookat() { return _center + lookDir(); }
 Vector3 Camera::lookDir() { return _rotate.rotatedVector(Vector3(0,0,_distance)); }
 Vector3 Camera::leftDir() { return Vector3::crossProduct(upDir(), lookDir()); }
 
-QMatrix4x4 Camera::getViewMatrix(Camera* camera, int width, int height)
+QMatrix4x4 Camera::getViewMatrix(CameraP camera, int width, int height)
 {
     QMatrix4x4 m;
     m.lookAt(camera->eye(), camera->lookat(), camera->upDir());
     return m;
 }
 
-QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height)
+QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height)
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;

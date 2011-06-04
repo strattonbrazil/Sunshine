@@ -1,6 +1,7 @@
 #include "sunshine.h"
 #include "ui_sunshine.h"
 #include "register.h"
+#include "primitive.h"
 
 Sunshine::Sunshine(QWidget *parent) :
     QMainWindow(parent),
@@ -28,7 +29,7 @@ void Sunshine::changeEvent(QEvent *e)
     }
 }
 
-void Sunshine::clearScene(void)
+void Sunshine::clearScene()
 {
     Register::clearScene();
     setupDefaultCameras();
@@ -36,7 +37,7 @@ void Sunshine::clearScene(void)
     setupDefaultLights();
 }
 
-void Sunshine::setupDefaultCameras(void)
+void Sunshine::setupDefaultCameras()
 {
     Register::createCamera("persp");
     Register::createCamera("side");
@@ -44,11 +45,11 @@ void Sunshine::setupDefaultCameras(void)
     Register::createCamera("front");
 }
 
-void Sunshine::setupDefaultMeshes(void)
+void Sunshine::setupDefaultMeshes()
 {
-
+    Mesh::buildByIndex(primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
 }
 
-void Sunshine::setupDefaultLights(void)
+void Sunshine::setupDefaultLights()
 {
 }

@@ -14,12 +14,14 @@ SOURCES += main.cpp \
     camera.cpp \
     util.cpp \
     geometry.cpp \
-    register.cpp
+    register.cpp \
+    primitive.cpp
 HEADERS += sunshine.h \
     panelgl.h \
     shader.h \
     util.h \
     camera.h \
     geometry.h \
-    register.h
+    register.h \
+    primitive.h
 FORMS += sunshine.ui

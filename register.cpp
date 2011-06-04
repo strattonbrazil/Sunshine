@@ -28,8 +28,17 @@ CameraP Register::createCamera(QString name)
     int key = instance->uniqueCameraKey();
     QString unique = instance->uniqueName(name);
     instance->_cameras[key] = CameraP(new Camera(unique));
-
+    instance->_names += unique;
     return instance->_cameras[key];
+}
+
+MeshP Register::createMesh(QString name)
+{
+    int key = instance->uniqueMeshKey();
+    QString unique = instance->uniqueName(name);
+    instance->_meshes[key] = MeshP(new Mesh(key,unique));
+    instance->_names += unique;
+    return instance->_meshes[key];
 }
 
 void Register::validate()
@@ -43,6 +52,14 @@ int Register::uniqueCameraKey()
 {
     int counter = 0;
     while (_cameras.contains(counter))
+        counter++;
+    return counter;
+}
+
+int Register::uniqueMeshKey()
+{
+    int counter = 0;
+    while (_meshes.contains(counter))
         counter++;
     return counter;
 }

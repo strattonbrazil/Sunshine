@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QString>
 #include <QSharedPointer>
+#include "primitive.h"
 
 class Vertex;
 class Edge;
@@ -16,46 +17,93 @@ typedef QSharedPointer<Mesh> MeshP;
 
 #include "register.h"
 
-class Vertex;
+class Vertex
+{
+public:
+                          Vertex(int meshKey, int key, Point3 point);
+    void                  setEdge(EdgeP e) { _edge = e; }
+    int                   key() { return _key; }
+    Point3                pos() { return _point; }
+private:
+    int                   _meshKey;
+    int                   _key;
+    Point3                _point;
+    EdgeP                 _edge;
+};
 
 class Mesh
 {
 public:
-                          Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
-    const int             numTriangles();
-    EdgeP                 edge(int key) { return _edges[key]; }
+                                 Mesh(int key, QString name);
+                                 Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
+    static void                  buildByIndex(PrimitiveParts parts);
+    const int                    numTriangles();
+    const int                    numVertices() { return _vertices.size(); }
+    EdgeP                        edge(int key) { return _edges[key]; }
+    VertexP                      vert(int key) { return _vertices[key]; }
+    int                          key() { return _key; }
+    QString                      name() { return _name; }
+    void                         computeEdgePairs();
+    QHashIterator<int,FaceP>     faces() { return QHashIterator<int,FaceP>(_faces); }
 private:
-    int                   _key;
-    QString               _name;
-    QHash<int,VertexP>     _vertices;
-    QHash<int,EdgeP>       _edges;
-    QHash<int,FaceP>       _faces;
+    int                          _key;
+    QString                      _name;
+    QHash<int,VertexP>           _vertices;
+    QHash<int,EdgeP>             _edges;
+    QHash<int,FaceP>             _faces;
 };
 
 class Edge
 {
 public:
                           Edge(int meshKey, int vertexKey, int faceKey, int edgeKey);
-    EdgeP                 next() { return mesh()->edge(_next); }
+    int                   key() { return _edgeKey; }
+    void                  setNext(EdgeP e) { _nextKey = e->key(); }
+    void                  setPrev(EdgeP e) { _prevKey = e->key(); }
+    void                  setPair(EdgeP e) { _pairKey = e->key(); }
+    EdgeP                 next() {
+        //std::cout << mesh()->name().toStdString() << std::endl;
+        //std::cout << mesh()->edge(0) << std::endl;
+        return mesh()->edge(_nextKey);
+    }
+    EdgeP                 prev() { return mesh()->edge(_prevKey); }
+    EdgeP                 pair() { return mesh()->edge(_pairKey); }
     MeshP                 mesh();// { return Register::mesh(_meshKey); }
+    VertexP               vert() { return mesh()->vert(_vertexKey); }
+
+
 private:
     int                   _meshKey;
     int                   _vertexKey;
+    int                   _faceKey;
     int                   _edgeKey;
-    int                   _next;
+    int                   _nextKey;
+    int                   _prevKey;
+    int                   _pairKey;
 
+
+};
+
+class Triangle
+{
+public:
+                          Triangle(EdgeP e1, EdgeP e2, EdgeP e3) : a(e1),b(e2),c(e3) {}
+    EdgeP               a,b,c;
 };
 
 class Face
 {
 public:
-                          Face(int meshKey, int faceKey);
-    EdgeP                 edge() { return EdgeP(NULL); }
+                              Face(int meshKey, int faceKey);
+    int                       key() { return _meshKey; }
+    EdgeP                     edge();
+    void                      setEdge(EdgeP e) { _edgeKey = e->key(); }
+    QListIterator<Triangle>   buildTriangles();
 private:
-    int                   _meshKey;
-    int                   _faceKey;
+    int                       _meshKey;
+    int                       _faceKey;
+    int                       _edgeKey;
 };
-
 
 
 #endif // GEOMETRY_H

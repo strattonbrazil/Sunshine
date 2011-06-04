@@ -6,13 +6,16 @@
 #include <QMouseEvent>
 #include <QSharedPointer>
 
+class Camera;
+typedef QSharedPointer<Camera> CameraP;
+
 class Camera : Transformable
 {
 public:
 
     Camera(QString name);
-    static QMatrix4x4            getViewMatrix(Camera* camera, int width, int height);
-    static QMatrix4x4            getProjMatrix(Camera* camera, int width, int height);
+    static QMatrix4x4            getViewMatrix(CameraP camera, int width, int height);
+    static QMatrix4x4            getProjMatrix(CameraP camera, int width, int height);
     Point3                       eye();
     Vector3                      upDir();
     Point3                       lookat();

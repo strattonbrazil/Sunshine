@@ -12,10 +12,10 @@ class Sunshine : public QMainWindow {
 public:
                                Sunshine(QWidget *parent = 0);
                                ~Sunshine();
-    void                       clearScene(void);
-    void                       setupDefaultCameras(void);
-    void                       setupDefaultMeshes(void);
-    void                       setupDefaultLights(void);
+    void                       clearScene();
+    void                       setupDefaultCameras();
+    void                       setupDefaultMeshes();
+    void                       setupDefaultLights();
 protected:
     void                       changeEvent(QEvent *e);
 

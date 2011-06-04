@@ -18,7 +18,7 @@ PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
     setMouseTracking(true);
     _validShaders = false;
 
-    camera = new Camera("dummy");
+    _camera = Register::createCamera("dummy");
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -80,6 +80,19 @@ void PanelGL::paintGL()
     // render the grid
     mainGrid->render(this);
 
+    // render all the meshes
+    QHashIterator<int,MeshP> meshes = Register::meshes();
+    while (meshes.hasNext()) {
+        meshes.next();
+        int meshKey = meshes.key();
+        MeshP mesh = meshes.value();
+
+        if (!_meshRenderers.contains(meshKey)) // create the mesh renderer if it doesn't exist for this mesh
+            _meshRenderers[meshKey] = MeshRendererP(new MeshRenderer(meshKey));
+
+        _meshRenderers[meshKey]->render(this);
+    }
+
     //glDisable(GL_DEPTH_TEST);
 }
 
@@ -111,7 +124,7 @@ void LineRenderer::render(PanelGL* panel)
 
     loadVBOs(panel);
 
-    Camera* camera = panel->camera;
+    CameraP camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
@@ -176,15 +189,17 @@ MeshRenderer::MeshRenderer(int meshKey)
 void MeshRenderer::render(PanelGL* panel)
 {
     if (!_validVBOs) {
-        glGenBuffers(5, _vboIds);
+        glGenBuffers(2, _vboIds);
 
         _validVBOs = TRUE;
     }
 
-    loadVBOs(panel, NULL);
+    MeshP mesh = Register::mesh(_meshKey);
+    const int numTriangles = mesh->numTriangles();
 
-    /*
-    Camera* camera = panel->camera;
+    loadVBOs(panel, mesh);
+
+    CameraP camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
@@ -192,7 +207,6 @@ void MeshRenderer::render(PanelGL* panel)
 
     QGLShaderProgram* flatShader = panel->getFlatShader();
 
-    glLineWidth(_lineWidth);
     flatShader->bind();
     flatShader->setUniformValue("objToWorld", objToWorld);
     flatShader->setUniformValue("cameraPV", cameraProjViewM);
@@ -209,40 +223,46 @@ void MeshRenderer::render(PanelGL* panel)
     int colorLocation = flatShader->attributeLocation("color");
     flatShader->enableAttributeArray(colorLocation);
     glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
-    // Draw cube geometry using indices from VBO 1
-    //glDrawElements(GL_TRIANGLE_STRIP, 34, GL_UNSIGNED_SHORT, 0);
-    glDrawElements(GL_LINES, _segments.size()*2, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, numTriangles*4, GL_UNSIGNED_SHORT, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     flatShader->release();
-    */
 }
 
-void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
+void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
 {
     const int numTriangles = mesh->numTriangles();
+    const int numVertices = mesh->numVertices();
 
-    /*
-    VertexColorData vertices[_segments.size()*2];
-    for (int i = 0; i < _segments.size(); i++) {
-        vertices[2*i] = { _segments[i].p1, QVector4D(_segments[i].r, _segments[i].g, _segments[i].b, 1.0) };
-        vertices[2*i+1] = { _segments[i].p2, QVector4D(_segments[i].r, _segments[i].g, _segments[i].b, 1.0) };
+    int triangleCount = 0;
+    GLushort indices[numTriangles*3];
+    VertexColorData vertices[numTriangles*3];
+    QHashIterator<int,FaceP> i = mesh->faces();
+    while (i.hasNext()) {
+        i.next();
+        FaceP face = i.value();
+        QListIterator<Triangle> j = face->buildTriangles();
+        while (j.hasNext()) {
+            Triangle triangle = j.next();
+            vertices[triangleCount*3+0] = { triangle.a->vert()->pos(), QVector4D(1,0,0,1) };
+            vertices[triangleCount*3+1] = { triangle.b->vert()->pos(), QVector4D(1,0,0,1) };
+            vertices[triangleCount*3+2] = { triangle.c->vert()->pos(), QVector4D(1,0,0,1) };
+            indices[triangleCount*3+0] = triangleCount*3+0;
+            indices[triangleCount*3+1] = triangleCount*3+1;
+            indices[triangleCount*3+2] = triangleCount*3+2;
+            triangleCount += 0;
+        }
     }
-
-    GLushort indices[_segments.size()*2];
-    for (int i = 0; i < _segments.size()*2; i++)
-        indices[i] = i;
 
     // Transfer vertex data to VBO 0
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBufferData(GL_ARRAY_BUFFER, _segments.size()*2*sizeof(VertexColorData), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(VertexColorData), vertices, GL_STATIC_DRAW);
 
     // Transfer index data to VBO 1
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STATIC_DRAW);
-    */
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, numTriangles*3*sizeof(GLushort), indices, GL_STATIC_DRAW);
 }
 
 void PanelGL::mousePressEvent(QMouseEvent* event)
@@ -255,7 +275,7 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
     else if (workMode == WorkMode::FREE && altDown) {
         workMode = WorkMode::CAMERA;
         workButton = event->button();
-        camera->mousePressed(event);
+        _camera->mousePressed(event);
     }
     else if (workMode == WorkMode::FREE && event->button() & Qt::LeftButton) {
         workMode = WorkMode::SELECT;
@@ -275,7 +295,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
     else if (workMode == WorkMode::CAMERA && event->button() == workButton) {
         workMode = WorkMode::FREE;
         workButton = -1;
-        camera->mouseReleased(event);
+        _camera->mouseReleased(event);
     }
     else if (workMode == WorkMode::SELECT && event->button() == workButton) {
         workMode = WorkMode::FREE;
@@ -307,7 +327,7 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
 void PanelGL::mouseDragEvent(QMouseEvent* event)
 {
     if (workMode == WorkMode::CAMERA) {
-        camera->mouseDragged(event);
+        _camera->mouseDragged(event);
 
     }
     else if (workMode == WorkMode::SELECT) {
