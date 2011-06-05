@@ -33,7 +33,8 @@ public:
     void               	     paintGL();
     void 	             resizeGL(int width, int height);
     QGLFormat                defaultFormat();
-    QGLShaderProgram*        getFlatShader() { return _flatShader; }
+    QGLShaderProgramP        getFlatShader() { return _flatShader; }
+    QGLShaderProgramP        getMeshShader() { return _meshShader; }
     CameraP                  camera() { return _camera; }
     void                     mousePressEvent(QMouseEvent* event);
     void                     mouseReleaseEvent(QMouseEvent* event);
@@ -42,8 +43,8 @@ public:
 private:
     bool                     _validShaders;
     CameraP                  _camera;
-    QGLShaderProgram*        _flatShader;
-    QGLShaderProgram*        _dummyShader;
+    QGLShaderProgramP        _flatShader;
+    QGLShaderProgramP        _meshShader;
     QHash<int,MeshRendererP>  _meshRenderers;
 };
 

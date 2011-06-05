@@ -7,6 +7,8 @@ Vertex::Vertex(int meshKey, int key, Point3 point)
     _point = point;
 }
 
+void Vertex::setEdge(EdgeP e) { _edgeKey = e->key(); }
+
 Edge::Edge(int meshKey, int vertexKey, int faceKey, int edgeKey)
 {
     _meshKey = meshKey;
@@ -43,6 +45,7 @@ Mesh::Mesh(int key, QString name)
 {
     _key = key;
     _name = name;
+    _validNormals = FALSE;
 }
 
 Mesh::Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
@@ -52,6 +55,7 @@ Mesh::Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> 
     _vertices = vertices;
     _edges = edges;
     _faces = faces;
+    _validNormals = FALSE;
 }
 
 void Mesh::buildByIndex(PrimitiveParts parts)
@@ -66,9 +70,6 @@ void Mesh::buildByIndex(PrimitiveParts parts)
     // create vertices
     for (int vertKey = 0; vertKey < parts.points.size(); vertKey++)
         emptyMesh->_vertices[vertKey] = VertexP(new Vertex(meshKey,vertKey,parts.points[vertKey]));
-
-    std::cout << "Num vertices: " << parts.points.size() << std::endl;
-    std::cout << "Num faces: " << parts.faces.size() << std::endl;
 
     // create the faces and edges
     int edgeCount = 0;
@@ -100,8 +101,6 @@ void Mesh::buildByIndex(PrimitiveParts parts)
 
         // add any edge to the face
         face->setEdge(firstEdge);
-
-        std::cout << face->edge()->key() << std::endl;
     }
 
     /*
@@ -212,23 +211,45 @@ void Mesh::computeEdgePairs()
             } while (edge != face->edge());
         }
     }
-/*
-                // attach each edge-pair to its corresponding equal
-                for ((faceKey,face) <- faces) {
-                  var edge = face.edge
-                  do {
-                    val edgePairKey = (edge.next.vert.key, edge.vert.key)
-                    if (pairs.contains(edgePairKey)) {
-                      edge.pair = pairs(edgePairKey)
-                    }
-
-                    edge = edge.next
-                  } while (edge != face.edge)
-                }
-                */
 }
 
- EdgeP Face::edge() {
-     //std::cout << Register::mesh(_meshKey)-> << std::endl;
-     return Register::mesh(_meshKey)->edge(_edgeKey);
- }
+void Mesh::validateNormals()
+{
+    if (!_validNormals) {
+        QHashIterator<int,FaceP> i = faces();
+        while (i.hasNext()) {
+            i.next();
+            FaceP face = i.value();
+            face->calculateNormal();
+
+        }
+    }
+
+    _validNormals = TRUE;
+}
+
+EdgeP Face::edge() {
+    //std::cout << Register::mesh(_meshKey)-> << std::endl;
+    return Register::mesh(_meshKey)->edge(_edgeKey);
+}
+
+void Face::calculateNormal()
+{
+    EdgeP tmpEdge = edge();
+    do {
+      EdgeP edge1 = tmpEdge;
+      EdgeP edge2 = edge1->next();
+      EdgeP edge3 = edge2->next();
+
+      Point3 v1 = edge1->vert()->pos();
+      Point3 v2 = edge2->vert()->pos();
+      Point3 v3 = edge3->vert()->pos();
+
+      Vector3 a = v2 - v1;
+      Vector3 b = v3 - v1;
+      Vector3 normal = Vector3::crossProduct(a, b).normalized();
+      tmpEdge->setNormal(normal);
+
+      tmpEdge = tmpEdge->next();
+    } while (tmpEdge != edge());
+}

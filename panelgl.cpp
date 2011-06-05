@@ -69,11 +69,11 @@ void PanelGL::paintGL()
     glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 
     if (!_validShaders) {
-        _dummyShader = ShaderFactory::buildShader(this);
         _flatShader = ShaderFactory::buildFlatShader(this);
+        _meshShader = ShaderFactory::buildMeshShader(this);
         _validShaders = true;
     }
 
@@ -93,7 +93,7 @@ void PanelGL::paintGL()
         _meshRenderers[meshKey]->render(this);
     }
 
-    //glDisable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
 }
 
 void PanelGL::resizeGL(int width, int height)
@@ -130,7 +130,7 @@ void LineRenderer::render(PanelGL* panel)
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
     QMatrix4x4 objToWorld;
 
-    QGLShaderProgram* flatShader = panel->getFlatShader();
+    QGLShaderProgramP flatShader = panel->getFlatShader();
 
     glLineWidth(_lineWidth);
     flatShader->bind();
@@ -180,6 +180,16 @@ void LineRenderer::loadVBOs(PanelGL* panel)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STATIC_DRAW);
 }
 
+class MeshVertexData
+{
+public:
+                 MeshVertexData() {}
+                 MeshVertexData(Vector3 p, Vector4 c, Vector4 n) : position(p), color(c), normal(n) {}
+    Vector3      position;
+    Vector4      color;
+    Vector3      normal;
+};
+
 MeshRenderer::MeshRenderer(int meshKey)
 {
     _validVBOs = FALSE;
@@ -195,6 +205,7 @@ void MeshRenderer::render(PanelGL* panel)
     }
 
     MeshP mesh = Register::mesh(_meshKey);
+    mesh->validateNormals();
     const int numTriangles = mesh->numTriangles();
 
     loadVBOs(panel, mesh);
@@ -205,30 +216,44 @@ void MeshRenderer::render(PanelGL* panel)
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
     QMatrix4x4 objToWorld;
 
-    QGLShaderProgram* flatShader = panel->getFlatShader();
+    QGLShaderProgramP meshShader = panel->getMeshShader();
 
-    flatShader->bind();
-    flatShader->setUniformValue("objToWorld", objToWorld);
-    flatShader->setUniformValue("cameraPV", cameraProjViewM);
-    flatShader->setUniformValue("overrideStrength", 0.0f);
+    meshShader->bind();
+    meshShader->setUniformValue("objToWorld", objToWorld);
+    meshShader->setUniformValue("cameraPV", cameraProjViewM);
+    meshShader->setUniformValue("cameraPos", camera->eye());
+    meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
+    meshShader->setUniformValue("singleColor", Vector4(1,1,0,1));
+    meshShader->setUniformValue("isSingleColor", 0.0f);
 
     int offset = 0;
-    // Tell OpenGL programmable pipeline how to locate vertex position data
-    int vertexLocation = flatShader->attributeLocation("vertex");
-    flatShader->enableAttributeArray(vertexLocation);
-    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
-    // Offset for texture coordinate
+
+    // tell OpenGL programmable pipeline how to locate vertex position data
+    int vertexLocation = meshShader->attributeLocation("vertex");
+    meshShader->enableAttributeArray(vertexLocation);
+    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+
+
     offset += sizeof(QVector3D);
-    // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
-    int colorLocation = flatShader->attributeLocation("color");
-    flatShader->enableAttributeArray(colorLocation);
-    glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
-    glDrawElements(GL_TRIANGLES, numTriangles*4, GL_UNSIGNED_SHORT, 0);
+
+    // tell OpenGL programmable pipeline how to locate vertex color data
+    int colorLocation = meshShader->attributeLocation("color");
+    meshShader->enableAttributeArray(colorLocation);
+    glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+
+    offset += sizeof(QVector4D);
+
+    // tell OpenGL programmable pipeline how to locate vertex color data
+    int normalLocation = meshShader->attributeLocation("normal");
+    meshShader->enableAttributeArray(normalLocation);
+    glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+
+    glDrawElements(GL_TRIANGLES, numTriangles*3, GL_UNSIGNED_SHORT, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    flatShader->release();
+    meshShader->release();
 }
 
 void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
@@ -238,7 +263,7 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
 
     int triangleCount = 0;
     GLushort indices[numTriangles*3];
-    VertexColorData vertices[numTriangles*3];
+    MeshVertexData vertices[numTriangles*3];
     QHashIterator<int,FaceP> i = mesh->faces();
     while (i.hasNext()) {
         i.next();
@@ -246,19 +271,20 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         QListIterator<Triangle> j = face->buildTriangles();
         while (j.hasNext()) {
             Triangle triangle = j.next();
-            vertices[triangleCount*3+0] = { triangle.a->vert()->pos(), QVector4D(1,0,0,1) };
-            vertices[triangleCount*3+1] = { triangle.b->vert()->pos(), QVector4D(1,0,0,1) };
-            vertices[triangleCount*3+2] = { triangle.c->vert()->pos(), QVector4D(1,0,0,1) };
+            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(), QVector4D(1,0,0,1), triangle.a->normal());
+            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(), QVector4D(1,1,0,1), triangle.b->normal());
+            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(), QVector4D(1,0,1,1), triangle.c->normal());
+
             indices[triangleCount*3+0] = triangleCount*3+0;
             indices[triangleCount*3+1] = triangleCount*3+1;
             indices[triangleCount*3+2] = triangleCount*3+2;
-            triangleCount += 0;
+            triangleCount++;
         }
     }
 
     // Transfer vertex data to VBO 0
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(VertexColorData), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STATIC_DRAW);
 
     // Transfer index data to VBO 1
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);

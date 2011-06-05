@@ -21,14 +21,14 @@ class Vertex
 {
 public:
                           Vertex(int meshKey, int key, Point3 point);
-    void                  setEdge(EdgeP e) { _edge = e; }
+    void                  setEdge(EdgeP e);
     int                   key() { return _key; }
     Point3                pos() { return _point; }
 private:
     int                   _meshKey;
     int                   _key;
     Point3                _point;
-    EdgeP                 _edge;
+    int                   _edgeKey;
 };
 
 class Mesh
@@ -45,12 +45,14 @@ public:
     QString                      name() { return _name; }
     void                         computeEdgePairs();
     QHashIterator<int,FaceP>     faces() { return QHashIterator<int,FaceP>(_faces); }
+    void                         validateNormals();
 private:
     int                          _key;
     QString                      _name;
     QHash<int,VertexP>           _vertices;
     QHash<int,EdgeP>             _edges;
     QHash<int,FaceP>             _faces;
+    bool                         _validNormals;
 };
 
 class Edge
@@ -70,8 +72,8 @@ public:
     EdgeP                 pair() { return mesh()->edge(_pairKey); }
     MeshP                 mesh();// { return Register::mesh(_meshKey); }
     VertexP               vert() { return mesh()->vert(_vertexKey); }
-
-
+    Vector3               normal() { return _normal; }
+    void                  setNormal(Vector3 n) { _normal = n; }
 private:
     int                   _meshKey;
     int                   _vertexKey;
@@ -80,7 +82,7 @@ private:
     int                   _nextKey;
     int                   _prevKey;
     int                   _pairKey;
-
+    Vector3               _normal;
 
 };
 
@@ -99,6 +101,7 @@ public:
     EdgeP                     edge();
     void                      setEdge(EdgeP e) { _edgeKey = e->key(); }
     QListIterator<Triangle>   buildTriangles();
+    void                      calculateNormal();
 private:
     int                       _meshKey;
     int                       _faceKey;

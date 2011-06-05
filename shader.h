@@ -6,11 +6,13 @@
 
 //using namespace std;
 
+typedef QSharedPointer<QGLShaderProgram> QGLShaderProgramP;
+
 class ShaderFactory
 {
 public:
-    static QGLShaderProgram* buildFlatShader(QObject *parent);
-    static QGLShaderProgram* buildShader(QObject *parent);
+    static QGLShaderProgramP buildFlatShader(QObject *parent);
+    static QGLShaderProgramP buildMeshShader(QObject *parent);
 };
 
 #endif // SHADER_H
