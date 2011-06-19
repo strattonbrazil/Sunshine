@@ -5,6 +5,7 @@ QT += opengl \
     script \
     webkit
 LIBS += -lGLEW
+LIBS += -laqsis_core
 TARGET = sunshine
 TEMPLATE = app
 SOURCES += main.cpp \
@@ -15,7 +16,9 @@ SOURCES += main.cpp \
     util.cpp \
     geometry.cpp \
     register.cpp \
-    primitive.cpp
+    primitive.cpp \
+    renderwidget.cpp \
+    imageviewer.cpp
 HEADERS += sunshine.h \
     panelgl.h \
     shader.h \
@@ -23,5 +26,8 @@ HEADERS += sunshine.h \
     camera.h \
     geometry.h \
     register.h \
-    primitive.h
-FORMS += sunshine.ui
+    primitive.h \
+    renderwidget.h \
+    imageviewer.h
+FORMS += sunshine.ui \
+    renderwidget.ui

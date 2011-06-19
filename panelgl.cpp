@@ -271,9 +271,9 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         QListIterator<Triangle> j = face->buildTriangles();
         while (j.hasNext()) {
             Triangle triangle = j.next();
-            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(), QVector4D(1,0,0,1), triangle.a->normal());
-            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(), QVector4D(1,1,0,1), triangle.b->normal());
-            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(), QVector4D(1,0,1,1), triangle.c->normal());
+            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(), QVector4D(.8,.8,.8,1), triangle.a->normal());
+            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(), QVector4D(.8,.8,.8,1), triangle.b->normal());
+            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(), QVector4D(.8,.8,.8,1), triangle.c->normal());
 
             indices[triangleCount*3+0] = triangleCount*3+0;
             indices[triangleCount*3+1] = triangleCount*3+1;

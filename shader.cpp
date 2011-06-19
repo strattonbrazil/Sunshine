@@ -70,7 +70,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "    vec3 H = normalize(L+V);\n" \
                        "    vec4 color = isSingleColor*singleColor + (1.0-isSingleColor)*gl_Color;\n" \
                        "    //vec4 color = gl_Color;\n" \
-                       "    float amb = .4;\n" \
+                       "    float amb = .6;\n" \
                        "    vec4 ambient = color * amb;\n" \
                        "    vec4 diffuse = color * (1.0 - amb) * max(dot(L, N), 0.0);\n" \
                        "    vec4 specular = vec4(0);\n" \

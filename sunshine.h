@@ -2,6 +2,7 @@
 #define SUNSHINE_H
 
 #include <QMainWindow>
+#include "renderwidget.h"
 
 namespace Ui {
     class Sunshine;
@@ -19,8 +20,12 @@ public:
 protected:
     void                       changeEvent(QEvent *e);
 
+private slots:
+    void                       on_renderButton_clicked();
+
 private:
     Ui::Sunshine*              ui;
+    RenderWidget*              renderWidget;
 };
 
 #endif // SUNSHINE_H
