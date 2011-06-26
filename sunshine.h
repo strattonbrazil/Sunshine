@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "renderwidget.h"
+#include "settings.h"
 
 namespace Ui {
     class Sunshine;
@@ -22,10 +23,12 @@ protected:
 
 private slots:
     void                       on_renderButton_clicked();
+    void on_renderSettingsButton_clicked();
 
 private:
     Ui::Sunshine*              ui;
-    RenderWidget*              renderWidget;
+    RenderWidget*              _renderWidget;
+    SettingsWidget*            _renderSettingsWidget;
 };
 
 #endif // SUNSHINE_H

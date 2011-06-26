@@ -9,7 +9,7 @@
 class Camera;
 typedef QSharedPointer<Camera> CameraP;
 
-class Camera : Transformable
+class Camera : public Transformable
 {
 public:
 

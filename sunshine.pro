@@ -18,7 +18,9 @@ SOURCES += main.cpp \
     register.cpp \
     primitive.cpp \
     renderwidget.cpp \
-    imageviewer.cpp
+    imageviewer.cpp \
+    settings.cpp \
+    $$files(./qtpropertybrowser/*.cpp)
 HEADERS += sunshine.h \
     panelgl.h \
     shader.h \
@@ -28,6 +30,8 @@ HEADERS += sunshine.h \
     register.h \
     primitive.h \
     renderwidget.h \
-    imageviewer.h
+    imageviewer.h \
+    settings.h \
+    $$files(./qtpropertybrowser/*.h)
 FORMS += sunshine.ui \
     renderwidget.ui

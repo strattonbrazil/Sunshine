@@ -4,20 +4,32 @@
 #include "primitive.h"
 #include <aqsis/aqsis.h>
 #include <aqsis/ri/ri.h>
+#include "settings.h"
 
 Sunshine::Sunshine(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Sunshine)
 {
-    renderWidget = NULL;
+    _renderWidget = NULL;
+
 
     clearScene();
     ui->setupUi(this);
+
+    //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
+     //                     &b, SLOT(setValue(int)));
+
+
+    QString renderSettings("[{ 'var' : 'xres', 'name' : 'Image Width', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 800, 'group' : 'Image Settings'},"\
+                            "{ 'var' : 'yres', 'name' : 'Image Height', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 600, 'group' : 'Image Settings'},");
+    _renderSettingsWidget = new SettingsWidget(renderSettings);
 }
 
 Sunshine::~Sunshine()
 {
     delete ui;
+    if (!_renderWidget) delete _renderWidget;
+    if (!_renderSettingsWidget) delete _renderSettingsWidget;
 }
 
 void Sunshine::changeEvent(QEvent *e)
@@ -60,21 +72,41 @@ void Sunshine::setupDefaultLights()
 
 void Sunshine::on_renderButton_clicked()
 {
-    if (renderWidget == NULL)
-        renderWidget = new RenderWidget();
+    if (_renderWidget == NULL)
+        _renderWidget = new RenderWidget();
 
     char* fileName = "/tmp/test.tif";
-    renderWidget->show();
+    _renderWidget->show();
+
+    std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
 
     RiBegin(RI_NULL);
     // Output image
     RiDisplay(fileName, "file", "rgb", RI_NULL);
-    RiFormat(800, 800, 1);
+    RiFormat(_renderSettingsWidget->getValue("xres").toInt(),
+             _renderSettingsWidget->getValue("yres").toInt(),
+             1);
+
+    //CameraP activeCamera = Register::cameras()->next();
+    QHashIterator<int,CameraP> cameras = Register::cameras();
+    cameras.next();
+    CameraP activeCamera = cameras.value();
+
+    //while (meshes.hasNext()) {
+    //    meshes.next();
 
     // Camera type & position
-    float fov = 45;
+    float fov = activeCamera->fov();
+    //float fov = 45;
     RiProjection("perspective", "fov", &fov, RI_NULL);
     RiTranslate(0, 0, 3);
+    /*
+    RtPoint camPosition = { activeCamera->eye().x(), activeCamera->eye().y(), activeCamera->eye().z() };
+    RtPoint camDirection = { activeCamera->lookDir().x(), activeCamera->lookDir().y(), activeCamera->lookDir().z() };
+    RiLookAt(activeCamera->eye(),
+             activeCamera->lookDir(),
+             activeCamera->upDir());
+             */
 
     RiWorldBegin();
     // Geometry
@@ -99,7 +131,16 @@ void Sunshine::on_renderButton_clicked()
 
     RiEnd();
 
-    renderWidget->open(QString(fileName));
+    _renderWidget->open(QString(fileName));
 
     std::cout << "Render to window" << std::endl;
+}
+
+
+
+void Sunshine::on_renderSettingsButton_clicked()
+{
+    std::cout << "Bringing up render settings" << std::endl;
+    _renderSettingsWidget->show();
+
 }

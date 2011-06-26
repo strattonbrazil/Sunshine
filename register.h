@@ -4,6 +4,7 @@
 #include "util.h"
 #include "camera.h"
 #include "geometry.h"
+#include <v8.h>
 
 class Register
 {
@@ -14,6 +15,7 @@ public:
     static MeshP                       createMesh(QString name);
     static void                        setMesh(int meshKey, MeshP mesh) { validate(); instance->_meshes[meshKey] = mesh; }
     static QHashIterator<int, MeshP>   meshes() { validate(); return QHashIterator<int,MeshP>(instance->_meshes); }
+    static QHashIterator<int, CameraP> cameras() { validate(); return QHashIterator<int,CameraP>(instance->_cameras); }
 protected:
                                        Register();
     static void                        validate();
@@ -27,6 +29,8 @@ private:
     QHash<int,CameraP>                 _cameras;
     //QHash<int,Light*>      _lights;
     QSet<QString>                      _names;
+    v8::Handle<v8::Context>            _context;
+
 };
 
 #endif // REGISTER_H
