@@ -10,7 +10,7 @@ class SettingsWidget : public QWidget
 {
 public:
 
-                                  SettingsWidget(QString atts);
+                                  SettingsWidget(QString name_space, QString atts);
     QVariant                      getValue(QString var);
     QVariant                      operator[](QString var) { return getValue(var); }
     //QVariant                      operator[](const char* var) { return getValue(QString(var)); }

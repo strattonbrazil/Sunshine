@@ -18,7 +18,7 @@
 #include <iostream>
 using namespace std;
 
-SettingsWidget::SettingsWidget(QString atts)
+SettingsWidget::SettingsWidget(QString nameSpace, QString atts)
 {
     this->setMinimumWidth(400);
     this->setMaximumWidth(400);
@@ -30,6 +30,11 @@ SettingsWidget::SettingsWidget(QString atts)
     QScriptValue sc;
     QScriptEngine engine;
     sc = engine.evaluate(atts); // In new versions it may need to look like engine.evaluate("(" + QString(result) + ")");
+    if (engine.hasUncaughtException()) {
+        int line = engine.uncaughtExceptionLineNumber();
+        std::cerr << "uncaught exception at line" << line << ":" << sc.toString().toStdString() << std::endl;
+        return;
+    }
 
     //std::cout << sc.toString().toStdString() << std::endl;
     QVariantList attsList;
@@ -47,11 +52,9 @@ SettingsWidget::SettingsWidget(QString atts)
     variantEditor->setPropertiesWithoutValueMarked(true);
     variantEditor->setRootIsDecorated(false);
 
-    int row = 0;
     foreach (QVariant item, attsList) {
         //std::cout << item.typeName() << std::endl;
         QMap<QString,QVariant> attribute = item.toMap();
-
 
         //layout->addWidget(new QLabel(att["name"].toString()), row, 0);
         //std::cout << row["name"].toString().toStdString() << std::endl;
@@ -76,13 +79,11 @@ SettingsWidget::SettingsWidget(QString atts)
             groups[attribute["group"].toString()] = variantManager->addProperty(QtVariantPropertyManager::groupTypeId(),
                                                                      attribute["group"].toString());
         groups[attribute["group"].toString()]->addSubProperty(item);
-        //topItem->addSubProperty(item);
-
-        //row++;
     }
 
     foreach (QtProperty* group, groups) {
         variantEditor->addProperty(group);
+        std::cout << "adding group: " << std::endl;
     }
 
     /*
@@ -233,6 +234,7 @@ SettingsWidget::SettingsWidget(QString atts)
 
 QVariant SettingsWidget::getValue(QString var)
 {
+    std::cout << "request: " << var.toStdString() << std::endl;
     QtProperty* property = _vars[var];
     if (!property) {
         std::cerr << "Unknown variable requested: getValue(" << var.toStdString() << ")" << std::endl;

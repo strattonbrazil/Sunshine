@@ -20,7 +20,11 @@ SOURCES += main.cpp \
     renderwidget.cpp \
     imageviewer.cpp \
     settings.cpp \
-    $$files(./qtpropertybrowser/*.cpp)
+    $$files(./qtpropertybrowser/*.cpp) \
+    select.cpp \
+    face_util.cpp \
+    project_util.cpp \
+    vertex_util.cpp
 HEADERS += sunshine.h \
     panelgl.h \
     shader.h \
@@ -32,6 +36,10 @@ HEADERS += sunshine.h \
     renderwidget.h \
     imageviewer.h \
     settings.h \
-    $$files(./qtpropertybrowser/*.h)
+    $$files(./qtpropertybrowser/*.h) \
+    select.h \
+    face_util.h \
+    project_util.h \
+    vertex_util.h
 FORMS += sunshine.ui \
     renderwidget.ui

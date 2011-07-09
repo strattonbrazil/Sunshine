@@ -21,8 +21,8 @@ Sunshine::Sunshine(QWidget *parent) :
 
 
     QString renderSettings("[{ 'var' : 'xres', 'name' : 'Image Width', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 800, 'group' : 'Image Settings'},"\
-                            "{ 'var' : 'yres', 'name' : 'Image Height', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 600, 'group' : 'Image Settings'},");
-    _renderSettingsWidget = new SettingsWidget(renderSettings);
+                            "{ 'var' : 'yres', 'name' : 'Image Height', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 600, 'group' : 'Image Settings'}]");
+    _renderSettingsWidget = new SettingsWidget("render_settings", renderSettings);
 }
 
 Sunshine::~Sunshine()

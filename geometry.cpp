@@ -41,7 +41,7 @@ QListIterator<Triangle> Face::buildTriangles()
     return QListIterator<Triangle>(triangles);
 }
 
-Mesh::Mesh(int key, QString name)
+Mesh::Mesh(int key, QString name) : Transformable()
 {
     _key = key;
     _name = name;

@@ -40,12 +40,14 @@ public:
     void                     mouseReleaseEvent(QMouseEvent* event);
     void                     mouseMoveEvent(QMouseEvent* event);
     void                     mouseDragEvent(QMouseEvent* event);
+    Point3                   unproject(Point3 p);
+    Vector3                  computeRayDirection(QPoint p);
 private:
     bool                     _validShaders;
     CameraP                  _camera;
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
-    QHash<int,MeshRendererP>  _meshRenderers;
+    QHash<int,MeshRendererP> _meshRenderers;
 };
 
 struct LineSegment {

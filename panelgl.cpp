@@ -5,6 +5,8 @@
 
 #include <QVarLengthArray>
 #include <QMouseEvent>
+#include "select.h"
+#include "project_util.h"
 
 //#include <iostream>
 //using namespace std;
@@ -12,6 +14,12 @@
 LineRenderer* mainGrid = NULL;
 int workMode = WorkMode::FREE;
 int workButton = -1;
+
+struct VertexColorData
+{
+    Vector3 position;
+    Vector4 color;
+};
 
 PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
 {
@@ -94,18 +102,51 @@ void PanelGL::paintGL()
     }
 
     glDisable(GL_DEPTH_TEST);
+
+    // render the selection box
+    if (workMode == WorkMode::SELECT) {
+        if (BasicSelect::selectMode() == SelectMode::BOX) {
+
+            CameraP camera = _camera;
+            QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
+            QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width(), height());
+            QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+            QMatrix4x4 objToWorld;
+
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            glOrtho(0, width(), 0, height(), -1, 1);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+
+            glColor4f(1,.2f,1,.2f);
+            glBegin(GL_LINE_LOOP);
+            {
+                glVertex2f(BasicSelect::minX,BasicSelect::minY);
+                glVertex2f(BasicSelect::minX,BasicSelect::maxY);
+                glVertex2f(BasicSelect::maxX,BasicSelect::maxY);
+                glVertex2f(BasicSelect::maxX,BasicSelect::minY);
+            }
+            glEnd();
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glBegin(GL_QUADS);
+            {
+                glVertex2f(BasicSelect::minX,BasicSelect::minY);
+                glVertex2f(BasicSelect::minX,BasicSelect::maxY);
+                glVertex2f(BasicSelect::maxX,BasicSelect::maxY);
+                glVertex2f(BasicSelect::maxX,BasicSelect::minY);
+            }
+            glEnd();
+            glDisable(GL_BLEND);
+        }
+    }
 }
 
 void PanelGL::resizeGL(int width, int height)
 {
     glViewport(0,0,width,height);
 }
-
-struct VertexColorData
-{
-    Vector3 position;
-    Vector4 color;
-};
 
 LineRenderer::LineRenderer(QVector<LineSegment> segments, float lineWidth)
 {
@@ -308,6 +349,7 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
         workButton = event->button();
         //basicSelect = BasicSelect.instance
         //basic_select.mousePressed(self,event)
+        BasicSelect::mousePressed(this, event);
     }
 }
 
@@ -326,8 +368,8 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
     else if (workMode == WorkMode::SELECT && event->button() == workButton) {
         workMode = WorkMode::FREE;
         workButton = -1;
-        //basic_select = BasicSelect.instance
-        //basic_select.mouseRelease(self, event)
+        BasicSelect::mouseReleased(this, event);
+
     }
     else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
         std::cout << "Popup menu" << std::endl;
@@ -359,8 +401,35 @@ void PanelGL::mouseDragEvent(QMouseEvent* event)
     else if (workMode == WorkMode::SELECT) {
         //basic_select = BasicSelect.instance
         //basic_select.mouseDrag(self, event)
+        BasicSelect::mouseDragged(this, event);
     }
 
     update();
 
+}
+
+Point3 PanelGL::unproject(Point3 p)
+{
+    int viewport[4];
+    viewport[0] = 0;
+    viewport[1] = 0;
+    viewport[2] = width();
+    viewport[3] = height();
+
+    QMatrix4x4 cameraViewM = Camera::getViewMatrix(_camera, width(), height());
+    QMatrix4x4 cameraProjM = Camera::getProjMatrix(_camera, width(), height());
+
+    Point3 object = ProjectUtil::unproject(p.x(), p.y(), p.z(),
+                                           cameraViewM,
+                                           cameraProjM,
+                                           viewport);
+    return object;
+}
+
+Vector3 PanelGL::computeRayDirection(QPoint p) {
+    Point3 pNear = unproject(Point3(p.x(), height() - p.y(), 0.3));
+    Point3 pFar = unproject(Point3(p.x(), height() - p.y(), 0.6));
+    Vector3 rayDir = pFar - pNear;
+    rayDir.normalize();
+    return rayDir;
 }

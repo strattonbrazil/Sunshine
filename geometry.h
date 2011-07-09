@@ -24,14 +24,17 @@ public:
     void                  setEdge(EdgeP e);
     int                   key() { return _key; }
     Point3                pos() { return _point; }
+    bool                  isSelected() { return _selected; }
+    void                  setSelected(bool s) { _selected = s; }
 private:
     int                   _meshKey;
     int                   _key;
     Point3                _point;
     int                   _edgeKey;
+    bool                  _selected;
 };
 
-class Mesh
+class Mesh : public Transformable
 {
 public:
                                  Mesh(int key, QString name);
@@ -46,6 +49,8 @@ public:
     void                         computeEdgePairs();
     QHashIterator<int,FaceP>     faces() { return QHashIterator<int,FaceP>(_faces); }
     void                         validateNormals();
+    bool                         isSelected() { return _selected; }
+    void                         setSelected(bool s) { _selected = s; }
 private:
     int                          _key;
     QString                      _name;
@@ -53,6 +58,7 @@ private:
     QHash<int,EdgeP>             _edges;
     QHash<int,FaceP>             _faces;
     bool                         _validNormals;
+    bool                         _selected;
 };
 
 class Edge

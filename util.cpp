@@ -163,3 +163,4 @@ void printQuat(QQuaternion q)
     printf("<%f,%f,%f,%f>\n", q.x(), q.y(), q.z(), q.scalar());
     fflush(stdout);
 }
+
