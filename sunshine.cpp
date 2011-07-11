@@ -6,6 +6,8 @@
 #include <aqsis/ri/ri.h>
 #include "settings.h"
 
+int Sunshine::_geometryMode = GeometryMode::OBJECT;
+
 Sunshine::Sunshine(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::Sunshine)
@@ -99,7 +101,12 @@ void Sunshine::on_renderButton_clicked()
     float fov = activeCamera->fov();
     //float fov = 45;
     RiProjection("perspective", "fov", &fov, RI_NULL);
-    RiTranslate(0, 0, 3);
+
+    RtMatrix cameraTransform;
+    activeCamera->lookTransform(cameraTransform);
+    //RtMatrix
+    //RiTransform(transform);
+    //RiTranslate(0, 0, 3);
     /*
     RtPoint camPosition = { activeCamera->eye().x(), activeCamera->eye().y(), activeCamera->eye().z() };
     RtPoint camDirection = { activeCamera->lookDir().x(), activeCamera->lookDir().y(), activeCamera->lookDir().z() };

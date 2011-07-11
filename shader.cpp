@@ -68,6 +68,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "    vec3 V = normalize(cameraPos - worldPos);\n" \
                        "    vec3 N = normalize(worldNormal);\n" \
                        "    vec3 H = normalize(L+V);\n" \
+                       "    //vec4 color = singleColor;\n" \
                        "    vec4 color = isSingleColor*singleColor + (1.0-isSingleColor)*gl_Color;\n" \
                        "    //vec4 color = gl_Color;\n" \
                        "    float amb = .6;\n" \

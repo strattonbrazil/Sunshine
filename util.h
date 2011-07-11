@@ -15,6 +15,9 @@ typedef QVector3D Vector3;
 typedef QVector4D Vector4;
 typedef QVector3D Point3; // bad idea?
 
+std::ostream& operator<< (std::ostream& o, Vector3 const& v);
+std::ostream& operator<< (std::ostream& o, QVector4D const& v);
+
 #define PI 3.14159
 
 class Quat4 : public QQuaternion
@@ -84,5 +87,9 @@ namespace WorkMode {
     enum { FREE, CAMERA, TOOL, SELECT };
 }
 
+const QVector4D SELECTED_COLOR(1,0,0,1);
+const QVector4D SELECTED_HOVER_COLOR(1,1,0,1);
+const QVector4D UNSELECTED_COLOR(1,1,1,1);
+const QVector4D UNSELECTED_HOVER_COLOR(0,1,0,1);
 
 #endif // UTIL_H

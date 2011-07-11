@@ -25,6 +25,22 @@ def project(objX:Float,objY:Float,objZ:Float,modelView:Array[Float],proj:Array[F
 */
 
 namespace ProjectUtil {
+    Point3 project(float objX, float objY, float objZ, QMatrix4x4 modelView, QMatrix4x4 proj, int *viewport)
+    {
+        GLdouble screenX, screenY, screenZ;
+        qreal m[16];
+        qreal p[16];
+        modelView.transposed().copyDataTo(m);
+        proj.transposed().copyDataTo(p);
+        gluProject(objX, objY, objZ,
+                   m,
+                   p,
+                   viewport,
+                   &screenX, &screenY, &screenZ);
+        return Point3(screenX, screenY, screenZ);
+
+    }
+
     Point3 unproject(float winX, float winY, float winZ, QMatrix4x4 modelView, QMatrix4x4 proj, int* viewport)
     {
         GLdouble objX, objY, objZ;

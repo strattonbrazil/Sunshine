@@ -43,6 +43,11 @@ QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height)
     return m;
 }
 
+void Camera::lookTransform(RtMatrix &t)
+{
+
+}
+
 void Camera::mousePressed(QMouseEvent *event)
 {
     pickX = event->pos().x();

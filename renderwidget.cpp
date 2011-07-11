@@ -2,8 +2,8 @@
 #include "ui_renderwidget.h"
 #include <QLayout>
 
-RenderWidget::RenderWidget(QWidget *parent) :
-    QWidget(parent),
+RenderWidget::RenderWidget(QDialog *parent) :
+    QDialog(parent),
     ui(new Ui::RenderWidget)
 {
     ui->setupUi(this);

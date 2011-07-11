@@ -110,8 +110,34 @@ end
     maxY = std::max(panel->height() - pick.y(), panel->height() - current.y());
 }
 
-void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool selectValue) {
+void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool selectValue)
+{
+    if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
+        QHashIterator<int,MeshP> meshes = Register::meshes();
+        while (meshes.hasNext()) {
+            meshes.next();
+            int meshKey = meshes.key();
+            MeshP mesh = meshes.value();
+            if (newSelection && selectValue)
+                mesh->setSelected(!selectValue);
+            QMatrix4x4 objToWorld = mesh->objectToWorld();
+            QHashIterator<int,VertexP> vertices = mesh->vertices();
+            while (vertices.hasNext()) {
+                vertices.next();
+                int key = vertices.key();
+                VertexP vertex = vertices.value();
 
+                Point3 objectP = vertex->pos();
+                Point3 worldP = objToWorld.map(objectP);
+                Point3 screenP = panel->project(worldP);
+
+                if (screenP.x() >= minX && screenP.x() <= maxX && screenP.y() >= minY && screenP.y() <= maxY) {
+                    mesh->setSelected(selectValue);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void BasicSelect::processLineSelection(PanelGL *panel, QMouseEvent *event) {

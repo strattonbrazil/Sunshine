@@ -5,6 +5,7 @@
 #include "util.h"
 #include <QMouseEvent>
 #include <QSharedPointer>
+#include <aqsis/ri/ri.h>
 
 class Camera;
 typedef QSharedPointer<Camera> CameraP;
@@ -21,6 +22,7 @@ public:
     Point3                       lookat();
     Vector3                      lookDir();
     Vector3                      leftDir();
+    void                         lookTransform(RtMatrix &t);
 
     QString                      name;
     int                          pickX;

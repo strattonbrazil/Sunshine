@@ -264,8 +264,30 @@ void MeshRenderer::render(PanelGL* panel)
     meshShader->setUniformValue("cameraPV", cameraProjViewM);
     meshShader->setUniformValue("cameraPos", camera->eye());
     meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
-    meshShader->setUniformValue("singleColor", Vector4(1,1,0,1));
-    meshShader->setUniformValue("isSingleColor", 0.0f);
+
+    int _hoverMeshKey = -1;
+
+    if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
+        QVector4D singleColor;
+        if (mesh->isSelected() && mesh->key() != _hoverMeshKey)
+            singleColor = SELECTED_COLOR;
+        else if (mesh->isSelected() && mesh->key() == _hoverMeshKey)
+            singleColor = SELECTED_HOVER_COLOR;
+        else if (mesh->key() == _hoverMeshKey)
+            singleColor = UNSELECTED_HOVER_COLOR;
+        else
+            singleColor = UNSELECTED_COLOR;
+
+        meshShader->setUniformValue("singleColor", singleColor.x(),
+                                                   singleColor.y(),
+                                                   singleColor.z(),
+                                                   singleColor.w());
+        meshShader->setUniformValue("isSingleColor", 1.0f);
+    } else {
+        meshShader->setUniformValue("singleColor", 0,0,0,0);
+        meshShader->setUniformValue("isSingleColor", 0.0f);
+    }
+
 
     int offset = 0;
 
@@ -309,12 +331,28 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
     while (i.hasNext()) {
         i.next();
         FaceP face = i.value();
+        QVector4D color;
+        if (Sunshine::geometryMode() == GeometryMode::FACE) {
+
+            int _hoverFaceKey;
+            int _hoverMeshKey;
+            if (face->isSelected() && face->key() != _hoverFaceKey)
+                color = SELECTED_COLOR;
+            else if (face->isSelected() && face->key() == _hoverFaceKey && mesh->key() == _hoverMeshKey)
+                color = SELECTED_HOVER_COLOR;
+            else if (face->key() == _hoverFaceKey and mesh->key() == _hoverMeshKey)
+                color = UNSELECTED_HOVER_COLOR;
+            else
+                color = UNSELECTED_COLOR;
+        } else {
+            color = UNSELECTED_COLOR;
+        }
         QListIterator<Triangle> j = face->buildTriangles();
         while (j.hasNext()) {
             Triangle triangle = j.next();
-            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(), QVector4D(.8,.8,.8,1), triangle.a->normal());
-            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(), QVector4D(.8,.8,.8,1), triangle.b->normal());
-            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(), QVector4D(.8,.8,.8,1), triangle.c->normal());
+            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(), color, triangle.a->normal());
+            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(), color, triangle.b->normal());
+            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(), color, triangle.c->normal());
 
             indices[triangleCount*3+0] = triangleCount*3+0;
             indices[triangleCount*3+1] = triangleCount*3+1;
@@ -406,6 +444,20 @@ void PanelGL::mouseDragEvent(QMouseEvent* event)
 
     update();
 
+}
+
+Point3 PanelGL::project(Point3 p)
+{
+    int viewport[] = { 0, 0, width(), height() };
+
+    QMatrix4x4 cameraViewM = Camera::getViewMatrix(_camera, width(), height());
+    QMatrix4x4 cameraProjM = Camera::getProjMatrix(_camera, width(), height());
+
+    Point3 object = ProjectUtil::project(p.x(), p.y(), p.z(),
+                                         cameraViewM,
+                                         cameraProjM,
+                                         viewport);
+    return object;
 }
 
 Point3 PanelGL::unproject(Point3 p)

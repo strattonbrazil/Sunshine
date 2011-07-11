@@ -3,6 +3,16 @@
 //#include <iostream>
 //using namespace std;
 
+std::ostream& operator<< (std::ostream& o, Vector3 const& v)
+{
+   return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
+}
+
+std::ostream& operator<< (std::ostream& o, QVector4D const& v)
+{
+   return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ", " << v.w() << ")";
+}
+
 Quat4::Quat4() : QQuaternion()
 {
 
@@ -88,6 +98,8 @@ Transformable::Transformable()
     _upRot = 0.0f;
     _fov = 60.0f;
     _distance = 1.0f;
+
+    _scale = Vector3(1,1,1);
 
 }
 

@@ -83,7 +83,6 @@ SettingsWidget::SettingsWidget(QString nameSpace, QString atts)
 
     foreach (QtProperty* group, groups) {
         variantEditor->addProperty(group);
-        std::cout << "adding group: " << std::endl;
     }
 
     /*

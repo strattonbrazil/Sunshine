@@ -40,6 +40,7 @@ public:
     void                     mouseReleaseEvent(QMouseEvent* event);
     void                     mouseMoveEvent(QMouseEvent* event);
     void                     mouseDragEvent(QMouseEvent* event);
+    Point3                   project(Point3 p);
     Point3                   unproject(Point3 p);
     Vector3                  computeRayDirection(QPoint p);
 private:

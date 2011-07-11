@@ -1,19 +1,19 @@
 #ifndef RENDERWIDGET_H
 #define RENDERWIDGET_H
 
-#include <QWidget>
+#include <QDialog>
 #include <imageviewer.h>
 
 namespace Ui {
     class RenderWidget;
 }
 
-class RenderWidget : public QWidget
+class RenderWidget : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit               RenderWidget(QWidget *parent = 0);
+    explicit               RenderWidget(QDialog *parent = 0);
                            ~RenderWidget();
     void                   open(QString fileName);
 private:

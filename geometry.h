@@ -48,6 +48,7 @@ public:
     QString                      name() { return _name; }
     void                         computeEdgePairs();
     QHashIterator<int,FaceP>     faces() { return QHashIterator<int,FaceP>(_faces); }
+    QHashIterator<int,VertexP>   vertices() { return QHashIterator<int,VertexP>(_vertices); }
     void                         validateNormals();
     bool                         isSelected() { return _selected; }
     void                         setSelected(bool s) { _selected = s; }
@@ -108,10 +109,12 @@ public:
     void                      setEdge(EdgeP e) { _edgeKey = e->key(); }
     QListIterator<Triangle>   buildTriangles();
     void                      calculateNormal();
+    bool                      isSelected() { return _selected; }
 private:
     int                       _meshKey;
     int                       _faceKey;
     int                       _edgeKey;
+    bool                      _selected;
 };
 
 
