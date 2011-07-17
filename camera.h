@@ -10,6 +10,11 @@
 class Camera;
 typedef QSharedPointer<Camera> CameraP;
 
+typedef struct myRotatePair {
+    QVector4D rot1;
+    QVector4D rot2;
+} RotatePair;
+
 class Camera : public Transformable
 {
 public:
@@ -23,6 +28,8 @@ public:
     Vector3                      lookDir();
     Vector3                      leftDir();
     void                         lookTransform(RtMatrix &t);
+    void                         flipYZ(RtMatrix m);
+    RotatePair                   aim(Vector3 dir);
 
     QString                      name;
     int                          pickX;

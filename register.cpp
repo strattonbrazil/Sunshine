@@ -1,9 +1,27 @@
 #include "register.h"
 
+#include <QCoreApplication>
+#include <QStringList>
+
 Register* Register::instance = NULL;
+
+CameraP Register::fetchCamera(QString name)
+{
+    validate();
+    QHashIterator<int,CameraP> cams = cameras();
+    while (cams.hasNext()) {
+        cams.next();
+        cams.key();
+        CameraP cam = cams.value();
+        if (cam->name == name)
+            return cam;
+    }
+    return CameraP();
+}
 
 Register::Register()
 {
+    _engine = QScriptEngineP(new QScriptEngine());
 }
 
 MeshP Register::mesh(int key)
@@ -18,6 +36,28 @@ void Register::clearScene()
     instance->_meshes.clear();
     instance->_cameras.clear();
     instance->_names.clear();
+
+    QCoreApplication::addLibraryPath("/home/stratton/sunshine/");
+
+    // output library path
+    foreach (QString path, QCoreApplication::libraryPaths()) {
+        std::cout << path.toStdString() << std::endl;
+    }
+
+    // import any plugins
+    instance->_engine = QScriptEngineP(new QScriptEngine());
+    QScriptValue sc = instance->_engine->importExtension("core.import.obj");
+    if (instance->_engine->hasUncaughtException()) {
+        int line = instance->_engine->uncaughtExceptionLineNumber();
+        std::cerr << "uncaught exception at line" << line << ":" << sc.toString().toStdString() << std::endl;
+        //return;
+    }
+
+    sc = instance->_engine->evaluate("core.import.obj.import.extension();");
+    if (instance->_engine->hasUncaughtException()) {
+        int line = instance->_engine->uncaughtExceptionLineNumber();
+        std::cerr << "uncaught exception at line" << line << ":" << sc.toString().toStdString() << std::endl;
+    }
 }
 
 CameraP Register::createCamera(QString name)

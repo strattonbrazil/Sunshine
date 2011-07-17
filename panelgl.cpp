@@ -26,7 +26,7 @@ PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
     setMouseTracking(true);
     _validShaders = false;
 
-    _camera = Register::createCamera("dummy");
+    _camera = Register::fetchCamera("persp");
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};

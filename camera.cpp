@@ -45,7 +45,75 @@ QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height)
 
 void Camera::lookTransform(RtMatrix &t)
 {
+    /*
+    QMatrix4x4 m = getViewMatrix(CameraP(this), -1, -1);
+    for (int i = 0; i < 4; i++) {
+        QVector4D row = m.row(i);
+        t[0][i] = row.x();
+        t[1][i] = row.y();
+        t[2][i] = row.z();
+        t[3][i] = row.w();
+    }
+    */
+}
 
+#define PI 3.14159265359
+RotatePair Camera::aim(Vector3 dir)
+{ // based on VTK aim
+    double xzlen, yzlen, yrot, xrot;
+
+    /*
+     * The initial rotation about the y axis is given by the projection of
+     * the direction vector onto the x,z plane: the x and z components
+     * of the direction.
+     */
+    xzlen = sqrt(dir.x()*dir.x()+dir.z()*dir.z());
+    if (xzlen == 0)
+        yrot = (dir.y() < 0) ? 180 : 0;
+    else
+        yrot = 180*acos(dir.z()/xzlen)/PI;
+    /*
+     * The second rotation, about the x axis, is given by the projection on
+     * the y,z plane of the y-rotated direction vector: the original y
+     * component, and the rotated x,z vector from above.
+    */
+    yzlen = sqrt(dir.y()*dir.y()+xzlen*xzlen);
+    xrot = 180*acos(xzlen/yzlen)/PI;       /* yzlen should never be 0 */
+
+    RotatePair pair;
+
+    if (dir.y() > 0) {
+        pair.rot1 = QVector4D(xrot, 1.0, 0.0, 0.0);
+        //fprintf (filePtr, "Rotate %f %f %f %f\n", xrot, 1.0, 0.0, 0.0);
+    } else {
+        pair.rot1 = QVector4D(-xrot, 1.0, 0.0, 0.0);
+        //fprintf (filePtr, "Rotate %f %f %f %f\n", -xrot, 1.0, 0.0, 0.0);
+    }
+    /* The last rotation declared gets performed first */
+    if (dir.x() > 0) {
+        pair.rot2 = QVector4D(-yrot, 0.0, 1.0, 0.0);
+        //fprintf (filePtr, "Rotate %f %f %f %f\n", -yrot, 0.0, 1.0, 0.0);
+    } else {
+        pair.rot2 = QVector4D(yrot, 0.0, 1.0, 0.0);
+        //fprintf (filePtr, "Rotate %f %f %f %f\n", yrot, 0.0, 1.0, 0.0);
+    }
+
+    return pair;
+}
+
+void Camera::flipYZ(RtMatrix m)
+{
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (i == j) {
+                if (i == 0)
+                    m[i][j] = 1;
+                else
+                    m[i][j] = -1;
+            } else
+                m[i][j] = 0;
+        }
+    }
 }
 
 void Camera::mousePressed(QMouseEvent *event)

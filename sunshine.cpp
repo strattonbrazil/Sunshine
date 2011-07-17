@@ -82,17 +82,21 @@ void Sunshine::on_renderButton_clicked()
 
     std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
 
+
+    CameraP activeCamera = Register::fetchCamera("persp");
+
+
     RiBegin(RI_NULL);
+
+
     // Output image
     RiDisplay(fileName, "file", "rgb", RI_NULL);
     RiFormat(_renderSettingsWidget->getValue("xres").toInt(),
              _renderSettingsWidget->getValue("yres").toInt(),
              1);
 
+
     //CameraP activeCamera = Register::cameras()->next();
-    QHashIterator<int,CameraP> cameras = Register::cameras();
-    cameras.next();
-    CameraP activeCamera = cameras.value();
 
     //while (meshes.hasNext()) {
     //    meshes.next();
@@ -102,8 +106,27 @@ void Sunshine::on_renderButton_clicked()
     //float fov = 45;
     RiProjection("perspective", "fov", &fov, RI_NULL);
 
+    RtMatrix flipYZ;
+    activeCamera->flipYZ(flipYZ);
+    RiTransform(flipYZ);
+
     RtMatrix cameraTransform;
-    activeCamera->lookTransform(cameraTransform);
+    //activeCamera->lookTransform(cameraTransform);
+    //RiConcatTransform(cameraTransform);
+
+    RotatePair pair = activeCamera->aim(activeCamera->lookDir());
+    RiRotate(pair.rot1.x(), pair.rot1.y(), pair.rot1.z(), pair.rot1.w());
+    RiRotate(pair.rot2.x(), pair.rot2.y(), pair.rot2.z(), pair.rot2.w());
+
+    std::cout << pair.rot1 << std::endl;
+    std::cout << pair.rot2 << std::endl;
+
+    RiTranslate(-activeCamera->eye().x(),
+                -activeCamera->eye().y(),
+                -activeCamera->eye().z());
+
+
+    //RiTransform(cameraTransform);
     //RtMatrix
     //RiTransform(transform);
     //RiTranslate(0, 0, 3);
@@ -138,9 +161,9 @@ void Sunshine::on_renderButton_clicked()
 
     RiEnd();
 
-    _renderWidget->open(QString(fileName));
+   _renderWidget->open(QString(fileName));
 
-    std::cout << "Render to window" << std::endl;
+   // std::cout << "Render to window" << std::endl;
 }
 
 
