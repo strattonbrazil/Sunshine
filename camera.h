@@ -38,6 +38,9 @@ public:
     void                         mousePressed(QMouseEvent* event);
     void                         mouseReleased(QMouseEvent* event);
     void                         mouseDragged(QMouseEvent* event);
+
+
+    Point3                       tmpEye;
 };
 typedef QSharedPointer<Camera> CameraP;
 

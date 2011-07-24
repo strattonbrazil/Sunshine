@@ -5,35 +5,35 @@
 #include "camera.h"
 #include "geometry.h"
 #include <QScriptEngine>
+#include <QFileInfo>
 
 typedef QSharedPointer<QScriptEngine> QScriptEngineP;
 
 class Register
 {
 public:
-    static MeshP                       mesh(int key);
-    static void                        clearScene();
-    static CameraP                     createCamera(QString name);
-    static MeshP                       createMesh(QString name);
-    static void                        setMesh(int meshKey, MeshP mesh) { validate(); instance->_meshes[meshKey] = mesh; }
-    static QHashIterator<int, MeshP>   meshes() { validate(); return QHashIterator<int,MeshP>(instance->_meshes); }
-    static QHashIterator<int, CameraP> cameras() { validate(); return QHashIterator<int,CameraP>(instance->_cameras); }
-    static CameraP                     fetchCamera(QString name);
-
+    MeshP                       mesh(int key);
+    void                        clearScene();
+    CameraP                     createCamera(QString name);
+    MeshP                       createMesh(QString name);
+    void                        setMesh(int meshKey, MeshP mesh) { _meshes[meshKey] = mesh; }
+    QHashIterator<int, MeshP>   meshes() { return QHashIterator<int,MeshP>(_meshes); }
+    QHashIterator<int, CameraP> cameras() { return QHashIterator<int,CameraP>(_cameras); }
+    CameraP                     fetchCamera(QString name);
+                                Register();
 protected:
-                                       Register();
-    static void                        validate();
     int                                uniqueCameraKey(); // TODO: replace these functions with one unique-key finder
     int                                uniqueMeshKey();
     QString                            uniqueName(QString prefix);
 
 private:
-    static Register*                   instance;
     QHash<int,MeshP>                   _meshes;
     QHash<int,CameraP>                 _cameras;
     //QHash<int,Light*>      _lights;
     QSet<QString>                      _names;
     QScriptEngineP                     _engine;
+    void                               processJsFile(QString jsPath);
 };
+typedef QSharedPointer<Register> RegisterP;
 
 #endif // REGISTER_H

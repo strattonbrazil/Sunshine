@@ -26,7 +26,7 @@ PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
     setMouseTracking(true);
     _validShaders = false;
 
-    _camera = Register::fetchCamera("persp");
+    _camera = Sunshine::activeRegister->fetchCamera("persp");
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -77,6 +77,8 @@ void PanelGL::paintGL()
     glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    paintBackground();
+
     glEnable(GL_DEPTH_TEST);
 
     if (!_validShaders) {
@@ -89,7 +91,7 @@ void PanelGL::paintGL()
     mainGrid->render(this);
 
     // render all the meshes
-    QHashIterator<int,MeshP> meshes = Register::meshes();
+    QHashIterator<int,MeshP> meshes = Sunshine::activeRegister->meshes();
     while (meshes.hasNext()) {
         meshes.next();
         int meshKey = meshes.key();
@@ -141,6 +143,31 @@ void PanelGL::paintGL()
             glDisable(GL_BLEND);
         }
     }
+}
+
+void PanelGL::paintBackground()
+{
+    CameraP camera = _camera;
+    QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
+    QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width(), height());
+    QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, width(), 0, height(), -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glBegin(GL_QUADS);
+    {
+        glColor4f(.1,.1,.1,0);
+        glVertex2f(0,0);
+        glVertex2f(width(),0);
+        glColor4f(.3,.3,.3,0);
+        glVertex2f(width(),height());
+        glVertex2f(0,height());
+    }
+    glEnd();
 }
 
 void PanelGL::resizeGL(int width, int height)
@@ -245,7 +272,7 @@ void MeshRenderer::render(PanelGL* panel)
         _validVBOs = TRUE;
     }
 
-    MeshP mesh = Register::mesh(_meshKey);
+    MeshP mesh = Sunshine::activeRegister->mesh(_meshKey);
     mesh->validateNormals();
     const int numTriangles = mesh->numTriangles();
 

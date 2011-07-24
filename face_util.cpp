@@ -1,4 +1,5 @@
 #include "face_util.h"
+#include "sunshine.h"
 
 using namespace FaceUtil;
 
@@ -10,7 +11,7 @@ FaceHit closestFace(Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes)
     float validMax = -1.0f;
 
     // render all the meshes
-    QHashIterator<int,MeshP> meshes = Register::meshes();
+    QHashIterator<int,MeshP> meshes = Sunshine::activeRegister->meshes();
     while (meshes.hasNext()) {
         meshes.next();
         int meshKey = meshes.key();

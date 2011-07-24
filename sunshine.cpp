@@ -7,6 +7,7 @@
 #include "settings.h"
 
 int Sunshine::_geometryMode = GeometryMode::OBJECT;
+extern RegisterP Sunshine::activeRegister;
 
 Sunshine::Sunshine(QWidget *parent) :
     QMainWindow(parent),
@@ -49,7 +50,7 @@ void Sunshine::changeEvent(QEvent *e)
 
 void Sunshine::clearScene()
 {
-    Register::clearScene();
+    activeRegister = RegisterP(new Register());
     setupDefaultCameras();
     setupDefaultMeshes();
     setupDefaultLights();
@@ -57,10 +58,10 @@ void Sunshine::clearScene()
 
 void Sunshine::setupDefaultCameras()
 {
-    Register::createCamera("persp");
-    Register::createCamera("side");
-    Register::createCamera("top");
-    Register::createCamera("front");
+    activeRegister->createCamera("persp");
+    activeRegister->createCamera("side");
+    activeRegister->createCamera("top");
+    activeRegister->createCamera("front");
 }
 
 void Sunshine::setupDefaultMeshes()
@@ -83,7 +84,7 @@ void Sunshine::on_renderButton_clicked()
     std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
 
 
-    CameraP activeCamera = Register::fetchCamera("persp");
+    CameraP activeCamera = activeRegister->fetchCamera("persp");
 
 
     RiBegin(RI_NULL);

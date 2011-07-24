@@ -31,6 +31,7 @@ public:
                              PanelGL();
     void             	     initializeGL();
     void               	     paintGL();
+    void                     paintBackground();
     void 	             resizeGL(int width, int height);
     QGLFormat                defaultFormat();
     QGLShaderProgramP        getFlatShader() { return _flatShader; }

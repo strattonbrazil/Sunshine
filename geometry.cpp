@@ -1,4 +1,5 @@
 #include "geometry.h"
+#include "sunshine.h"
 
 Vertex::Vertex(int meshKey, int key, Point3 point)
 {
@@ -18,7 +19,7 @@ Edge::Edge(int meshKey, int vertexKey, int faceKey, int edgeKey)
 }
 
 MeshP Edge::mesh() {
-    return Register::mesh(_meshKey);
+    return Sunshine::activeRegister->mesh(_meshKey);
 }
 
 Face::Face(int meshKey, int faceKey)
@@ -60,7 +61,7 @@ Mesh::Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> 
 
 void Mesh::buildByIndex(PrimitiveParts parts)
 {
-    MeshP emptyMesh = Register::createMesh("mesh");
+    MeshP emptyMesh = Sunshine::activeRegister->createMesh("mesh");
     int meshKey = emptyMesh->key();
 
     //QHash<int,VertexP> vertices;
@@ -230,7 +231,7 @@ void Mesh::validateNormals()
 
 EdgeP Face::edge() {
     //std::cout << Register::mesh(_meshKey)-> << std::endl;
-    return Register::mesh(_meshKey)->edge(_edgeKey);
+    return Sunshine::activeRegister->mesh(_meshKey)->edge(_edgeKey);
 }
 
 void Face::calculateNormal()

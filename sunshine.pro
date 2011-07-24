@@ -4,8 +4,11 @@
 QT += opengl \
     script \
     webkit
+QMAKE_CXXFLAGS += $$system(python-config --cflags)
 LIBS += -lGLEW
 LIBS += -laqsis_core
+LIBS += -lv8
+QMAKE_LIBS += $$system(python-config --libs)
 TARGET = sunshine
 TEMPLATE = app
 SOURCES += main.cpp \

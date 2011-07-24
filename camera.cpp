@@ -7,6 +7,11 @@ namespace MoveType {
     enum { ROTATING, PANNING, TRUCKING, NOT_MOVING };
 }
 
+// used by panning
+Point3 origEye;
+Vector3 origUp;
+Vector3 origLeft;
+
 Camera::Camera(QString name) : Transformable(), name(name)
 {
     resetLook();
@@ -22,7 +27,7 @@ Point3 Camera::eye() { return _center; }
 Vector3 Camera::upDir() { return _rotate.rotatedVector(Vector3(0,1,0)); }
 Point3 Camera::lookat() { return _center + lookDir(); }
 Vector3 Camera::lookDir() { return _rotate.rotatedVector(Vector3(0,0,_distance)); }
-Vector3 Camera::leftDir() { return Vector3::crossProduct(upDir(), lookDir()); }
+Vector3 Camera::leftDir() { return Vector3::crossProduct(upDir(), lookDir()).normalized(); }
 
 QMatrix4x4 Camera::getViewMatrix(CameraP camera, int width, int height)
 {
@@ -126,6 +131,13 @@ void Camera::mousePressed(QMouseEvent *event)
     }
     else if (event->button() == Qt::MidButton) {
         moveType = MoveType::PANNING;
+
+        origEye = eye();
+        //Vector3 f = (lookat() - eye()).normalized();
+        //Vector3 s = Vector3::crossProduct(f, upDir());
+        origUp = upDir();
+        //origUp = Vector3::crossProduct(s, f);
+        origLeft = leftDir();
     } else if (event->button() == Qt::RightButton) {
         moveType = MoveType::TRUCKING;
     } else {
@@ -155,16 +167,10 @@ void Camera::mouseDragged(QMouseEvent *event)
     else if (moveType == MoveType::PANNING) {
         float panScale = 0.05f;
 
-        Vector3 f = (lookat() - eye()).normalized();
-        Vector3 s = Vector3::crossProduct(f, upDir());
-        Vector3 mUp = Vector3::crossProduct(s, f);
+        Vector3 mUp = origUp * -1.0f * yDiff * panScale;
+        Vector3 mLeft = origLeft * -1.0f * xDiff * panScale;
 
-        //val mUp = new Vector3(upDir)
-        mUp = mUp * -1.0f * yDiff * panScale;
-
-        Vector3 left = leftDir() * -1.0f * xDiff * panScale;
-
-        setCenter(center() + mUp + left);
+        setCenter(eye() + mUp + mLeft);
     } else if (moveType == MoveType::TRUCKING) {
         Point3 at = lookat();
         Vector3 l = lookDir() * -0.01f * yDiff;
