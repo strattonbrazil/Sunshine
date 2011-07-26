@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include <QScriptEngine>
 #include <QFileInfo>
+#include <PythonQt.h>
 
 typedef QSharedPointer<QScriptEngine> QScriptEngineP;
 
@@ -31,8 +32,6 @@ private:
     QHash<int,CameraP>                 _cameras;
     //QHash<int,Light*>      _lights;
     QSet<QString>                      _names;
-    QScriptEngineP                     _engine;
-    void                               processJsFile(QString jsPath);
 };
 typedef QSharedPointer<Register> RegisterP;
 

@@ -3,7 +3,7 @@
 #include <QCoreApplication>
 #include <QStringList>
 #include <QDir>
-#include <v8.h>
+#include <PythonQt.h>
 
 CameraP Register::fetchCamera(QString name)
 {
@@ -20,50 +20,7 @@ CameraP Register::fetchCamera(QString name)
 
 Register::Register()
 {
-    _engine = QScriptEngineP(new QScriptEngine());
-
-    // Create a stack-allocated handle scope.
-    v8::HandleScope handleScope;
-    v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New();
-
-    // find all the plugins
-    QDir cwd = QDir::current();
-    QStringList fileList = cwd.entryList();
-    foreach(QString fileName, fileList) {
-        if (fileName.endsWith(".js"))
-            processJsFile(cwd.path() + "/" + fileName);
-    }
-}
-
-void Register::processJsFile(QString jsPath)
-{
-    QString line;
-    std::cout << "Running javascript: " << jsPath.toStdString() << std::endl;
-    QFile jsFile(jsPath);
-    jsFile.open(QIODevice::ReadOnly);
-
-    QTextStream stream(&jsFile);
-    QString lines = stream.readAll();
-
-    //std::cout << lines.toStdString() << std::endl;
-    // Create a stack-allocated handle scope.
-    //v8::HandleScope handleScope;
-
-    // Create a new context.
-    v8::Persistent<v8::Context> context = v8::Context::New();
-
-    // Enter the created context for compiling and
-    // running the hello world script.
-    v8::Context::Scope contextScope(context);
-
-    // Create a string containing the JavaScript source code.
-    v8::Handle<v8::String> source = v8::String::New(lines.toStdString().c_str());
-
-    // Compile the source code.
-    v8::Handle<v8::Script> script = v8::Script::Compile(source);
-
-    // Run the script to get the result
-    v8::Handle<v8::Value> result = script->Run();
+    PythonQt::init();
 }
 
 MeshP Register::mesh(int key)
