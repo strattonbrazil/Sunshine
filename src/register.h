@@ -4,14 +4,12 @@
 #include "util.h"
 #include "camera.h"
 #include "geometry.h"
-#include <QScriptEngine>
 #include <QFileInfo>
 #include <PythonQt.h>
 
-typedef QSharedPointer<QScriptEngine> QScriptEngineP;
-
-class Register
+class Register : public QObject
 {
+    Q_OBJECT
 public:
     MeshP                       mesh(int key);
     void                        clearScene();
@@ -21,7 +19,10 @@ public:
     QHashIterator<int, MeshP>   meshes() { return QHashIterator<int,MeshP>(_meshes); }
     QHashIterator<int, CameraP> cameras() { return QHashIterator<int,CameraP>(_cameras); }
     CameraP                     fetchCamera(QString name);
+    QList<QString>              importExtensions();
+    void                        importFile(QString fileName);
                                 Register();
+
 protected:
     int                                uniqueCameraKey(); // TODO: replace these functions with one unique-key finder
     int                                uniqueMeshKey();
@@ -32,6 +33,10 @@ private:
     QHash<int,CameraP>                 _cameras;
     //QHash<int,Light*>      _lights;
     QSet<QString>                      _names;
+    PythonQtObjectPtr                  _context;
+public slots:
+    void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
+    void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }
 };
 typedef QSharedPointer<Register> RegisterP;
 

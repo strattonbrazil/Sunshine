@@ -5,6 +5,7 @@
 #include <aqsis/aqsis.h>
 #include <aqsis/ri/ri.h>
 #include "settings.h"
+#include <QFileDialog>
 
 int Sunshine::_geometryMode = GeometryMode::OBJECT;
 extern RegisterP Sunshine::activeRegister;
@@ -174,4 +175,21 @@ void Sunshine::on_renderSettingsButton_clicked()
     std::cout << "Bringing up render settings" << std::endl;
     _renderSettingsWidget->show();
 
+}
+
+void Sunshine::on_importAction_triggered()
+{
+    QString extFilter;
+    QList<QString> extensions = activeRegister->importExtensions();
+    foreach (QString ext, extensions) {
+        std::cout << "ext: " << ext.toStdString() << std::endl;
+        extFilter += QString("*") + ext + " ";
+    }
+    std::cout << extFilter.toStdString() << std::endl;
+
+    QString fileName = QFileDialog::getOpenFileName(this, QString("Open File - ") + extFilter,
+                                                    "/home",
+                                                    QString("Meshes (") + extFilter + ")");
+    if (fileName != "")
+        activeRegister->importFile(fileName);
 }

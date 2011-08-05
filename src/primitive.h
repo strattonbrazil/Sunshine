@@ -3,9 +3,18 @@
 
 #include "util.h"
 
-struct PrimitiveParts {
+class PrimitiveParts {
+public:
+    PrimitiveParts();
     QVector<Point3> points;
     QVector<QList<int> > faces;
+};
+
+class PrimitivePartsWrapper : public QObject
+{
+    Q_OBJECT
+public:
+    PrimitiveParts* new_PrimitiveParts();
 };
 
 namespace primitive {

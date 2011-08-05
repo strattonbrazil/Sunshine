@@ -33,6 +33,7 @@ protected:
 private slots:
     void                       on_renderButton_clicked();
     void                       on_renderSettingsButton_clicked();
+    void on_importAction_triggered();
 
 private:
     Ui::Sunshine*              ui;

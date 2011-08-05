@@ -1,6 +1,7 @@
 # -------------------------------------------------
 # Project created by QtCreator 2011-04-30T08:27:50
 # -------------------------------------------------
+INCLUDEPATH += ..
 QT += opengl \
     script \
     webkit
@@ -24,7 +25,6 @@ SOURCES += main.cpp \
     renderwidget.cpp \
     imageviewer.cpp \
     settings.cpp \
-    $$files(./qtpropertybrowser/*.cpp) \
     select.cpp \
     face_util.cpp \
     project_util.cpp \
@@ -40,7 +40,6 @@ HEADERS += sunshine.h \
     renderwidget.h \
     imageviewer.h \
     settings.h \
-    $$files(./qtpropertybrowser/*.h) \
     select.h \
     face_util.h \
     project_util.h \

@@ -10,6 +10,11 @@ Vertex::Vertex(int meshKey, int key, Point3 point)
 
 void Vertex::setEdge(EdgeP e) { _edgeKey = e->key(); }
 
+Vertex* VertexWrapper::new_Vertex(int meshKey, int key, Point3 point)
+{
+    return new Vertex(meshKey, key, point);
+}
+
 Edge::Edge(int meshKey, int vertexKey, int faceKey, int edgeKey)
 {
     _meshKey = meshKey;

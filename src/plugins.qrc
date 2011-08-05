@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/plugins">
+        <file>objImporter.py</file>
+        <file>meshImporter.py</file>
+    </qresource>
+</RCC>

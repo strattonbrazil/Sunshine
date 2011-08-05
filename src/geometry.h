@@ -34,6 +34,13 @@ private:
     bool                  _selected;
 };
 
+class VertexWrapper : public QObject
+{
+    Q_OBJECT
+public slots:
+    Vertex* new_Vertex(int meshKey, int key, Point3 point);
+};
+
 class Mesh : public Transformable
 {
 public:
@@ -117,5 +124,11 @@ private:
     bool                      _selected;
 };
 
+class MeshImporter
+{
+public:
+    QString extension() { return QString("(not implemented)"); }
+    void importMesh(QString fileName) {  }
+};
 
 #endif // GEOMETRY_H
