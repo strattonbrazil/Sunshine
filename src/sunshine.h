@@ -2,11 +2,11 @@
 #define SUNSHINE_H
 
 #include <QMainWindow>
-#include <v8.h>
-#include "renderwidget.h"
+//#include <v8.h>
+//#include "renderwidget.h"
 #include "settings.h"
-#include "register.h"
-#include "Python.h"
+#include "scene.h"
+//#include "Python.h"
 
 namespace Ui {
     class Sunshine;
@@ -26,23 +26,20 @@ public:
     void                       setupDefaultLights();
     static int                 geometryMode() { return _geometryMode; }
     static int                 selectMode() { return _selectMode; }
-    static RegisterP           activeRegister;
 protected:
     void                       changeEvent(QEvent *e);
-
 private slots:
     void                       on_renderButton_clicked();
     void                       on_renderSettingsButton_clicked();
-    void on_importAction_triggered();
-
+    void                       on_importAction_triggered();
 private:
     Ui::Sunshine*              ui;
-    RenderWidget*              _renderWidget;
-    SettingsWidget*            _renderSettingsWidget;
+    Scene*                     scene;
+    //RenderWidget*              _renderWidget;
+//    SettingsWidget*            _renderSettingsWidget;
     static int                 _geometryMode;
     static int                 _selectMode;
-    static v8::HandleScope     _handleScope;
+    //static v8::HandleScope     _handleScope;
 };
-
 
 #endif // SUNSHINE_H

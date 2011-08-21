@@ -7,6 +7,8 @@ FaceHit closestFace(Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes)
 {
     // taken from Fast, Minimum Storage Ray/Triangle Intersection by Moeller et al.
     FaceHit faceHit;
+    return faceHit;
+    /*
     float validMin = 99999999999.9f;
     float validMax = -1.0f;
 
@@ -74,4 +76,5 @@ FaceHit closestFace(Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes)
     }
 
     return faceHit;
+    */
 }

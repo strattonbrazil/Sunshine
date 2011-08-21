@@ -112,8 +112,9 @@ end
 
 void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool selectValue)
 {
-    if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
-        QHashIterator<int,MeshP> meshes = Sunshine::activeRegister->meshes();
+    //if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
+    if (true) {
+        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
         while (meshes.hasNext()) {
             meshes.next();
             int meshKey = meshes.key();

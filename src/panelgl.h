@@ -8,6 +8,7 @@
 #include "util.h"
 #include "camera.h"
 #include "geometry.h"
+#include "scene.h"
 
 class Mesh;
 class PanelGL;
@@ -28,7 +29,8 @@ typedef QSharedPointer<MeshRenderer> MeshRendererP;
 class PanelGL : public QGLWidget
 {
 public:
-                             PanelGL();
+                             PanelGL(Scene* scene);
+                             PanelGL(const PanelGL &panel);
     void             	     initializeGL();
     void               	     paintGL();
     void                     paintBackground();
@@ -36,7 +38,7 @@ public:
     QGLFormat                defaultFormat();
     QGLShaderProgramP        getFlatShader() { return _flatShader; }
     QGLShaderProgramP        getMeshShader() { return _meshShader; }
-    CameraP                  camera() { return _camera; }
+    CameraP                  camera() const { return _camera; }
     void                     mousePressEvent(QMouseEvent* event);
     void                     mouseReleaseEvent(QMouseEvent* event);
     void                     mouseMoveEvent(QMouseEvent* event);
@@ -44,12 +46,15 @@ public:
     Point3                   project(Point3 p);
     Point3                   unproject(Point3 p);
     Vector3                  computeRayDirection(QPoint p);
+    Scene*                   scene() const { return _scene; }
+
 private:
     bool                     _validShaders;
     CameraP                  _camera;
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
     QHash<int,MeshRendererP> _meshRenderers;
+    Scene*                   _scene;
 };
 
 struct LineSegment {

@@ -4,7 +4,7 @@
 #include <QString>
 #include <QWidget>
 #include <QVariant>
-#include <qtpropertybrowser/qtpropertymanager.h>
+//#include <qtpropertybrowser/qtpropertymanager.h>
 
 class SettingsWidget : public QWidget
 {
@@ -15,7 +15,7 @@ public:
     QVariant                      operator[](QString var) { return getValue(var); }
     //QVariant                      operator[](const char* var) { return getValue(QString(var)); }
 private:
-    QHash<QString,QtProperty*>    _vars;
+    //    QHash<QString,QtProperty*>    _vars;
 };
 
 

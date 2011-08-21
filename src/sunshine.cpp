@@ -1,39 +1,56 @@
 #include "sunshine.h"
-#include "ui_sunshine.h"
-#include "register.h"
+// #include "ui_sunshine.h"
+#include "scene.h"
 #include "primitive.h"
 #include <aqsis/aqsis.h>
 #include <aqsis/ri/ri.h>
 #include "settings.h"
 #include <QFileDialog>
+#include "panelgl.h"
+#include "sunshineui.h"
 
-int Sunshine::_geometryMode = GeometryMode::OBJECT;
-extern RegisterP Sunshine::activeRegister;
+//int Sunshine::_geometryMode = GeometryMode::OBJECT;
+//extern RegisterP Sunshine::activeRegister;
 
-Sunshine::Sunshine(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::Sunshine)
+void say_hello(const char* name) {
+    std::cout << "Hello " <<  name << "!\n";
+}
+
+#include <boost/python/module.hpp>
+#include <boost/python/def.hpp>
+#include <boost/python/class.hpp>
+
+using namespace boost::python;
+
+/*
+BOOST_PYTHON_MODULE(libsunshine)
 {
-    _renderWidget = NULL;
+    def("say_hello", say_hello);
+    class_<PanelGL>("PanelGL","panelgl docs uh",init<Scene*>());
+    class_<Scene>("Scenes","scene docs uh");
+    class_<SunshineUi>("SunshineUis","sunshine ui uh",init<Scene*>());
+}
+*/
 
-
-    clearScene();
+Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
+{
+    int x = 5;
+    //clearScene();
     ui->setupUi(this);
 
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
 
-    QString renderSettings("[{ 'var' : 'xres', 'name' : 'Image Width', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 800, 'group' : 'Image Settings'},"\
-                            "{ 'var' : 'yres', 'name' : 'Image Height', 'type' : 'int', 'min' : 1, 'max' : 4096, 'default' : 600, 'group' : 'Image Settings'}]");
-    _renderSettingsWidget = new SettingsWidget("render_settings", renderSettings);
+
 }
+
 
 Sunshine::~Sunshine()
 {
     delete ui;
-    if (!_renderWidget) delete _renderWidget;
-    if (!_renderSettingsWidget) delete _renderSettingsWidget;
+    //if (!_renderWidget) delete _renderWidget;
+    //if (!_renderSettingsWidget) delete _renderSettingsWidget;
 }
 
 void Sunshine::changeEvent(QEvent *e)
@@ -51,7 +68,7 @@ void Sunshine::changeEvent(QEvent *e)
 
 void Sunshine::clearScene()
 {
-    activeRegister = RegisterP(new Register());
+    //activeRegister = RegisterP(new Register());
     setupDefaultCameras();
     setupDefaultMeshes();
     setupDefaultLights();
@@ -59,15 +76,17 @@ void Sunshine::clearScene()
 
 void Sunshine::setupDefaultCameras()
 {
+    /*
     activeRegister->createCamera("persp");
     activeRegister->createCamera("side");
     activeRegister->createCamera("top");
     activeRegister->createCamera("front");
+    */
 }
 
 void Sunshine::setupDefaultMeshes()
 {
-    Mesh::buildByIndex(primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+    Mesh::buildByIndex(scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
 }
 
 void Sunshine::setupDefaultLights()
@@ -76,6 +95,7 @@ void Sunshine::setupDefaultLights()
 
 void Sunshine::on_renderButton_clicked()
 {
+#if 0
     if (_renderWidget == NULL)
         _renderWidget = new RenderWidget();
 
@@ -166,6 +186,7 @@ void Sunshine::on_renderButton_clicked()
    _renderWidget->open(QString(fileName));
 
    // std::cout << "Render to window" << std::endl;
+#endif
 }
 
 
@@ -173,12 +194,13 @@ void Sunshine::on_renderButton_clicked()
 void Sunshine::on_renderSettingsButton_clicked()
 {
     std::cout << "Bringing up render settings" << std::endl;
-    _renderSettingsWidget->show();
+    //_renderSettingsWidget->show();
 
 }
 
 void Sunshine::on_importAction_triggered()
 {
+    /*
     QString extFilter;
     QList<QString> extensions = activeRegister->importExtensions();
     foreach (QString ext, extensions) {
@@ -190,6 +212,7 @@ void Sunshine::on_importAction_triggered()
     QString fileName = QFileDialog::getOpenFileName(this, QString("Open File - ") + extFilter,
                                                     "/home",
                                                     QString("Meshes (") + extFilter + ")");
-    if (fileName != "")
-        activeRegister->importFile(fileName);
+                                                    */
+    //if (fileName != "")
+      //  activeRegister->importFile(fileName);
 }

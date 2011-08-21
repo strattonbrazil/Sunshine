@@ -1,6 +1,8 @@
 from meshImporter import *
 from PythonQt import *
 
+PrimitiveParts()
+
 class ObjImporter(MeshImporter):
     def extension(self):
         return '.obj'

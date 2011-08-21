@@ -1,15 +1,5 @@
 #include "primitive.h"
 
-PrimitiveParts::PrimitiveParts()
-{
-
-}
-
-PrimitiveParts* PrimitivePartsWrapper::new_PrimitiveParts()
-{
-    return new PrimitiveParts();
-}
-
 namespace primitive {
     PrimitiveParts cubePrimitive(float width, float height, float depth)
     {

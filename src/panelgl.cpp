@@ -21,12 +21,44 @@ struct VertexColorData
     Vector4 color;
 };
 
-PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
+PanelGL::PanelGL(const PanelGL &panel) : QGLWidget(panel.format())
 {
     setMouseTracking(true);
     _validShaders = false;
 
-    _camera = Sunshine::activeRegister->fetchCamera("persp");
+    this->_camera = panel.camera();
+    this->_scene = panel.scene();
+
+    if (mainGrid == NULL) {
+        int range[] = {-10,10};
+        int numSegments = range[1]-range[0]+1;
+
+        QVector<LineSegment> segments(numSegments*2);
+        for (int i = 0; i < numSegments*2; i += 2) {
+            segments[i].p1 = Point3(range[0]+i/2, 0, 10);
+            segments[i].p2 = Point3(range[0]+i/2, 0, -10);
+            segments[i].r = 0.4f;
+            segments[i].g = 0.4f;
+            segments[i].b = 0.4f;
+
+            segments[i+1].p1 = Point3(-10, 0, range[0]+i/2);
+            segments[i+1].p2 = Point3(10, 0, range[0]+i/2);
+            segments[i+1].r = 0.4f;
+            segments[i+1].g = 0.4f;
+            segments[i+1].b = 0.4f;
+        }
+        mainGrid = new LineRenderer(segments, 1);
+    }
+}
+
+PanelGL::PanelGL(Scene* scene) : QGLWidget(PanelGL::defaultFormat())
+{
+    setMouseTracking(true);
+    _validShaders = false;
+
+    _scene = scene;
+    _camera = _scene->fetchCamera("persp");
+
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -53,7 +85,7 @@ PanelGL::PanelGL() : QGLWidget(PanelGL::defaultFormat())
 QGLFormat PanelGL::defaultFormat()
 {
     QGLFormat format;
-    format.setVersion(3,2);
+    //format.setVersion(3,2);
     format.setProfile(QGLFormat::CompatibilityProfile);
     return format;
 }
@@ -91,7 +123,7 @@ void PanelGL::paintGL()
     mainGrid->render(this);
 
     // render all the meshes
-    QHashIterator<int,MeshP> meshes = Sunshine::activeRegister->meshes();
+    QHashIterator<int,MeshP> meshes = _scene->meshes();
     while (meshes.hasNext()) {
         meshes.next();
         int meshKey = meshes.key();
@@ -272,7 +304,7 @@ void MeshRenderer::render(PanelGL* panel)
         _validVBOs = TRUE;
     }
 
-    MeshP mesh = Sunshine::activeRegister->mesh(_meshKey);
+    MeshP mesh = panel->scene()->mesh(_meshKey);
     mesh->validateNormals();
     const int numTriangles = mesh->numTriangles();
 
@@ -294,7 +326,8 @@ void MeshRenderer::render(PanelGL* panel)
 
     int _hoverMeshKey = -1;
 
-    if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
+    //if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
+    if (true) {
         QVector4D singleColor;
         if (mesh->isSelected() && mesh->key() != _hoverMeshKey)
             singleColor = SELECTED_COLOR;
@@ -359,7 +392,8 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         i.next();
         FaceP face = i.value();
         QVector4D color;
-        if (Sunshine::geometryMode() == GeometryMode::FACE) {
+        //if (Sunshine::geometryMode() == GeometryMode::FACE) {
+        if (false) {
 
             int _hoverFaceKey;
             int _hoverMeshKey;

@@ -1,5 +1,7 @@
 #include "settings.h"
 
+#if 0
+/*
 #include <QScriptValue>
 #include <QScriptEngine>
 #include <QGridLayout>
@@ -253,6 +255,7 @@ QVariant SettingsWidget::getValue(QString var)
     return QVariant();
 }
 
+*/
 /*
 RenderSettings::RenderSettings()
 {
@@ -267,3 +270,6 @@ RenderSettings::RenderSettings()
         "refractionDepth:Refraction Depth:int:min=0;max=100"
 }
 */
+
+
+#endif

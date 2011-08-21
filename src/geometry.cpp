@@ -1,35 +1,30 @@
 #include "geometry.h"
 #include "sunshine.h"
 
-Vertex::Vertex(int meshKey, int key, Point3 point)
+Vertex::Vertex(MeshP mesh, int key, Point3 point)
 {
-    _meshKey = meshKey;
+    _mesh = mesh;
     _key = key;
     _point = point;
 }
 
 void Vertex::setEdge(EdgeP e) { _edgeKey = e->key(); }
 
-Vertex* VertexWrapper::new_Vertex(int meshKey, int key, Point3 point)
+Edge::Edge(MeshP mesh, int vertexKey, int faceKey, int edgeKey)
 {
-    return new Vertex(meshKey, key, point);
-}
-
-Edge::Edge(int meshKey, int vertexKey, int faceKey, int edgeKey)
-{
-    _meshKey = meshKey;
+    _mesh = mesh;
     _vertexKey = vertexKey;
     _faceKey = faceKey;
     _edgeKey = edgeKey;
 }
 
 MeshP Edge::mesh() {
-    return Sunshine::activeRegister->mesh(_meshKey);
+    return _mesh;
 }
 
-Face::Face(int meshKey, int faceKey)
+Face::Face(MeshP mesh, int faceKey)
 {
-    _meshKey = meshKey;
+    _mesh = mesh;
     _faceKey = faceKey;
 }
 
@@ -47,15 +42,17 @@ QListIterator<Triangle> Face::buildTriangles()
     return QListIterator<Triangle>(triangles);
 }
 
-Mesh::Mesh(int key, QString name) : Transformable()
+Mesh::Mesh(Scene* scene, int key, QString name) : Transformable()
 {
+    _scene = scene;
     _key = key;
     _name = name;
     _validNormals = FALSE;
 }
 
-Mesh::Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
+Mesh::Mesh(Scene* scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
 {
+    _scene = scene;
     _key = key;
     _name = name;
     _vertices = vertices;
@@ -64,9 +61,9 @@ Mesh::Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> 
     _validNormals = FALSE;
 }
 
-void Mesh::buildByIndex(PrimitiveParts parts)
+void Mesh::buildByIndex(Scene* scene, PrimitiveParts parts)
 {
-    MeshP emptyMesh = Sunshine::activeRegister->createMesh("mesh");
+    MeshP emptyMesh = scene->createMesh("mesh");
     int meshKey = emptyMesh->key();
 
     //QHash<int,VertexP> vertices;
@@ -75,19 +72,19 @@ void Mesh::buildByIndex(PrimitiveParts parts)
 
     // create vertices
     for (int vertKey = 0; vertKey < parts.points.size(); vertKey++)
-        emptyMesh->_vertices[vertKey] = VertexP(new Vertex(meshKey,vertKey,parts.points[vertKey]));
+        emptyMesh->_vertices[vertKey] = VertexP(new Vertex(emptyMesh,vertKey,parts.points[vertKey]));
 
     // create the faces and edges
     int edgeCount = 0;
     for (int faceKey = 0; faceKey < parts.faces.size(); faceKey++) {
-        FaceP face(new Face(meshKey, faceKey));
+        FaceP face(new Face(emptyMesh, faceKey));
         emptyMesh->_faces[faceKey] = face;
 
         EdgeP firstEdge;
         EdgeP lastEdge;
         QList<int> vertIndices = parts.faces[faceKey];
         for (int i = 0; i < vertIndices.size(); i++) {
-            EdgeP edge(new Edge(meshKey,vertIndices[i],faceKey,edgeCount++));
+            EdgeP edge(new Edge(emptyMesh,vertIndices[i],faceKey,edgeCount++));
             emptyMesh->_vertices[vertIndices[i]]->setEdge(edge);
             emptyMesh->_edges[edge->key()] = edge;
 
@@ -236,7 +233,7 @@ void Mesh::validateNormals()
 
 EdgeP Face::edge() {
     //std::cout << Register::mesh(_meshKey)-> << std::endl;
-    return Sunshine::activeRegister->mesh(_meshKey)->edge(_edgeKey);
+    return _mesh->edge(_edgeKey);
 }
 
 void Face::calculateNormal()

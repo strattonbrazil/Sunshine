@@ -176,3 +176,22 @@ void printQuat(QQuaternion q)
     fflush(stdout);
 }
 
+/*
+void loadLuaFile(lua_State* state, QString fileName)
+{
+    QFile file(fileName);
+    file.open(QIODevice::ReadOnly);
+    QString lines = file.readAll();
+    //std://:cout << lines.toStdString() << std::endl;
+    try {
+        std::cout << "executing " << fileName.toStdString() << "...\n-----------" << std::endl;
+        std::cout << lines.toStdString().c_str() << std::endl;
+        luaL_dostring(state, lines.toStdString().c_str());
+    } catch (const std::exception &TheError) {
+        std::cout << "*" << std::endl;
+        std::cout << TheError.what() << std::endl;
+    }
+
+    file.close();
+}
+*/

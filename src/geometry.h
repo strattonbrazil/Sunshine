@@ -10,43 +10,38 @@ class Vertex;
 class Edge;
 class Face;
 class Mesh;
+class Scene;
 typedef QSharedPointer<Vertex> VertexP;
 typedef QSharedPointer<Edge> EdgeP;
 typedef QSharedPointer<Face> FaceP;
 typedef QSharedPointer<Mesh> MeshP;
 
-#include "register.h"
+#include "scene.h"
 
 class Vertex
 {
 public:
-                          Vertex(int meshKey, int key, Point3 point);
+                          Vertex(MeshP mesh, int key, Point3 point);
     void                  setEdge(EdgeP e);
     int                   key() { return _key; }
     Point3                pos() { return _point; }
     bool                  isSelected() { return _selected; }
     void                  setSelected(bool s) { _selected = s; }
 private:
-    int                   _meshKey;
+    MeshP                 _mesh;
     int                   _key;
     Point3                _point;
     int                   _edgeKey;
     bool                  _selected;
-};
 
-class VertexWrapper : public QObject
-{
-    Q_OBJECT
-public slots:
-    Vertex* new_Vertex(int meshKey, int key, Point3 point);
 };
 
 class Mesh : public Transformable
 {
 public:
-                                 Mesh(int key, QString name);
-                                 Mesh(int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
-    static void                  buildByIndex(PrimitiveParts parts);
+                                 Mesh(Scene* scene, int key, QString name);
+                                 Mesh(Scene* scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
+    static void                  buildByIndex(Scene* scene, PrimitiveParts parts);
     const int                    numTriangles();
     const int                    numVertices() { return _vertices.size(); }
     EdgeP                        edge(int key) { return _edges[key]; }
@@ -67,12 +62,13 @@ private:
     QHash<int,FaceP>             _faces;
     bool                         _validNormals;
     bool                         _selected;
+    Scene*                       _scene;
 };
 
 class Edge
 {
 public:
-                          Edge(int meshKey, int vertexKey, int faceKey, int edgeKey);
+                          Edge(MeshP mesh, int vertexKey, int faceKey, int edgeKey);
     int                   key() { return _edgeKey; }
     void                  setNext(EdgeP e) { _nextKey = e->key(); }
     void                  setPrev(EdgeP e) { _prevKey = e->key(); }
@@ -89,7 +85,7 @@ public:
     Vector3               normal() { return _normal; }
     void                  setNormal(Vector3 n) { _normal = n; }
 private:
-    int                   _meshKey;
+    MeshP                 _mesh;
     int                   _vertexKey;
     int                   _faceKey;
     int                   _edgeKey;
@@ -110,15 +106,15 @@ public:
 class Face
 {
 public:
-                              Face(int meshKey, int faceKey);
-    int                       key() { return _meshKey; }
+                              Face(MeshP mesh, int faceKey);
+    int                       key() { return _faceKey; }
     EdgeP                     edge();
     void                      setEdge(EdgeP e) { _edgeKey = e->key(); }
     QListIterator<Triangle>   buildTriangles();
     void                      calculateNormal();
     bool                      isSelected() { return _selected; }
 private:
-    int                       _meshKey;
+    MeshP                     _mesh;
     int                       _faceKey;
     int                       _edgeKey;
     bool                      _selected;

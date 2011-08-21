@@ -7,8 +7,18 @@
 #include <QQuaternion>
 #include <QMatrix4x4>
 #include <QTextStream>
+#include <QFile>
 #include <math.h>
 #include <iostream>
+
+/*
+extern "C"
+{
+    #include "lua.h"
+}
+
+#include <luabind/luabind.hpp>
+*/
 
 typedef QVector2D Vector2;
 typedef QVector3D Vector3;
@@ -91,5 +101,8 @@ const QVector4D SELECTED_COLOR(1,0,0,1);
 const QVector4D SELECTED_HOVER_COLOR(1,1,0,1);
 const QVector4D UNSELECTED_COLOR(1,1,1,1);
 const QVector4D UNSELECTED_HOVER_COLOR(0,1,0,1);
+
+//void loadLuaFile(lua_State* state, QString fileName);
+
 
 #endif // UTIL_H
