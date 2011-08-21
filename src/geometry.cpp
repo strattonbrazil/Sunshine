@@ -42,7 +42,7 @@ QListIterator<Triangle> Face::buildTriangles()
     return QListIterator<Triangle>(triangles);
 }
 
-Mesh::Mesh(Scene* scene, int key, QString name) : Transformable()
+Mesh::Mesh(SceneP scene, int key, QString name) : Transformable()
 {
     _scene = scene;
     _key = key;
@@ -50,7 +50,7 @@ Mesh::Mesh(Scene* scene, int key, QString name) : Transformable()
     _validNormals = FALSE;
 }
 
-Mesh::Mesh(Scene* scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
+Mesh::Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
 {
     _scene = scene;
     _key = key;
@@ -61,7 +61,7 @@ Mesh::Mesh(Scene* scene, int key, QString name, QHash<int,VertexP> vertices, QHa
     _validNormals = FALSE;
 }
 
-void Mesh::buildByIndex(Scene* scene, PrimitiveParts parts)
+void Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
 {
     MeshP emptyMesh = scene->createMesh("mesh");
     int meshKey = emptyMesh->key();

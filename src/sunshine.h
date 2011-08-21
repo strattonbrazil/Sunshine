@@ -7,9 +7,10 @@
 #include "settings.h"
 #include "scene.h"
 //#include "Python.h"
+//#include "sunshineui.h"
 
 namespace Ui {
-    class Sunshine;
+        class Sunshine;
 }
 
 namespace GeometryMode { enum { OBJECT, VERTEX, EDGE, FACE }; };
@@ -34,7 +35,7 @@ private slots:
     void                       on_importAction_triggered();
 private:
     Ui::Sunshine*              ui;
-    Scene*                     scene;
+    SceneP                     _scene;
     //RenderWidget*              _renderWidget;
 //    SettingsWidget*            _renderSettingsWidget;
     static int                 _geometryMode;

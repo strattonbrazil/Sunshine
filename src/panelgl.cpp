@@ -51,14 +51,13 @@ PanelGL::PanelGL(const PanelGL &panel) : QGLWidget(panel.format())
     }
 }
 
-PanelGL::PanelGL(Scene* scene) : QGLWidget(PanelGL::defaultFormat())
+PanelGL::PanelGL(SceneP scene) : QGLWidget(PanelGL::defaultFormat())
 {
     setMouseTracking(true);
     _validShaders = false;
 
     _scene = scene;
     _camera = _scene->fetchCamera("persp");
-
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -180,9 +179,9 @@ void PanelGL::paintGL()
 void PanelGL::paintBackground()
 {
     CameraP camera = _camera;
-    QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
-    QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width(), height());
-    QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+    //QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
+    //QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width(), height());
+    //QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

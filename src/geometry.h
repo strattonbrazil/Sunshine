@@ -11,6 +11,7 @@ class Edge;
 class Face;
 class Mesh;
 class Scene;
+typedef QSharedPointer<Scene> SceneP;
 typedef QSharedPointer<Vertex> VertexP;
 typedef QSharedPointer<Edge> EdgeP;
 typedef QSharedPointer<Face> FaceP;
@@ -39,9 +40,9 @@ private:
 class Mesh : public Transformable
 {
 public:
-                                 Mesh(Scene* scene, int key, QString name);
-                                 Mesh(Scene* scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
-    static void                  buildByIndex(Scene* scene, PrimitiveParts parts);
+                                 Mesh(SceneP scene, int key, QString name);
+                                 Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
+    static void                  buildByIndex(SceneP scene, PrimitiveParts parts);
     const int                    numTriangles();
     const int                    numVertices() { return _vertices.size(); }
     EdgeP                        edge(int key) { return _edges[key]; }
@@ -62,7 +63,7 @@ private:
     QHash<int,FaceP>             _faces;
     bool                         _validNormals;
     bool                         _selected;
-    Scene*                       _scene;
+    SceneP                       _scene;
 };
 
 class Edge

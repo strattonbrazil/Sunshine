@@ -24,7 +24,9 @@ Camera::Camera(QString name) : Transformable(), name(name)
 }
 
 Point3 Camera::eye() { return _center; }
-Vector3 Camera::upDir() { return _rotate.rotatedVector(Vector3(0,1,0)); }
+Vector3 Camera::upDir() {
+    return _rotate.rotatedVector(Vector3(0,1,0));
+}
 Point3 Camera::lookat() { return _center + lookDir(); }
 Vector3 Camera::lookDir() { return _rotate.rotatedVector(Vector3(0,0,_distance)); }
 Vector3 Camera::leftDir() { return Vector3::crossProduct(upDir(), lookDir()).normalized(); }

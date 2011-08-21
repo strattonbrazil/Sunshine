@@ -1,5 +1,5 @@
 #include "sunshine.h"
-// #include "ui_sunshine.h"
+#include "ui_sunshine.h"
 #include "scene.h"
 #include "primitive.h"
 #include <aqsis/aqsis.h>
@@ -35,9 +35,12 @@ BOOST_PYTHON_MODULE(libsunshine)
 Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {
     int x = 5;
-    //clearScene();
+    clearScene();
     ui->setupUi(this);
 
+
+
+    ui->tabs->addTab(new PanelGL(_scene), "tab 1");
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
@@ -68,6 +71,7 @@ void Sunshine::changeEvent(QEvent *e)
 
 void Sunshine::clearScene()
 {
+    _scene = SceneP(new Scene());
     //activeRegister = RegisterP(new Register());
     setupDefaultCameras();
     setupDefaultMeshes();
@@ -76,17 +80,15 @@ void Sunshine::clearScene()
 
 void Sunshine::setupDefaultCameras()
 {
-    /*
-    activeRegister->createCamera("persp");
-    activeRegister->createCamera("side");
-    activeRegister->createCamera("top");
-    activeRegister->createCamera("front");
-    */
+    _scene->createCamera("persp");
+    _scene->createCamera("side");
+    _scene->createCamera("top");
+    _scene->createCamera("front");
 }
 
 void Sunshine::setupDefaultMeshes()
 {
-    Mesh::buildByIndex(scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+    Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
 }
 
 void Sunshine::setupDefaultLights()

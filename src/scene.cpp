@@ -7,6 +7,14 @@
 
 #include "sunshine.h"
 
+class KeyErrorException: public std::exception
+{
+    virtual const char* what() const throw()
+    {
+        return "queried key does not exist";
+    }
+} KeyErrorException;
+
 CameraP Scene::fetchCamera(QString name)
 {
     QHashIterator<int,CameraP> cams = cameras();
@@ -17,7 +25,10 @@ CameraP Scene::fetchCamera(QString name)
         if (cam->name == name)
             return cam;
     }
-    return CameraP();
+
+    std::cerr << "Cannot find camera: " << name.toStdString() << std::endl;
+    throw KeyErrorException;
+    //return CameraP();
 }
 
 /*
@@ -180,7 +191,7 @@ MeshP Scene::createMesh(QString name)
 {
     int key = uniqueMeshKey();
     QString unique = uniqueName(name);
-    _meshes[key] = MeshP(new Mesh(this,key,unique));
+    _meshes[key] = MeshP(new Mesh(SceneP(this),key,unique));
     _names += unique;
     return _meshes[key];
 }

@@ -29,7 +29,7 @@ typedef QSharedPointer<MeshRenderer> MeshRendererP;
 class PanelGL : public QGLWidget
 {
 public:
-                             PanelGL(Scene* scene);
+                             PanelGL(SceneP scene);
                              PanelGL(const PanelGL &panel);
     void             	     initializeGL();
     void               	     paintGL();
@@ -46,7 +46,7 @@ public:
     Point3                   project(Point3 p);
     Point3                   unproject(Point3 p);
     Vector3                  computeRayDirection(QPoint p);
-    Scene*                   scene() const { return _scene; }
+    SceneP                   scene() const { return _scene; }
 
 private:
     bool                     _validShaders;
@@ -54,7 +54,7 @@ private:
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
     QHash<int,MeshRendererP> _meshRenderers;
-    Scene*                   _scene;
+    SceneP                   _scene;
 };
 
 struct LineSegment {

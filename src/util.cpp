@@ -105,7 +105,6 @@ Transformable::Transformable()
 
 void Transformable::resetLook()
 {
-    //
     _startRotate = _rotate;
     _yRot = 0.0f;
     _upRot = 0.0f;
