@@ -44,8 +44,8 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
-
-
+    _renderWidget = 0;
+    _renderSettingsWidget = new SettingsWidget();
 }
 
 
@@ -53,7 +53,7 @@ Sunshine::~Sunshine()
 {
     delete ui;
     //if (!_renderWidget) delete _renderWidget;
-    //if (!_renderSettingsWidget) delete _renderSettingsWidget;
+    if (!_renderSettingsWidget) delete _renderSettingsWidget;
 }
 
 void Sunshine::changeEvent(QEvent *e)
@@ -97,17 +97,17 @@ void Sunshine::setupDefaultLights()
 
 void Sunshine::on_renderButton_clicked()
 {
-#if 0
     if (_renderWidget == NULL)
         _renderWidget = new RenderWidget();
 
     char* fileName = "/tmp/test.tif";
     _renderWidget->show();
 
-    std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
+    std::cout << (*_renderSettingsWidget)["xres"].toInt() << std::endl;
+    //std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
 
 
-    CameraP activeCamera = activeRegister->fetchCamera("persp");
+    CameraP activeCamera = _scene->fetchCamera("persp");
 
 
     RiBegin(RI_NULL);
@@ -115,8 +115,8 @@ void Sunshine::on_renderButton_clicked()
 
     // Output image
     RiDisplay(fileName, "file", "rgb", RI_NULL);
-    RiFormat(_renderSettingsWidget->getValue("xres").toInt(),
-             _renderSettingsWidget->getValue("yres").toInt(),
+    RiFormat((*_renderSettingsWidget)["xres"].toInt(),
+             (*_renderSettingsWidget)["yres"].toInt(),
              1);
 
 
@@ -188,7 +188,6 @@ void Sunshine::on_renderButton_clicked()
    _renderWidget->open(QString(fileName));
 
    // std::cout << "Render to window" << std::endl;
-#endif
 }
 
 
@@ -196,7 +195,7 @@ void Sunshine::on_renderButton_clicked()
 void Sunshine::on_renderSettingsButton_clicked()
 {
     std::cout << "Bringing up render settings" << std::endl;
-    //_renderSettingsWidget->show();
+    _renderSettingsWidget->show();
 
 }
 

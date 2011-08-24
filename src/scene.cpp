@@ -7,13 +7,7 @@
 
 #include "sunshine.h"
 
-class KeyErrorException: public std::exception
-{
-    virtual const char* what() const throw()
-    {
-        return "queried key does not exist";
-    }
-} KeyErrorException;
+#include "exceptions.h"
 
 CameraP Scene::fetchCamera(QString name)
 {
@@ -27,7 +21,7 @@ CameraP Scene::fetchCamera(QString name)
     }
 
     std::cerr << "Cannot find camera: " << name.toStdString() << std::endl;
-    throw KeyErrorException;
+    throw KeyErrorException();
     //return CameraP();
 }
 

@@ -1,35 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>RenderWidget</class>
- <widget class="QDialog" name="RenderWidget">
+ <widget class="QWidget" name="RenderWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>818</width>
-    <height>589</height>
+    <width>744</width>
+    <height>469</height>
    </rect>
   </property>
-  <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-    <horstretch>0</horstretch>
-    <verstretch>0</verstretch>
-   </sizepolicy>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>0</width>
-    <height>0</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>16777215</width>
-    <height>16777215</height>
-   </size>
-  </property>
   <property name="windowTitle">
-   <string>Render Window</string>
+   <string>Form</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout"/>
  </widget>

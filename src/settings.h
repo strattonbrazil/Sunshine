@@ -5,16 +5,18 @@
 #include <QWidget>
 #include <QVariant>
 //#include <qtpropertybrowser/qtpropertymanager.h>
+#include "attribute_editor.h"
 
 class SettingsWidget : public QWidget
 {
 public:
 
-                                  SettingsWidget(QString name_space, QString atts);
-    QVariant                      getValue(QString var);
-    QVariant                      operator[](QString var) { return getValue(var); }
+                                  SettingsWidget();
+    QVariant                      operator[](QString name) { return (*_instance)[name]; }
     //QVariant                      operator[](const char* var) { return getValue(QString(var)); }
 private:
+    AttributeEditor*              _editor;
+    EntityP                       _instance;
     //    QHash<QString,QtProperty*>    _vars;
 };
 

@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 //#include <v8.h>
-//#include "renderwidget.h"
+#include "renderwidget.h"
 #include "settings.h"
 #include "scene.h"
 //#include "Python.h"
@@ -36,8 +36,8 @@ private slots:
 private:
     Ui::Sunshine*              ui;
     SceneP                     _scene;
-    //RenderWidget*              _renderWidget;
-//    SettingsWidget*            _renderSettingsWidget;
+    RenderWidget*              _renderWidget;
+    SettingsWidget*            _renderSettingsWidget;
     static int                 _geometryMode;
     static int                 _selectMode;
     //static v8::HandleScope     _handleScope;

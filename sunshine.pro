@@ -32,8 +32,12 @@ HEADERS += src/camera.h \
            src/util.h \
            src/vertex_util.h \
            src/sunshineui.h \
-           src/sunshine.h
-FORMS += src/renderwidget.ui src/sunshine.ui
+           src/sunshine.h \
+    src/attribute_editor.h \
+    src/renderwidget.h \
+    src/exceptions.h
+FORMS += src/sunshine.ui \
+    src/renderwidget.ui
 SOURCES += src/camera.cpp \
            src/face_util.cpp \
            src/geometry.cpp \
@@ -49,5 +53,7 @@ SOURCES += src/camera.cpp \
            src/util.cpp \
            src/vertex_util.cpp \
            src/sunshineui.cpp \
-           src/main.cpp
+           src/main.cpp \
+    src/attribute_editor.cpp \
+    src/renderwidget.cpp
 RESOURCES += src/plugins.qrc

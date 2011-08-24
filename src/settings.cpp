@@ -1,11 +1,39 @@
 #include "settings.h"
+#include <QVBoxLayout>
+#include <QHeaderView>
+
+SettingsWidget::SettingsWidget()
+{
+    this->setMinimumWidth(300);
+    this->setMaximumWidth(300);
+
+    //QGridLayout* layout = new QGridLayout();
+    QVBoxLayout* layout = new QVBoxLayout();
+    setLayout(layout);
+
+    QString xres("{ 'var' : 'xres', 'name' : 'Image Width', 'type' : 'int', 'min' : 1, 'max' : 4096, 'value' : 800 }");
+    QString yres("{ 'var' : 'yres', 'name' : 'Image Height', 'type' : 'int', 'min' : 1, 'max' : 4096, 'value' : 600 }");
+
+    QStringList atts;
+    atts << xres << yres;
+
+    _instance = EntityP(new Entity(atts));
+
+    _editor = new AttributeEditor(this);
+    _editor->update(_instance);
+
+    QTableView* view = new QTableView();
+    view->verticalHeader()->hide();
+    view->setModel(_editor);
+
+    layout->addWidget(view);
+}
 
 #if 0
 /*
 #include <QScriptValue>
 #include <QScriptEngine>
 #include <QGridLayout>
-#include <QVBoxLayout>
 #include <QLabel>
 #include <QDate>
 #include <QDateTime>
