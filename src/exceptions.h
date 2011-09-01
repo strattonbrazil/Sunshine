@@ -1,6 +1,8 @@
 #ifndef EXCEPTIONS_H
 #define EXCEPTIONS_H
 
+#include <QString>
+
 class KeyErrorException: public std::exception
 {
     virtual const char* what() const throw()
@@ -9,5 +11,6 @@ class KeyErrorException: public std::exception
     }
 };
 
+QString parse_python_exception();
 
 #endif // EXCEPTIONS_H

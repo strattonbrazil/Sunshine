@@ -66,9 +66,13 @@ void Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
     MeshP emptyMesh = scene->createMesh("mesh");
     int meshKey = emptyMesh->key();
 
+    std::cout << "# vertices: " << parts.points.size() << std::endl;
+    std::cout << "# faces: " << parts.faces.size() << std::endl;
+
     //QHash<int,VertexP> vertices;
     //QHash<int,EdgeP> edges;
     //QHash<int,FaceP> faces;
+
 
     // create vertices
     for (int vertKey = 0; vertKey < parts.points.size(); vertKey++)

@@ -40,6 +40,7 @@ private:
 class Mesh : public Transformable
 {
 public:
+                                 Mesh() {}
                                  Mesh(SceneP scene, int key, QString name);
                                  Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
     static void                  buildByIndex(SceneP scene, PrimitiveParts parts);

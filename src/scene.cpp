@@ -3,11 +3,12 @@
 #include <QCoreApplication>
 #include <QStringList>
 #include <QDir>
-#include <PythonQt.h>
+//#include <PythonQt.h>
 
 #include "sunshine.h"
-
 #include "exceptions.h"
+
+#include "python_bindings.h"
 
 CameraP Scene::fetchCamera(QString name)
 {
@@ -25,27 +26,58 @@ CameraP Scene::fetchCamera(QString name)
     //return CameraP();
 }
 
-/*
+
 QList<QString> Scene::importExtensions()
 {
     QList<QString> extensions;
-    PythonQtObjectPtr MeshImporterClass = _context.getVariable("MeshImporter");
-    foreach(QVariant ext, MeshImporterClass.call("extensions").toList()) {
-        extensions << ext.toString();
+
+    //object list = exec("MeshImporter.extensions()", _pyMainNamespace);
+
+    try {
+        object pyList = eval("MeshImporter.extensions()", _pyMainNamespace);
+        std::vector<std::string> vec(len(pyList));
+        for (std::size_t i = 0; i < vec.size(); ++i) {
+          vec[i] = extract<std::string>(pyList[i]);
+          extensions << QString(vec[i].c_str());
+        }
+    } catch (boost::python::error_already_set const &) {
+        QString perror = parse_python_exception();
+        std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
     }
+
+    //std::vector<std::string> vec(len(pyList));
+    /*
+    for (std::size_t i = 0; i < vec.size(); ++i) {
+      vec[i] = extract<std::string>(pyList[i]);
+      std::cout << vec[i] << std::endl;
+    }
+    */
+
     return extensions;
 }
 
 void Scene::importFile(QString fileName)
 {
-    PythonQtObjectPtr MeshImporterClass = _context.getVariable("MeshImporter");
-
-    MeshImporterClass.call("processFile", QVariantList() << fileName);
+    try {
+        object processFileFunc = _pyMainModule.attr("MeshImporter").attr("processFile");
+        processFileFunc(this, fileName);
+    } catch (boost::python::error_already_set const &) {
+        QString perror = parse_python_exception();
+        std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
+    }
 }
-*/
 
 Scene::Scene()
 {
+    Py_Initialize();
+    _pyMainModule = import("__main__");
+    _pyMainNamespace = _pyMainModule.attr("__dict__");
+
+    createPythonBindings();
+
+    evalPythonFile(":/plugins/meshImporter.py");
+    evalPythonFile(":/plugins/objImporter.py");
+
     /*
     // Create a new lua state
     lua_State *myLuaState = lua_open();
@@ -211,7 +243,7 @@ QString Scene::uniqueName(QString prefix)
     int counter = 1;
     QString name = prefix;
     while (_names.contains(name)) {
-        name = QString("%s%d").arg(prefix).arg(counter);
+        name = QString("%1%2").arg(prefix).arg(counter);
         counter++;
     }
     _names += name;

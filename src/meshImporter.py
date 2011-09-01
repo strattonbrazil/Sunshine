@@ -1,3 +1,5 @@
+print('Importing MeshImporter')
+
 class MeshImporter:
     _importers = {}
     @staticmethod
@@ -11,11 +13,11 @@ class MeshImporter:
     def extension(self):
         raise NotImplementedError()
     @staticmethod
-    def processFile(fileName):
+    def processFile(scene, fileName):
         print('Importing file: %s' % fileName)
         extension = '.' + fileName.split('.')[-1]
         importer = MeshImporter._importers[extension]
         print(importer)
-        importer.importFile(fileName)
+        importer.importFile(scene, fileName)
     def importFile(self, fileName):
         raise NotImplementedError()

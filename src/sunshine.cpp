@@ -16,6 +16,7 @@ void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
 }
 
+#include <boost/python.hpp>
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 #include <boost/python/class.hpp>
@@ -201,9 +202,9 @@ void Sunshine::on_renderSettingsButton_clicked()
 
 void Sunshine::on_importAction_triggered()
 {
-    /*
     QString extFilter;
-    QList<QString> extensions = activeRegister->importExtensions();
+    QList<QString> extensions = _scene->importExtensions();
+
     foreach (QString ext, extensions) {
         std::cout << "ext: " << ext.toStdString() << std::endl;
         extFilter += QString("*") + ext + " ";
@@ -213,7 +214,7 @@ void Sunshine::on_importAction_triggered()
     QString fileName = QFileDialog::getOpenFileName(this, QString("Open File - ") + extFilter,
                                                     "/home",
                                                     QString("Meshes (") + extFilter + ")");
-                                                    */
-    //if (fileName != "")
-      //  activeRegister->importFile(fileName);
+
+    if (fileName != "")
+        _scene->importFile(fileName);
 }

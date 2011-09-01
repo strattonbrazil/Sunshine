@@ -2,7 +2,5 @@
     <qresource prefix="/plugins">
         <file>objImporter.py</file>
         <file>meshImporter.py</file>
-        <file>mesh_importer.lua</file>
-        <file>obj_importer.lua</file>
     </qresource>
 </RCC>
