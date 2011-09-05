@@ -5,8 +5,10 @@
 
 #include <QVarLengthArray>
 #include <QMouseEvent>
+#include <QMenu>
 #include "select.h"
 #include "project_util.h"
+#include "contextmenu.h"
 
 //#include <iostream>
 //using namespace std;
@@ -470,7 +472,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 
     }
     else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
-        std::cout << "Popup menu" << std::endl;
+        showContextMenu(event);
     }
 
     update();
@@ -544,4 +546,29 @@ Vector3 PanelGL::computeRayDirection(QPoint p) {
     Vector3 rayDir = pFar - pNear;
     rayDir.normalize();
     return rayDir;
+}
+
+void PanelGL::showContextMenu(QMouseEvent *event)
+{
+
+    // get all the actions for
+    ContextMenu popup;
+
+    QList<ContextAction*> actions = _scene->contextActions();
+
+    foreach(ContextAction* action, actions) {
+        action->setParent(&popup);
+        connect(action, SIGNAL(triggered()), action, SLOT(itemTriggered()));
+        connect(action, SIGNAL(workToolChange(WorkTool*, QString, int)),
+                this, SLOT(initWorkTool(WorkTool*, QString, int)));
+
+        popup.addAction(action);
+    }
+
+    popup.exec(event->globalPos());
+}
+
+void PanelGL::initWorkTool(WorkTool *tool, QString command, int button)
+{
+    std::cout << "Initting work tool!" << std::endl;
 }

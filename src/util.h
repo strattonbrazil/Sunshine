@@ -8,6 +8,7 @@
 #include <QMatrix4x4>
 #include <QTextStream>
 #include <QFile>
+#include <QSharedPointer>
 #include <math.h>
 #include <iostream>
 
@@ -48,9 +49,6 @@ class Transformable
 {
 public:
                   Transformable();
-    Point3        centerReference;
-    Vector3       scaleReference;
-    Quat4         rotateReference;
     void          setYRot(float a) { _yRot = a; updateLook(); }
     float         yRot() { return _yRot; }
     void          setUpRot(float a) { _upRot = a; updateLook(); }
@@ -72,6 +70,9 @@ public:
     Vector3       scale() { return _scale; }
     void          setScale(Vector3 s) { _scale = s; }
 
+    Point3        centerReference() { return _centerReference; }
+    void          setCenterReference(Point3 c) { _centerReference = c; }
+
     QMatrix4x4    objectToWorld();
 
 
@@ -80,6 +81,8 @@ protected:
     Point3        _center;
     Vector3       _scale;
     Quat4         _rotate;
+
+    Point3        _centerReference;
 
     // specific to camera controls (look through selected)
     Quat4         _startRotate;
@@ -104,5 +107,6 @@ const QVector4D UNSELECTED_HOVER_COLOR(0,1,0,1);
 
 //void loadLuaFile(lua_State* state, QString fileName);
 
+namespace Axis { enum { NoAxis, GlobalX, GlobalY, GlobalZ, LocalX, LocalY, LocalZ, Normal, Screen }; };
 
 #endif // UTIL_H

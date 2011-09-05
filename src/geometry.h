@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QString>
 #include <QSharedPointer>
+#include <boost/shared_ptr.hpp>
 #include "primitive.h"
 
 class Vertex;
@@ -11,7 +12,7 @@ class Edge;
 class Face;
 class Mesh;
 class Scene;
-typedef QSharedPointer<Scene> SceneP;
+typedef boost::shared_ptr<Scene> SceneP;
 typedef QSharedPointer<Vertex> VertexP;
 typedef QSharedPointer<Edge> EdgeP;
 typedef QSharedPointer<Face> FaceP;

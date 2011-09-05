@@ -10,23 +10,20 @@
 #include <boost/python/module.hpp>
 #include <boost/python/def.hpp>
 #include <boost/python/class.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "exceptions.h"
+#include "worktool.h"
+#include "contextmenu.h"
 
 using namespace boost::python;
 
-/*
-extern "C"
-{
-    #include "lua.h"
-    #include <lualib.h>
-}
-
-#include <luabind/luabind.hpp>
-*/
+class WorkTool;
+class ContextAction;
+typedef QSharedPointer<WorkTool> WorkToolP;
 
 
-class Scene
+class Scene : public boost::enable_shared_from_this<Scene>
 {
 public:
     MeshP                       mesh(int key);
@@ -46,7 +43,7 @@ public:
         QString content = file.readAll();
         file.close();
 
-        std::cout << content.toStdString() << std::endl;
+        //std::cout << content.toStdString() << std::endl;
 
         try {
             object ignored = exec(content.toStdString().c_str(), _pyMainNamespace);
@@ -56,6 +53,8 @@ public:
         }
     }
                                 Scene();
+    QList<ContextAction*>              contextActions();
+
 protected:
     int                                uniqueCameraKey(); // TODO: replace these functions with one unique-key finder
     int                                uniqueMeshKey();
@@ -69,10 +68,11 @@ private:
 //    PythonQtObjectPtr                  _context;
     object                             _pyMainModule;
     object                             _pyMainNamespace;
+    QList<WorkToolP>                   _tools;
 public slots:
     void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
     void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }
 };
-typedef QSharedPointer<Scene> SceneP;
+typedef boost::shared_ptr<Scene> SceneP;
 
 #endif // SCENE_H

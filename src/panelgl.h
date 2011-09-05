@@ -28,6 +28,7 @@ typedef QSharedPointer<MeshRenderer> MeshRendererP;
 
 class PanelGL : public QGLWidget
 {
+    Q_OBJECT
 public:
                              PanelGL(SceneP scene);
                              PanelGL(const PanelGL &panel);
@@ -47,6 +48,13 @@ public:
     Point3                   unproject(Point3 p);
     Vector3                  computeRayDirection(QPoint p);
     SceneP                   scene() const { return _scene; }
+    void                     showContextMenu(QMouseEvent* event);
+    QPoint                   centerMouse() {
+        std::cout << "implement centerMouse" << std::endl;
+        return QPoint(5,5);
+    }
+public slots:
+    void                     initWorkTool(WorkTool* tool, QString command, int button);
 
 private:
     bool                     _validShaders;

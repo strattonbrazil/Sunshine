@@ -36,22 +36,26 @@ BOOST_PYTHON_MODULE(util)
 }
 
 #include "scene.h"
+/*
 namespace boost { namespace python {
     template <typename T>
     struct pointee< QSharedPointer<T> > {
         typedef T type;
     };
 }}
+*/
 
 // in some namespace where ADL will find it...
 //template <typename T*>
+/*
 inline Scene* get_pointer(QSharedPointer<Scene> const &p) {
    return p.data(); // or whatever
 }
+*/
 
 BOOST_PYTHON_MODULE(scene)
 {
-    class_<Scene, QSharedPointer<Scene> >("Scene");
+    class_<Scene, boost::noncopyable>("Scene");
 }
 /*
 struct QSceneFromPythonScene
@@ -246,11 +250,14 @@ void createPythonBindings()
     PyImport_AppendInittab("primitive", &initprimitive);
     PyImport_AppendInittab("util", &initutil);
     PyImport_AppendInittab("geometry", &initgeometry);
+
+    boost::python::register_ptr_to_python< boost::shared_ptr<Scene> >();
     PyImport_AppendInittab("scene", &initscene);
 
     IntQListFromPythonList();
     IntQListVectorFromPythonList();
     QPoint3VectorFromPythonList();
+
     //QSceneFromPythonScene();
 }
 
