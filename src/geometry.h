@@ -57,6 +57,7 @@ public:
     void                         validateNormals();
     bool                         isSelected() { return _selected; }
     void                         setSelected(bool s) { _selected = s; }
+    QMatrix4x4                   normalToWorld();
 private:
     int                          _key;
     QString                      _name;
@@ -76,11 +77,7 @@ public:
     void                  setNext(EdgeP e) { _nextKey = e->key(); }
     void                  setPrev(EdgeP e) { _prevKey = e->key(); }
     void                  setPair(EdgeP e) { _pairKey = e->key(); }
-    EdgeP                 next() {
-        //std::cout << mesh()->name().toStdString() << std::endl;
-        //std::cout << mesh()->edge(0) << std::endl;
-        return mesh()->edge(_nextKey);
-    }
+    EdgeP                 next() { return mesh()->edge(_nextKey); }
     EdgeP                 prev() { return mesh()->edge(_prevKey); }
     EdgeP                 pair() { return mesh()->edge(_pairKey); }
     MeshP                 mesh();// { return Register::mesh(_meshKey); }
@@ -103,7 +100,7 @@ class Triangle
 {
 public:
                           Triangle(EdgeP e1, EdgeP e2, EdgeP e3) : a(e1),b(e2),c(e3) {}
-    EdgeP               a,b,c;
+    EdgeP                 a,b,c;
 };
 
 class Face

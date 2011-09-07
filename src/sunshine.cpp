@@ -97,9 +97,7 @@ void Sunshine::on_renderButton_clicked()
 
     CameraP activeCamera = _scene->fetchCamera("persp");
 
-
     RiBegin(RI_NULL);
-
 
     // Output image
     RiDisplay(fileName, "file", "rgb", RI_NULL);
@@ -118,73 +116,105 @@ void Sunshine::on_renderButton_clicked()
     //float fov = 45;
     RiProjection("perspective", "fov", &fov, RI_NULL);
 
+    // flip coordinate system across YZ
     RtMatrix flipYZ;
     activeCamera->flipYZ(flipYZ);
     RiTransform(flipYZ);
 
-    RtMatrix cameraTransform;
-    //activeCamera->lookTransform(cameraTransform);
-    //RiConcatTransform(cameraTransform);
+    // setup directional light
+    {
+        Point3 eye = activeCamera->eye();
+        Point3 shineAt = eye + -activeCamera->lookDir().normalized();
+        RtPoint from = {eye.x(),eye.y(),eye.z()};
+        RtPoint to = {shineAt.x(),shineAt.y(),shineAt.z()};
+        RiLightSource("distantlight", "from", from, "to", to, RI_NULL);
+    }
+    //    RiLightSource("pointlight", "intensity", &intensity, RI_NULL);
 
     RotatePair pair = activeCamera->aim(activeCamera->lookDir());
     RiRotate(pair.rot1.x(), pair.rot1.y(), pair.rot1.z(), pair.rot1.w());
     RiRotate(pair.rot2.x(), pair.rot2.y(), pair.rot2.z(), pair.rot2.w());
 
-    std::cout << pair.rot1 << std::endl;
-    std::cout << pair.rot2 << std::endl;
-
     RiTranslate(-activeCamera->eye().x(),
                 -activeCamera->eye().y(),
                 -activeCamera->eye().z());
 
-
-    //RiTransform(cameraTransform);
-    //RtMatrix
-    //RiTransform(transform);
-    //RiTranslate(0, 0, 3);
-    /*
-    RtPoint camPosition = { activeCamera->eye().x(), activeCamera->eye().y(), activeCamera->eye().z() };
-    RtPoint camDirection = { activeCamera->lookDir().x(), activeCamera->lookDir().y(), activeCamera->lookDir().z() };
-    RiLookAt(activeCamera->eye(),
-             activeCamera->lookDir(),
-             activeCamera->upDir());
-             */
-
     RiWorldBegin();
-    // Geometry
-    float intensity = 1.0f;
-    RiLightSource("pointlight", "intensity", &intensity, RI_NULL);
-    float Ks = 1.0f;
-    RiSurface("plastic", "Ks", &Ks, RI_NULL);
-    for (int j = 0; j < 20; ++j) {
-        const int ringNum = 5;
-        for(int i = 0; i < ringNum; ++i) {
-            RiTransformBegin();
-            RiRotate(i*360/ringNum, 0, 0, 1);
-            RiTranslate(1, 0, 0);
-            RiSphere(0.2f, -0.2f, 0.2f, 360, RI_NULL);
+    {
+        // setup basic material
+        float intensity = 1.0f;
+        float Ks = 1.0f;
+        RiSurface("plastic", "Ks", &Ks, RI_NULL);
+
+        // add meshes to scene
+        QHashIterator<int,MeshP> meshes = _scene->meshes();
+        while (meshes.hasNext()) {
+            meshes.next();
+            int meshKey = meshes.key();
+            MeshP mesh = meshes.value();
+            RiTransformBegin(); // object-to-world
+            {
+                const int numTriangles = mesh->numTriangles();
+                QHashIterator<int,FaceP> i = mesh->faces();
+                while (i.hasNext()) { // render each face
+                    i.next();
+                    FaceP face = i.value();
+                    QListIterator<Triangle> j = face->buildTriangles();
+                    while (j.hasNext()) { // render each triangle
+                        Triangle triangle = j.next();
+                        RtPoint points[3] = { { triangle.a->vert()->pos().x(),
+                                                triangle.a->vert()->pos().y(),
+                                                triangle.a->vert()->pos().z() },
+                                              { triangle.b->vert()->pos().x(),
+                                                triangle.b->vert()->pos().y(),
+                                                triangle.b->vert()->pos().z() },
+                                              { triangle.c->vert()->pos().x(),
+                                                triangle.c->vert()->pos().y(),
+                                                triangle.c->vert()->pos().z() } };
+                        RtPoint normals[3] = { { triangle.a->normal().x(),
+                                                 triangle.a->normal().y(),
+                                                 triangle.a->normal().z() },
+                                               { triangle.b->normal().x(),
+                                                 triangle.b->normal().y(),
+                                                 triangle.b->normal().z() },
+                                               { triangle.c->normal().x(),
+                                                 triangle.c->normal().y(),
+                                                 triangle.c->normal().z() } };
+                        RiPolygon(3, "P", (RtPointer)points, "N", (RtPointer)normals, RI_NULL );
+                    }
+                }
+
+            }
             RiTransformEnd();
         }
-        RiRotate(10, 0, 0, 1);
-        RiScale(0.8f, 0.8f, 0.8f);
-        RiTranslate(0, 0, 0.3);
+
+        // Geometry
+        for (int j = 0; j < 20; ++j) {
+            const int ringNum = 5;
+            for(int i = 0; i < ringNum; ++i) {
+                RiTransformBegin();
+                RiRotate(i*360/ringNum, 0, 0, 1);
+                RiTranslate(1, 0, 0);
+                RiSphere(0.2f, -0.2f, 0.2f, 360, RI_NULL);
+                RiTransformEnd();
+            }
+            RiRotate(10, 0, 0, 1);
+            RiScale(0.8f, 0.8f, 0.8f);
+            RiTranslate(0, 0, 0.3);
+        }
     }
     RiWorldEnd();
 
     RiEnd();
 
    _renderWidget->open(QString(fileName));
-
-   // std::cout << "Render to window" << std::endl;
 }
 
 
 
 void Sunshine::on_renderSettingsButton_clicked()
 {
-    std::cout << "Bringing up render settings" << std::endl;
     _renderSettingsWidget->show();
-
 }
 
 void Sunshine::on_importAction_triggered()
@@ -196,7 +226,6 @@ void Sunshine::on_importAction_triggered()
         std::cout << "ext: " << ext.toStdString() << std::endl;
         extFilter += QString("*") + ext + " ";
     }
-    std::cout << extFilter.toStdString() << std::endl;
 
     QString fileName = QFileDialog::getOpenFileName(this, QString("Open File - ") + extFilter,
                                                     "/home",

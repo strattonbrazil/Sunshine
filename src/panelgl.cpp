@@ -317,11 +317,13 @@ void MeshRenderer::render(PanelGL* panel)
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
     QMatrix4x4 objToWorld = mesh->objectToWorld();
+    QMatrix4x4 normalToWorld = mesh->normalToWorld();
 
     QGLShaderProgramP meshShader = panel->getMeshShader();
 
     meshShader->bind();
     meshShader->setUniformValue("objToWorld", objToWorld);
+    meshShader->setUniformValue("normalToWorld", normalToWorld);
     meshShader->setUniformValue("cameraPV", cameraProjViewM);
     meshShader->setUniformValue("cameraPos", camera->eye());
     meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
@@ -368,7 +370,7 @@ void MeshRenderer::render(PanelGL* panel)
 
     offset += sizeof(QVector4D);
 
-    // tell OpenGL programmable pipeline how to locate vertex color data
+    // tell OpenGL programmable pipeline how to locate vertex normal data
     int normalLocation = meshShader->attributeLocation("normal");
     meshShader->enableAttributeArray(normalLocation);
     glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
@@ -438,7 +440,6 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
     bool altDown = event->modifiers() & Qt::AltModifier;
 
     if (workMode == WorkMode::TOOL) {
-        std::cout << "tool on (press)" << std::endl;
         //workTool.mousePressed(event);
     }
     else if (workMode == WorkMode::FREE && altDown) {
@@ -464,6 +465,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
             _workTool->finish(event);
         workMode = WorkMode::FREE;
         _ravagingMouse = FALSE;
+        setArrowCursor();
     }
     else if (workMode == WorkMode::CAMERA && event->button() == workButton) {
         workMode = WorkMode::FREE;
@@ -477,7 +479,6 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 
     }
     else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
-        std::cout << "menu" << std::endl;
         showContextMenu(event);
     }
 
@@ -604,4 +605,19 @@ void PanelGL::ravageMouse()
 {
     centerMouse(FALSE);
     _ravagingMouse = TRUE;
+    setBlankCursor();
+}
+
+void PanelGL::setArrowCursor()
+{
+    QCursor cursor;
+    cursor.setShape(Qt::ArrowCursor);
+    this->setCursor(cursor);
+}
+
+void PanelGL::setBlankCursor()
+{
+    QCursor cursor;
+    cursor.setShape(Qt::BlankCursor);
+    this->setCursor(cursor);
 }

@@ -53,6 +53,8 @@ public:
     SceneP                   scene() const { return _scene; }
     void                     showContextMenu(QMouseEvent* event);
     QPoint                   centerMouse(bool mock);
+    void                     setArrowCursor();
+    void                     setBlankCursor();
 public slots:
     void                     initWorkTool(WorkTool* tool, QString command, int button);
 

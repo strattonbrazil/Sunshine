@@ -110,35 +110,6 @@ void Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
         face->setEdge(firstEdge);
     }
 
-    /*
-    for (int i = 0; i < emptyMesh->_vertices.size(); i++) {
-        VertexP v = emptyMesh->_vertices[i];
-        std::cout << "v: " << v->key() << std::endl;
-    }
-
-    std::cout << "----------" << std::endl;
-
-    for (int i = 0; i < emptyMesh->_edges.size(); i++) {
-        EdgeP e = emptyMesh->_edges[i];
-        std::cout << "e: " << e->key() << std::endl;
-        //std::cout << e->next() << std::endl;
-        //std::cout << "  n:" << e->next()->key() << std::endl;
-        //std::cout << "  p:" << e->prev()->key() << std::endl;
-    }
-
-    std::cout << "----------" << std::endl;
-
-    for (int i = 0; i < emptyMesh->_faces.size(); i++) {
-        FaceP f = emptyMesh->_faces[i];
-        std::cout << "f: " << f->key() << std::endl;
-        std::cout << "  e: " << f->edge()->key() << std::endl;
-    }
-    */
-
-    // construct vertices, edges, and faces
-    //MeshP mesh = MeshP(new Mesh(meshKey, emptyMesh->name(), vertices, edges, faces));
-    //Register::setMesh(meshKey, mesh);
-
     emptyMesh->computeEdgePairs();
 }
 
@@ -171,16 +142,12 @@ QString pairKey(int a, int b)
 {
     QString key;
     QTextStream(&key) << a << "_" << b;
-    //QString key("%1_%2");
-    //key = key.arg("%f", a).arg("%f", b);
-    //std::cout << key.toStdString() << std::endl;
+
     return key;
 }
 
 void Mesh::computeEdgePairs()
 {
-    std::cout << "Computing edge pairs" << std::endl;
-    //std::cout << _faces.size() << std::endl;
     // gather edges for each face
     QHash<QString,EdgeP> pairs;
     {
@@ -194,7 +161,6 @@ void Mesh::computeEdgePairs()
 
             do {
                 pairs[pairKey(edge->vert()->key(), edge->next()->vert()->key())] = edge;
-                //pairs += (edge->vert.key(), edge.next.vert.key()) -> edge
                 edge = edge->next();
             } while (edge != face->edge());
         }
@@ -235,8 +201,12 @@ void Mesh::validateNormals()
     _validNormals = TRUE;
 }
 
+QMatrix4x4 Mesh::normalToWorld()
+{
+    return _rotate.matrix();
+}
+
 EdgeP Face::edge() {
-    //std::cout << Register::mesh(_meshKey)-> << std::endl;
     return _mesh->edge(_edgeKey);
 }
 

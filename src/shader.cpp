@@ -49,9 +49,11 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "varying vec3 worldNormal;\n" \
                        "uniform mat4 objToWorld;\n" \
                        "uniform mat4 cameraPV;\n" \
+                       "uniform mat4 normalToWorld;\n" \
                        "void main() {\n" \
                        "  worldPos = (objToWorld * vec4(vertex,1.0)).xyz;\n" \
-                       "  worldNormal = (objToWorld * vec4(vertex,1.0)).xyz;\n" \
+                       "  worldNormal = (normalToWorld * vec4(normal,1.0)).xyz;\n" \
+                       "  //worldNormal = normal;\n" \
                        "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0);\n" \
                        "  gl_FrontColor = color;\n" \
                        "}\n");
