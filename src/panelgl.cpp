@@ -27,6 +27,7 @@ PanelGL::PanelGL(const PanelGL &panel) : QGLWidget(panel.format())
 {
     setMouseTracking(true);
     _validShaders = false;
+    _ravagingMouse = FALSE;
 
     this->_camera = panel.camera();
     this->_scene = panel.scene();
@@ -315,7 +316,7 @@ void MeshRenderer::render(PanelGL* panel)
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
-    QMatrix4x4 objToWorld;
+    QMatrix4x4 objToWorld = mesh->objectToWorld();
 
     QGLShaderProgramP meshShader = panel->getMeshShader();
 
@@ -437,6 +438,7 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
     bool altDown = event->modifiers() & Qt::AltModifier;
 
     if (workMode == WorkMode::TOOL) {
+        std::cout << "tool on (press)" << std::endl;
         //workTool.mousePressed(event);
     }
     else if (workMode == WorkMode::FREE && altDown) {
@@ -456,9 +458,12 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
 void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 {
     if (workMode == WorkMode::TOOL) {
-        //workTool->mouseReleased
-        workButton = WorkMode::FREE;
-        workButton = -1;
+        if (event->button() == Qt::RightButton)
+            _workTool->cancel(event);
+        else
+            _workTool->finish(event);
+        workMode = WorkMode::FREE;
+        _ravagingMouse = FALSE;
     }
     else if (workMode == WorkMode::CAMERA && event->button() == workButton) {
         workMode = WorkMode::FREE;
@@ -472,6 +477,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 
     }
     else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
+        std::cout << "menu" << std::endl;
         showContextMenu(event);
     }
 
@@ -484,7 +490,14 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
 
     }
     else if (workMode == WorkMode::TOOL) {
-        //work_tool.mouseMoved(event)
+        //_workTool->mouseMoved(event);
+        if (_ravagingMouse) { // move mouse back to center
+            QPoint mouseDiff = QCursor::pos() - centerMouse(TRUE);
+            if (mouseDiff != QPoint(0,0)) {
+                _workTool->mouseMoved(event, mouseDiff.x(), mouseDiff.y());
+                centerMouse(FALSE);
+            }
+        }
         update();
     }
     else {
@@ -568,7 +581,27 @@ void PanelGL::showContextMenu(QMouseEvent *event)
     popup.exec(event->globalPos());
 }
 
-void PanelGL::initWorkTool(WorkTool *tool, QString command, int button)
+void PanelGL::initWorkTool(WorkTool* tool, QString command, int button)
 {
-    std::cout << "Initting work tool!" << std::endl;
+    if (tool->init(this, command, button)) {
+        if (tool->wantsMouse()) {
+            workMode = WorkMode::TOOL;
+            ravageMouse();
+            _workTool = tool;
+        }
+    }
+}
+
+QPoint PanelGL::centerMouse(bool mock)
+{
+    QPoint goingTo = mapToGlobal(pos()) + QPoint(width()*.5,height()*.5);
+    if (!mock)
+        QCursor::setPos(goingTo);
+    return goingTo;
+}
+
+void PanelGL::ravageMouse()
+{
+    centerMouse(FALSE);
+    _ravagingMouse = TRUE;
 }

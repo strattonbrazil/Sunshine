@@ -9,9 +9,6 @@
 #include "panelgl.h"
 #include "sunshineui.h"
 
-//int Sunshine::_geometryMode = GeometryMode::OBJECT;
-//extern RegisterP Sunshine::activeRegister;
-
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
 }
@@ -22,16 +19,6 @@ void say_hello(const char* name) {
 #include <boost/python/class.hpp>
 
 using namespace boost::python;
-
-/*
-BOOST_PYTHON_MODULE(libsunshine)
-{
-    def("say_hello", say_hello);
-    class_<PanelGL>("PanelGL","panelgl docs uh",init<Scene*>());
-    class_<Scene>("Scenes","scene docs uh");
-    class_<SunshineUi>("SunshineUis","sunshine ui uh",init<Scene*>());
-}
-*/
 
 Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {

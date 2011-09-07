@@ -9,9 +9,12 @@
 #include "camera.h"
 #include "geometry.h"
 #include "scene.h"
+#include "worktool.h"
 
 class Mesh;
 class PanelGL;
+class WorkTool;
+typedef QSharedPointer<WorkTool> WorkToolP;
 
 class MeshRenderer
 {
@@ -49,20 +52,20 @@ public:
     Vector3                  computeRayDirection(QPoint p);
     SceneP                   scene() const { return _scene; }
     void                     showContextMenu(QMouseEvent* event);
-    QPoint                   centerMouse() {
-        std::cout << "implement centerMouse" << std::endl;
-        return QPoint(5,5);
-    }
+    QPoint                   centerMouse(bool mock);
 public slots:
     void                     initWorkTool(WorkTool* tool, QString command, int button);
 
 private:
+    void                     ravageMouse();
+    bool                     _ravagingMouse;
     bool                     _validShaders;
     CameraP                  _camera;
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
     QHash<int,MeshRendererP> _meshRenderers;
     SceneP                   _scene;
+    WorkTool*                _workTool;
 };
 
 struct LineSegment {
