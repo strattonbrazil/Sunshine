@@ -13,8 +13,12 @@ namespace Ui {
         class Sunshine;
 }
 
-namespace GeometryMode { enum { OBJECT, VERTEX, EDGE, FACE }; };
-namespace SelectMode { enum { BASIC, LINE, BOX }; };
+//namespace GeometryMode { enum { OBJECT, VERTEX, EDGE, FACE }; };
+//namespace SelectMode { enum { BASIC, LINE, BOX }; };
+namespace SunshineUi {
+    int workMode();
+    int selectMode();
+};
 
 class Sunshine : public QMainWindow {
     Q_OBJECT
@@ -25,22 +29,27 @@ public:
     void                       setupDefaultCameras();
     void                       setupDefaultMeshes();
     void                       setupDefaultLights();
-    static int                 geometryMode() { return _geometryMode; }
-    static int                 selectMode() { return _selectMode; }
+    int                        workMode();
+    int                        selectMode();
+
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
     void                       on_renderButton_clicked();
     void                       on_renderSettingsButton_clicked();
     void                       on_importAction_triggered();
+    void                       on_layoutModeButton_released();
+    void                       on_modelModeButton_released();
+    void                       on_tweakModeButton_released();
+    void                       on_lineSelectButton_released();
+    void                       on_boxSelectButton_clicked();
+
 private:
+    void                       updateMode();
     Ui::Sunshine*              ui;
     SceneP                     _scene;
     RenderWidget*              _renderWidget;
     SettingsWidget*            _renderSettingsWidget;
-    static int                 _geometryMode;
-    static int                 _selectMode;
-    //static v8::HandleScope     _handleScope;
 };
 
 #endif // SUNSHINE_H

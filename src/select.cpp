@@ -4,19 +4,6 @@
 #include "sunshine.h"
 #include <algorithm>
 
-int BasicSelect::minX;
-int BasicSelect::maxX;
-int BasicSelect::minY;
-int BasicSelect::maxY;
-QPoint BasicSelect::pick;
-QPoint BasicSelect::current;
-int BasicSelect::selectToggle;
-
-
-BasicSelect::BasicSelect()
-{
-}
-
 void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
 {
     pick = event->pos();

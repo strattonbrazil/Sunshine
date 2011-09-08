@@ -6,21 +6,24 @@
 
 namespace SelectToggle { enum { NONE, ON, OFF }; };
 
+class PanelGL;
+
 class BasicSelect
 {
 public:
-    static int               selectMode() { return SelectMode::BOX; }
-    static void              mousePressed(PanelGL* panel, QMouseEvent* event);
-    static void              mouseReleased(PanelGL* panel, QMouseEvent* event);
-    static void              mouseDragged(PanelGL* panel, QMouseEvent* event);
-    static int               minX, minY, maxX, maxY;
+    int               selectMode() { return SelectMode::BOX; }
+    void              mousePressed(PanelGL* panel, QMouseEvent* event);
+    void              mouseReleased(PanelGL* panel, QMouseEvent* event);
+    void              mouseDragged(PanelGL* panel, QMouseEvent* event);
+    int               minX, minY, maxX, maxY;
+
 private:
-                             BasicSelect();
-    static QPoint            pick;
-    static QPoint            current;
-    static int               selectToggle;
-    static void              processBoxSelection(PanelGL* panel, bool newSelection, bool selectValue);
-    static void              processLineSelection(PanelGL* panel, QMouseEvent* event);
+    QPoint            pick;
+    QPoint            current;
+    int               selectToggle;
+    void              processBoxSelection(PanelGL* panel, bool newSelection, bool selectValue);
+    void              processLineSelection(PanelGL* panel, QMouseEvent* event);
 };
+typedef QSharedPointer<BasicSelect> BasicSelectP;
 
 #endif // BASICSELECT_H

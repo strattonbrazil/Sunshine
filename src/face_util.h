@@ -1,4 +1,4 @@
-#ifndef FACE_UTIL_H
+    #ifndef FACE_UTIL_H
 #define FACE_UTIL_H
 
 #include "geometry.h"
@@ -13,7 +13,7 @@ namespace FaceUtil {
         Vector3 range;
     };
 
-    FaceHit closestFace(Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes);
+    FaceHit closestFace(SceneP scene, Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes);
 }
 
 

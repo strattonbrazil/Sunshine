@@ -58,7 +58,6 @@ void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
     float scale = 0.01f;
     currentP = event->pos();
     xDiff += dx;
-    std::cout << "xDiff: " << xDiff << std::endl;
     if (axis == Axis::GlobalX || axis == Axis::GlobalY || axis == Axis::GlobalZ) {
         Vector3 direction;
         if (axis == Axis::GlobalX) direction = Vector3(1,0,0);

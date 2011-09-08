@@ -1,3 +1,4 @@
+/*
 #include "sunshineui.h"
 
 SunshineUi::SunshineUi(Scene* scene, QWidget *parent) :
@@ -10,3 +11,4 @@ SunshineUi::SunshineUi(const SunshineUi &ui)
 {
     _scene = ui.scene();
 }
+*/

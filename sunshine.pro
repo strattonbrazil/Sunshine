@@ -7,13 +7,10 @@ TARGET = sunshine
 DEPENDPATH += . src
 INCLUDEPATH += . src
 QMAKE_CXXFLAGS += $$system(python-config --cflags)
-QMAKE_CXXFLAGS += $$system(lua-config --include)
 QMAKE_LIBS += $$system(python-config --libs)
 QT += opengl script
 LIBS += -lGLEW
 LIBS += -laqsis_core
-LIBS += -llua5.1
-LIBS += -lluabind
 LIBS += -lboost_python
 
 # Input

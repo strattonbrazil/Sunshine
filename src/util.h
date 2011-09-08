@@ -12,15 +12,6 @@
 #include <math.h>
 #include <iostream>
 
-/*
-extern "C"
-{
-    #include "lua.h"
-}
-
-#include <luabind/luabind.hpp>
-*/
-
 typedef QVector2D Vector2;
 typedef QVector3D Vector3;
 typedef QVector4D Vector4;
@@ -96,17 +87,19 @@ void printMatrix(QMatrix4x4 m);
 void printVector3(Vector3 v);
 void printQuat(QQuaternion q);
 
-namespace WorkMode {
-    enum { FREE, CAMERA, TOOL, SELECT };
-}
 
 const QVector4D SELECTED_COLOR(1,0,0,1);
 const QVector4D SELECTED_HOVER_COLOR(1,1,0,1);
 const QVector4D UNSELECTED_COLOR(1,1,1,1);
 const QVector4D UNSELECTED_HOVER_COLOR(0,1,0,1);
 
-//void loadLuaFile(lua_State* state, QString fileName);
-
 namespace Axis { enum { NoAxis, GlobalX, GlobalY, GlobalZ, LocalX, LocalY, LocalZ, Normal, Screen }; };
+
+namespace WorkMode {
+    enum { LAYOUT, MODEL, TWEAK };
+}
+namespace SelectMode {
+    enum { LINE, BOX };
+}
 
 #endif // UTIL_H

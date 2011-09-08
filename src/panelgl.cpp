@@ -1,21 +1,20 @@
 #include "panelgl.h"
 
-// possible reference
-// http://code.google.com/p/opencamlib/source/browse/trunk/cpp_examples/qt_opengl_vbo/glwidget.h?spec=svn688&r=688
-
 #include <QVarLengthArray>
 #include <QMouseEvent>
 #include <QMenu>
 #include "select.h"
 #include "project_util.h"
 #include "contextmenu.h"
+#include "face_util.h"
 
-//#include <iostream>
-//using namespace std;
+namespace MouseMode {
+    enum { FREE, CAMERA, TOOL, SELECT };
+}
 
 LineRenderer* mainGrid = NULL;
-int workMode = WorkMode::FREE;
-int workButton = -1;
+int mouseMode = MouseMode::FREE;
+int activeMouseButton = -1;
 
 struct VertexColorData
 {
@@ -24,43 +23,29 @@ struct VertexColorData
 };
 
 PanelGL::PanelGL(const PanelGL &panel) : QGLWidget(panel.format())
+{ // what was this constructor for again? still need it?
+    _camera = panel.camera();
+    _scene = panel.scene();
+    _sunshine = panel.sunshine();
+
+    init();
+}
+
+PanelGL::PanelGL(SceneP scene, Sunshine* sunshine) : QGLWidget(PanelGL::defaultFormat())
+{
+    _scene = scene;
+    _camera = _scene->fetchCamera("persp");
+    _sunshine = sunshine;
+
+    init();
+}
+
+void PanelGL::init()
 {
     setMouseTracking(true);
     _validShaders = false;
     _ravagingMouse = FALSE;
-
-    this->_camera = panel.camera();
-    this->_scene = panel.scene();
-
-    if (mainGrid == NULL) {
-        int range[] = {-10,10};
-        int numSegments = range[1]-range[0]+1;
-
-        QVector<LineSegment> segments(numSegments*2);
-        for (int i = 0; i < numSegments*2; i += 2) {
-            segments[i].p1 = Point3(range[0]+i/2, 0, 10);
-            segments[i].p2 = Point3(range[0]+i/2, 0, -10);
-            segments[i].r = 0.4f;
-            segments[i].g = 0.4f;
-            segments[i].b = 0.4f;
-
-            segments[i+1].p1 = Point3(-10, 0, range[0]+i/2);
-            segments[i+1].p2 = Point3(10, 0, range[0]+i/2);
-            segments[i+1].r = 0.4f;
-            segments[i+1].g = 0.4f;
-            segments[i+1].b = 0.4f;
-        }
-        mainGrid = new LineRenderer(segments, 1);
-    }
-}
-
-PanelGL::PanelGL(SceneP scene) : QGLWidget(PanelGL::defaultFormat())
-{
-    setMouseTracking(true);
-    _validShaders = false;
-
-    _scene = scene;
-    _camera = _scene->fetchCamera("persp");
+    _basicSelect = BasicSelectP(new BasicSelect());
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -140,8 +125,8 @@ void PanelGL::paintGL()
     glDisable(GL_DEPTH_TEST);
 
     // render the selection box
-    if (workMode == WorkMode::SELECT) {
-        if (BasicSelect::selectMode() == SelectMode::BOX) {
+    if (mouseMode == MouseMode::SELECT) {
+        if (_basicSelect->selectMode() == SelectMode::BOX) {
 
             CameraP camera = _camera;
             QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
@@ -158,20 +143,20 @@ void PanelGL::paintGL()
             glColor4f(1,.2f,1,.2f);
             glBegin(GL_LINE_LOOP);
             {
-                glVertex2f(BasicSelect::minX,BasicSelect::minY);
-                glVertex2f(BasicSelect::minX,BasicSelect::maxY);
-                glVertex2f(BasicSelect::maxX,BasicSelect::maxY);
-                glVertex2f(BasicSelect::maxX,BasicSelect::minY);
+                glVertex2f(_basicSelect->minX,_basicSelect->minY);
+                glVertex2f(_basicSelect->minX,_basicSelect->maxY);
+                glVertex2f(_basicSelect->maxX,_basicSelect->maxY);
+                glVertex2f(_basicSelect->maxX,_basicSelect->minY);
             }
             glEnd();
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glBegin(GL_QUADS);
             {
-                glVertex2f(BasicSelect::minX,BasicSelect::minY);
-                glVertex2f(BasicSelect::minX,BasicSelect::maxY);
-                glVertex2f(BasicSelect::maxX,BasicSelect::maxY);
-                glVertex2f(BasicSelect::maxX,BasicSelect::minY);
+                glVertex2f(_basicSelect->minX,_basicSelect->minY);
+                glVertex2f(_basicSelect->minX,_basicSelect->maxY);
+                glVertex2f(_basicSelect->maxX,_basicSelect->maxY);
+                glVertex2f(_basicSelect->maxX,_basicSelect->minY);
             }
             glEnd();
             glDisable(GL_BLEND);
@@ -328,16 +313,14 @@ void MeshRenderer::render(PanelGL* panel)
     meshShader->setUniformValue("cameraPos", camera->eye());
     meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
 
-    int _hoverMeshKey = -1;
-
     //if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
     if (true) {
         QVector4D singleColor;
-        if (mesh->isSelected() && mesh->key() != _hoverMeshKey)
+        if (mesh->isSelected() && mesh->key() != panel->_hoverMeshKey)
             singleColor = SELECTED_COLOR;
-        else if (mesh->isSelected() && mesh->key() == _hoverMeshKey)
+        else if (mesh->isSelected() && mesh->key() == panel->_hoverMeshKey)
             singleColor = SELECTED_HOVER_COLOR;
-        else if (mesh->key() == _hoverMeshKey)
+        else if (mesh->key() == panel->_hoverMeshKey)
             singleColor = UNSELECTED_HOVER_COLOR;
         else
             singleColor = UNSELECTED_COLOR;
@@ -439,46 +422,46 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
 {
     bool altDown = event->modifiers() & Qt::AltModifier;
 
-    if (workMode == WorkMode::TOOL) {
+    if (mouseMode == MouseMode::TOOL) {
         //workTool.mousePressed(event);
     }
-    else if (workMode == WorkMode::FREE && altDown) {
-        workMode = WorkMode::CAMERA;
-        workButton = event->button();
+    else if (mouseMode == MouseMode::FREE && altDown) {
+        mouseMode = MouseMode::CAMERA;
+        activeMouseButton = event->button();
         _camera->mousePressed(event);
     }
-    else if (workMode == WorkMode::FREE && event->button() & Qt::LeftButton) {
-        workMode = WorkMode::SELECT;
-        workButton = event->button();
+    else if (mouseMode == MouseMode::FREE && event->button() & Qt::LeftButton) {
+        mouseMode = MouseMode::SELECT;
+        activeMouseButton = event->button();
         //basicSelect = BasicSelect.instance
         //basic_select.mousePressed(self,event)
-        BasicSelect::mousePressed(this, event);
+        _basicSelect->mousePressed(this, event);
     }
 }
 
 void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (workMode == WorkMode::TOOL) {
+    if (mouseMode == MouseMode::TOOL) {
         if (event->button() == Qt::RightButton)
             _workTool->cancel(event);
         else
             _workTool->finish(event);
-        workMode = WorkMode::FREE;
+        mouseMode = MouseMode::FREE;
         _ravagingMouse = FALSE;
         setArrowCursor();
     }
-    else if (workMode == WorkMode::CAMERA && event->button() == workButton) {
-        workMode = WorkMode::FREE;
-        workButton = -1;
+    else if (mouseMode == MouseMode::CAMERA && event->button() == activeMouseButton) {
+        mouseMode = MouseMode::FREE;
+        activeMouseButton = -1;
         _camera->mouseReleased(event);
     }
-    else if (workMode == WorkMode::SELECT && event->button() == workButton) {
-        workMode = WorkMode::FREE;
-        workButton = -1;
-        BasicSelect::mouseReleased(this, event);
+    else if (mouseMode == MouseMode::SELECT && event->button() == activeMouseButton) {
+        mouseMode = MouseMode::FREE;
+        activeMouseButton = -1;
+        _basicSelect->mouseReleased(this, event);
 
     }
-    else if (workMode == WorkMode::FREE && event->button() == Qt::RightButton) { // popup menu
+    else if (mouseMode == MouseMode::FREE && event->button() == Qt::RightButton) { // popup menu
         showContextMenu(event);
     }
 
@@ -487,10 +470,18 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 
 void PanelGL::mouseMoveEvent(QMouseEvent* event)
 {
-    if (workMode == WorkMode::FREE) {
+    if (mouseMode == MouseMode::FREE) {
+        // calculate preselection
+        Point3 rayOrig = camera()->eye();
+        Vector3 rayDir = computeRayDirection(event->pos());
+        FaceUtil::FaceHit faceHit = FaceUtil::closestFace(_scene, rayOrig, rayDir, false);
 
+        _hoverMeshKey = faceHit.nearMesh ? faceHit.nearMesh->key() : -1;
+
+        // figure out near edge and vertex
+        update();
     }
-    else if (workMode == WorkMode::TOOL) {
+    else if (mouseMode == MouseMode::TOOL) {
         //_workTool->mouseMoved(event);
         if (_ravagingMouse) { // move mouse back to center
             QPoint mouseDiff = QCursor::pos() - centerMouse(TRUE);
@@ -508,14 +499,14 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
 
 void PanelGL::mouseDragEvent(QMouseEvent* event)
 {
-    if (workMode == WorkMode::CAMERA) {
+    if (mouseMode == MouseMode::CAMERA) {
         _camera->mouseDragged(event);
 
     }
-    else if (workMode == WorkMode::SELECT) {
+    else if (mouseMode == MouseMode::SELECT) {
         //basic_select = BasicSelect.instance
         //basic_select.mouseDrag(self, event)
-        BasicSelect::mouseDragged(this, event);
+        _basicSelect->mouseDragged(this, event);
     }
 
     update();
@@ -586,7 +577,7 @@ void PanelGL::initWorkTool(WorkTool* tool, QString command, int button)
 {
     if (tool->init(this, command, button)) {
         if (tool->wantsMouse()) {
-            workMode = WorkMode::TOOL;
+            mouseMode = MouseMode::TOOL;
             ravageMouse();
             _workTool = tool;
         }

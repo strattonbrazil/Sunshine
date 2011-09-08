@@ -10,11 +10,17 @@
 #include "geometry.h"
 #include "scene.h"
 #include "worktool.h"
+#include "select.h"
+#include "sunshine.h"
 
 class Mesh;
 class PanelGL;
+class Sunshine;
 class WorkTool;
 typedef QSharedPointer<WorkTool> WorkToolP;
+
+class BasicSelect;
+typedef QSharedPointer<BasicSelect> BasicSelectP;
 
 class MeshRenderer
 {
@@ -33,7 +39,7 @@ class PanelGL : public QGLWidget
 {
     Q_OBJECT
 public:
-                             PanelGL(SceneP scene);
+                             PanelGL(SceneP scene, Sunshine* sunshine);
                              PanelGL(const PanelGL &panel);
     void             	     initializeGL();
     void               	     paintGL();
@@ -51,14 +57,20 @@ public:
     Point3                   unproject(Point3 p);
     Vector3                  computeRayDirection(QPoint p);
     SceneP                   scene() const { return _scene; }
+    Sunshine*                sunshine() const { return _sunshine; }
     void                     showContextMenu(QMouseEvent* event);
     QPoint                   centerMouse(bool mock);
     void                     setArrowCursor();
     void                     setBlankCursor();
+
+    // for preselection
+    int                      _hoverMeshKey;
+
 public slots:
     void                     initWorkTool(WorkTool* tool, QString command, int button);
 
 private:
+    void                     init();
     void                     ravageMouse();
     bool                     _ravagingMouse;
     bool                     _validShaders;
@@ -68,6 +80,15 @@ private:
     QHash<int,MeshRendererP> _meshRenderers;
     SceneP                   _scene;
     WorkTool*                _workTool;
+    BasicSelectP             _basicSelect;
+    Sunshine*                _sunshine;
+
+    /*
+    MeshP                    _closestMesh;
+    FaceP                    _closestFace;
+    VertexP                  _closestVertex;
+    EdgeP                    _closestEdge;
+    */
 };
 
 struct LineSegment {

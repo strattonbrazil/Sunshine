@@ -1,6 +1,7 @@
 #ifndef SUNSHINEUI_H
 #define SUNSHINEUI_H
 
+/*
 #include <QMainWindow>
 #include "scene.h"
 
@@ -18,5 +19,5 @@ signals:
 public slots:
 
 };
-
+*/
 #endif // SUNSHINEUI_H

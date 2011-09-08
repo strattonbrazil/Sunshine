@@ -26,9 +26,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     clearScene();
     ui->setupUi(this);
 
-
-
-    ui->tabs->addTab(new PanelGL(_scene), "tab 1");
+    ui->tabs->addTab(new PanelGL(_scene, this), "tab 1");
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
@@ -36,12 +34,10 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     _renderSettingsWidget = new SettingsWidget();
 }
 
-
 Sunshine::~Sunshine()
 {
     delete ui;
-    //if (!_renderWidget) delete _renderWidget;
-    if (!_renderSettingsWidget) delete _renderSettingsWidget;
+    if (_renderSettingsWidget) delete _renderSettingsWidget;
 }
 
 void Sunshine::changeEvent(QEvent *e)
@@ -233,4 +229,51 @@ void Sunshine::on_importAction_triggered()
 
     if (fileName != "")
         _scene->importFile(fileName);
+}
+
+void Sunshine::on_layoutModeButton_released()
+{
+    updateMode();
+}
+
+void Sunshine::on_modelModeButton_released()
+{
+    updateMode();
+}
+
+void Sunshine::on_tweakModeButton_released()
+{
+    updateMode();
+}
+
+
+
+void Sunshine::on_lineSelectButton_released()
+{
+
+}
+
+void Sunshine::on_boxSelectButton_clicked()
+{
+
+}
+
+void Sunshine::updateMode()
+{
+    // hide selection mode buttons in tweak mode
+    if (Sunshine::workMode() != WorkMode::TWEAK) ui->selectFrame->show();
+    else ui->selectFrame->hide();
+}
+
+int Sunshine::workMode()
+{
+    if (ui->layoutModeButton->isChecked()) return WorkMode::LAYOUT;
+    else if (ui->modelModeButton->isChecked()) return WorkMode::MODEL;
+    else if (ui->tweakModeButton->isChecked()) return WorkMode::TWEAK;
+}
+
+int Sunshine::selectMode()
+{
+    if (ui->lineSelectButton->isChecked()) return SelectMode::LINE;
+    else if (ui->boxSelectButton->isChecked()) return SelectMode::BOX;
 }
