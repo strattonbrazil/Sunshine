@@ -18,7 +18,7 @@ int activeMouseButton = -1;
 
 struct VertexColorData
 {
-    Vector3 position;
+    Vector3 v1; // actual vertex to process
     Vector4 color;
 };
 
@@ -232,6 +232,7 @@ void LineRenderer::render(PanelGL* panel)
     glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexColorData), (const void *)offset);
     // Offset for texture coordinate
     offset += sizeof(QVector3D);
+
     // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
     int colorLocation = flatShader->attributeLocation("color");
     flatShader->enableAttributeArray(colorLocation);
@@ -271,10 +272,13 @@ class MeshVertexData
 {
 public:
                  MeshVertexData() {}
-                 MeshVertexData(Vector3 p, Vector4 c, Vector4 n) : position(p), color(c), normal(n) {}
+                 MeshVertexData(Vector3 p, Vector4 c, Vector4 n, bool edge) : position(p), color(c), normal(n) {
+                     hasEdge = edge ? 1 : 0;
+                 }
     Vector3      position;
     Vector4      color;
     Vector3      normal;
+    float        hasEdge;
 };
 
 MeshRenderer::MeshRenderer(int meshKey)
@@ -306,7 +310,12 @@ void MeshRenderer::render(PanelGL* panel)
 
     QGLShaderProgramP meshShader = panel->getMeshShader();
 
+    // geometry-shader attributes must be applied prior to linking
+    meshShader->setGeometryInputType(GL_TRIANGLES);
+    meshShader->setGeometryOutputType(GL_TRIANGLES);
+    meshShader->setGeometryOutputVertexCount(numTriangles*3);
     meshShader->bind();
+    meshShader->setUniformValue("WIN_SCALE", QVector2D(panel->width(),panel->height()));
     meshShader->setUniformValue("objToWorld", objToWorld);
     meshShader->setUniformValue("normalToWorld", normalToWorld);
     meshShader->setUniformValue("cameraPV", cameraProjViewM);
@@ -343,7 +352,6 @@ void MeshRenderer::render(PanelGL* panel)
     meshShader->enableAttributeArray(vertexLocation);
     glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
 
-
     offset += sizeof(QVector3D);
 
     // tell OpenGL programmable pipeline how to locate vertex color data
@@ -357,6 +365,13 @@ void MeshRenderer::render(PanelGL* panel)
     int normalLocation = meshShader->attributeLocation("normal");
     meshShader->enableAttributeArray(normalLocation);
     glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+
+    offset += sizeof(QVector3D);
+
+    // tell OpenGL programmable pipeline if to draw opposing edge
+    int hasEdgeLocation = meshShader->attributeLocation("hasEdge");
+    meshShader->enableAttributeArray(hasEdgeLocation);
+    glVertexAttribPointer(hasEdgeLocation, 1, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
 
     glDrawElements(GL_TRIANGLES, numTriangles*3, GL_UNSIGNED_SHORT, 0);
 
@@ -398,9 +413,15 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         QListIterator<Triangle> j = face->buildTriangles();
         while (j.hasNext()) {
             Triangle triangle = j.next();
-            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(), color, triangle.a->normal());
-            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(), color, triangle.b->normal());
-            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(), color, triangle.c->normal());
+            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(),
+                                                         color, triangle.a->normal(),
+                                                         TRUE);
+            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(),
+                                                         color, triangle.b->normal(),
+                                                         TRUE);
+            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(),
+                                                         color, triangle.c->normal(),
+                                                         TRUE);
 
             indices[triangleCount*3+0] = triangleCount*3+0;
             indices[triangleCount*3+1] = triangleCount*3+1;
