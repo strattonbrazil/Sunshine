@@ -14,18 +14,17 @@ void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
     maxX = std::max(pick.x(), current.x());
     maxY = std::max(panel->height() - pick.y(), panel->height() - current.y());
 
-    /*
     Point3 rayOrig = panel->camera()->eye();
     Vector3 rayDir = panel->computeRayDirection(event->pos());
 
     // record the selection mode, basic object selection defaults to box regions
-    FaceUtil::FaceHit faceHit = FaceUtil::closestFace(rayOrig, rayDir, false);
+    FaceUtil::FaceHit faceHit = FaceUtil::closestFace(panel->scene(), rayOrig, rayDir, false);
     MeshP mesh = faceHit.nearMesh;
-    MeshP face = faceHit.nearFace;
+    FaceP face = faceHit.nearFace;
 
     int selectMode;
-    if (Sunshine::selectMode() == SelectMode::BASIC) {
-        if (Sunshine::geometryMode() == GeometryMode::OBJECT)
+    //if (SunshineUi::selectMode() == SelectMode::BASIC) {
+        if (SunshineUi::workMode() == WorkMode::LAYOUT)
             selectMode = SelectMode::BOX;
         else {
             if (!face)
@@ -33,11 +32,12 @@ void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
             else
                 selectMode = SelectMode::LINE;
         }
-    }
+    //}
 
     if (selectMode == SelectMode::BOX) {
     }
     else if (selectMode == SelectMode::LINE) {
+        /*
         if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
             if (mesh) {
                 if (mesh->isSelected())
@@ -64,9 +64,8 @@ void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
         }
 
         processLineSelection(panel, event);
+        */
     }
-    */
-
 }
 
 void BasicSelect::mouseReleased(PanelGL *panel, QMouseEvent *event)
@@ -99,8 +98,7 @@ end
 
 void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool selectValue)
 {
-    //if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
-    if (true) {
+    if (SunshineUi::workMode() == WorkMode::LAYOUT) {
         QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
         while (meshes.hasNext()) {
             meshes.next();

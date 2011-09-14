@@ -40,7 +40,6 @@ private slots:
     void                       on_importAction_triggered();
     void                       on_layoutModeButton_released();
     void                       on_modelModeButton_released();
-    void                       on_tweakModeButton_released();
     void                       on_lineSelectButton_released();
     void                       on_boxSelectButton_clicked();
 

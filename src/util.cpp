@@ -13,6 +13,11 @@ std::ostream& operator<< (std::ostream& o, QVector4D const& v)
    return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ", " << v.w() << ")";
 }
 
+std::ostream& operator<< (std::ostream& o, QPoint const& p)
+{
+   return o << "(" << p.x() << ", " << p.y() << ")";
+}
+
 Quat4::Quat4() : QQuaternion()
 {
 

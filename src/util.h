@@ -4,6 +4,7 @@
 #include <QVector2D>
 #include <QVector3D>
 #include <QVector4D>
+#include <QPoint>
 #include <QQuaternion>
 #include <QMatrix4x4>
 #include <QTextStream>
@@ -19,6 +20,7 @@ typedef QVector3D Point3; // bad idea?
 
 std::ostream& operator<< (std::ostream& o, Vector3 const& v);
 std::ostream& operator<< (std::ostream& o, QVector4D const& v);
+std::ostream& operator<< (std::ostream& o, QPoint const& p);
 
 #define PI 3.14159
 
@@ -96,7 +98,7 @@ const QVector4D UNSELECTED_HOVER_COLOR(0,1,0,1);
 namespace Axis { enum { NoAxis, GlobalX, GlobalY, GlobalZ, LocalX, LocalY, LocalZ, Normal, Screen }; };
 
 namespace WorkMode {
-    enum { LAYOUT, MODEL, TWEAK };
+    enum { LAYOUT, MODEL };
 }
 namespace SelectMode {
     enum { LINE, BOX };

@@ -93,7 +93,7 @@ private:
     int                   _prevKey;
     int                   _pairKey;
     Vector3               _normal;
-
+    bool                  _selected;
 };
 
 class Triangle

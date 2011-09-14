@@ -13,6 +13,7 @@ class ShaderFactory
 public:
     static QGLShaderProgramP buildFlatShader(QObject *parent);
     static QGLShaderProgramP buildMeshShader(QObject *parent);
+    static QGLShaderProgramP buildVertexShader(QObject *parent);
 };
 
 #endif // SHADER_H

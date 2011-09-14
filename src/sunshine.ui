@@ -60,19 +60,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="tweakModeButton">
-         <property name="text">
-          <string>Tweak</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <attribute name="buttonGroup">
-          <string>modeButtonGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item>
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>

@@ -6,6 +6,7 @@ Vertex::Vertex(MeshP mesh, int key, Point3 point)
     _mesh = mesh;
     _key = key;
     _point = point;
+    _selected = FALSE;
 }
 
 void Vertex::setEdge(EdgeP e) { _edgeKey = e->key(); }
@@ -16,6 +17,7 @@ Edge::Edge(MeshP mesh, int vertexKey, int faceKey, int edgeKey)
     _vertexKey = vertexKey;
     _faceKey = faceKey;
     _edgeKey = edgeKey;
+    _selected = FALSE;
 }
 
 MeshP Edge::mesh() {
@@ -26,6 +28,8 @@ Face::Face(MeshP mesh, int faceKey)
 {
     _mesh = mesh;
     _faceKey = faceKey;
+    _edgeKey = -1;
+    _selected = FALSE;
 }
 
 QListIterator<Triangle> Face::buildTriangles()

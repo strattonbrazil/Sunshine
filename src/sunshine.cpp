@@ -20,8 +20,11 @@ void say_hello(const char* name) {
 
 using namespace boost::python;
 
+Sunshine* activeMainWindow = 0;
+
 Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {
+    activeMainWindow = this;
     int x = 5;
     clearScene();
     ui->setupUi(this);
@@ -241,13 +244,6 @@ void Sunshine::on_modelModeButton_released()
     updateMode();
 }
 
-void Sunshine::on_tweakModeButton_released()
-{
-    updateMode();
-}
-
-
-
 void Sunshine::on_lineSelectButton_released()
 {
 
@@ -261,19 +257,23 @@ void Sunshine::on_boxSelectButton_clicked()
 void Sunshine::updateMode()
 {
     // hide selection mode buttons in tweak mode
-    if (Sunshine::workMode() != WorkMode::TWEAK) ui->selectFrame->show();
-    else ui->selectFrame->hide();
+    //if (Sunshine::workMode() != WorkMode::TWEAK) ui->selectFrame->show();
+    //else ui->selectFrame->hide();
 }
 
 int Sunshine::workMode()
 {
     if (ui->layoutModeButton->isChecked()) return WorkMode::LAYOUT;
     else if (ui->modelModeButton->isChecked()) return WorkMode::MODEL;
-    else if (ui->tweakModeButton->isChecked()) return WorkMode::TWEAK;
 }
 
 int Sunshine::selectMode()
 {
     if (ui->lineSelectButton->isChecked()) return SelectMode::LINE;
     else if (ui->boxSelectButton->isChecked()) return SelectMode::BOX;
+}
+
+namespace SunshineUi {
+    int workMode() { return activeMainWindow->workMode(); }
+    int selectMode() { return activeMainWindow->selectMode(); }
 }

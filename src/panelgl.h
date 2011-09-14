@@ -27,6 +27,8 @@ class MeshRenderer
 public:
                           MeshRenderer(int meshKey);
     void                  render(PanelGL* panel);
+    void                  renderFaces(PanelGL* panel);
+    void                  renderVertices(PanelGL* panel);
     void                  loadVBOs(PanelGL* panel, MeshP mesh);
 private:
     int                   _meshKey;
@@ -48,6 +50,7 @@ public:
     QGLFormat                defaultFormat();
     QGLShaderProgramP        getFlatShader() { return _flatShader; }
     QGLShaderProgramP        getMeshShader() { return _meshShader; }
+    QGLShaderProgramP        getVertexShader() { return _vertexShader; }
     CameraP                  camera() const { return _camera; }
     void                     mousePressEvent(QMouseEvent* event);
     void                     mouseReleaseEvent(QMouseEvent* event);
@@ -65,6 +68,8 @@ public:
 
     // for preselection
     int                      _hoverMeshKey;
+    int                      _hoverFaceKey;
+    int                      _hoverVertKey;
 
 public slots:
     void                     initWorkTool(WorkTool* tool, QString command, int button);
@@ -77,6 +82,7 @@ private:
     CameraP                  _camera;
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
+    QGLShaderProgramP        _vertexShader;
     QHash<int,MeshRendererP> _meshRenderers;
     SceneP                   _scene;
     WorkTool*                _workTool;

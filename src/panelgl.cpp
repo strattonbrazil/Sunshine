@@ -7,6 +7,7 @@
 #include "project_util.h"
 #include "contextmenu.h"
 #include "face_util.h"
+#include "vertex_util.h"
 
 namespace MouseMode {
     enum { FREE, CAMERA, TOOL, SELECT };
@@ -103,6 +104,7 @@ void PanelGL::paintGL()
     if (!_validShaders) {
         _flatShader = ShaderFactory::buildFlatShader(this);
         _meshShader = ShaderFactory::buildMeshShader(this);
+        _vertexShader = ShaderFactory::buildVertexShader(this);
         _validShaders = true;
     }
 
@@ -211,6 +213,9 @@ void LineRenderer::render(PanelGL* panel)
 
     loadVBOs(panel);
 
+    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
+
     CameraP camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
@@ -273,12 +278,12 @@ class MeshVertexData
 public:
                  MeshVertexData() {}
                  MeshVertexData(Vector3 p, Vector4 c, Vector4 n, bool edge) : position(p), color(c), normal(n) {
-                     hasEdge = edge ? 1 : 0;
+                     excludeEdge = edge ? 1 : 0;
                  }
     Vector3      position;
     Vector4      color;
     Vector3      normal;
-    float        hasEdge;
+    float        excludeEdge;
 };
 
 MeshRenderer::MeshRenderer(int meshKey)
@@ -294,12 +299,21 @@ void MeshRenderer::render(PanelGL* panel)
 
         _validVBOs = TRUE;
     }
+    MeshP mesh = panel->scene()->mesh(_meshKey);
+    loadVBOs(panel, mesh);
+
+    renderFaces(panel);
+    renderVertices(panel);
+}
+
+void MeshRenderer::renderFaces(PanelGL *panel)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
 
     MeshP mesh = panel->scene()->mesh(_meshKey);
     mesh->validateNormals();
     const int numTriangles = mesh->numTriangles();
-
-    loadVBOs(panel, mesh);
 
     CameraP camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
@@ -322,8 +336,7 @@ void MeshRenderer::render(PanelGL* panel)
     meshShader->setUniformValue("cameraPos", camera->eye());
     meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
 
-    //if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
-    if (true) {
+    if (SunshineUi::workMode() == WorkMode::LAYOUT) {
         QVector4D singleColor;
         if (mesh->isSelected() && mesh->key() != panel->_hoverMeshKey)
             singleColor = SELECTED_COLOR;
@@ -369,9 +382,9 @@ void MeshRenderer::render(PanelGL* panel)
     offset += sizeof(QVector3D);
 
     // tell OpenGL programmable pipeline if to draw opposing edge
-    int hasEdgeLocation = meshShader->attributeLocation("hasEdge");
-    meshShader->enableAttributeArray(hasEdgeLocation);
-    glVertexAttribPointer(hasEdgeLocation, 1, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+    int excludeEdgeLocation = meshShader->attributeLocation("excludeEdge");
+    meshShader->enableAttributeArray(excludeEdgeLocation);
+    glVertexAttribPointer(excludeEdgeLocation, 1, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
 
     glDrawElements(GL_TRIANGLES, numTriangles*3, GL_UNSIGNED_SHORT, 0);
 
@@ -379,6 +392,49 @@ void MeshRenderer::render(PanelGL* panel)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     meshShader->release();
+}
+
+void MeshRenderer::renderVertices(PanelGL *panel)
+{
+    MeshP mesh = panel->scene()->mesh(_meshKey);
+    const int numTriangles = mesh->numTriangles();
+
+    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
+
+    CameraP camera = panel->camera();
+    QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
+    QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
+    QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+    QMatrix4x4 objToWorld = mesh->objectToWorld();
+
+    QGLShaderProgramP vertShader = panel->getVertexShader();
+
+    vertShader->bind();
+    vertShader->setUniformValue("objToWorld", objToWorld);
+    vertShader->setUniformValue("cameraPV", cameraProjViewM);
+    vertShader->setUniformValue("overrideStrength", 0.0f);
+
+    int offset = 0;
+    // Tell OpenGL programmable pipeline how to locate vertex position data
+    int vertexLocation = vertShader->attributeLocation("vertex");
+    vertShader->enableAttributeArray(vertexLocation);
+    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+    // Offset for texture coordinate
+
+    offset += sizeof(QVector3D);
+
+    // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
+    int colorLocation = vertShader->attributeLocation("color");
+    vertShader->enableAttributeArray(colorLocation);
+    glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+
+    glDrawElements(GL_POINTS, numTriangles, GL_UNSIGNED_SHORT, 0);
+/*
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+*/
+    vertShader->release();
 }
 
 void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
@@ -394,34 +450,31 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         i.next();
         FaceP face = i.value();
         QVector4D color;
-        //if (Sunshine::geometryMode() == GeometryMode::FACE) {
-        if (false) {
-
-            int _hoverFaceKey;
-            int _hoverMeshKey;
-            if (face->isSelected() && face->key() != _hoverFaceKey)
+        if (SunshineUi::workMode() == WorkMode::MODEL) {
+            if (face->isSelected() && face->key() != panel->_hoverFaceKey)
                 color = SELECTED_COLOR;
-            else if (face->isSelected() && face->key() == _hoverFaceKey && mesh->key() == _hoverMeshKey)
+            else if (face->isSelected() && face->key() == panel->_hoverFaceKey && mesh->key() == panel->_hoverMeshKey)
                 color = SELECTED_HOVER_COLOR;
-            else if (face->key() == _hoverFaceKey and mesh->key() == _hoverMeshKey)
+            else if (face->key() == panel->_hoverFaceKey and mesh->key() == panel->_hoverMeshKey)
                 color = UNSELECTED_HOVER_COLOR;
             else
                 color = UNSELECTED_COLOR;
         } else {
             color = UNSELECTED_COLOR;
         }
+
         QListIterator<Triangle> j = face->buildTriangles();
         while (j.hasNext()) {
             Triangle triangle = j.next();
             vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(),
                                                          color, triangle.a->normal(),
-                                                         TRUE);
+                                                         triangle.b->next() != triangle.c);
             vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(),
                                                          color, triangle.b->normal(),
-                                                         TRUE);
+                                                         triangle.c->next() != triangle.a);
             vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(),
                                                          color, triangle.c->normal(),
-                                                         TRUE);
+                                                         triangle.a->next() != triangle.b);
 
             indices[triangleCount*3+0] = triangleCount*3+0;
             indices[triangleCount*3+1] = triangleCount*3+1;
@@ -497,7 +550,11 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
         Vector3 rayDir = computeRayDirection(event->pos());
         FaceUtil::FaceHit faceHit = FaceUtil::closestFace(_scene, rayOrig, rayDir, false);
 
+        VertexP closestVert = VertexUtil::closestVertex(this, event, false);
+
         _hoverMeshKey = faceHit.nearMesh ? faceHit.nearMesh->key() : -1;
+        _hoverFaceKey = faceHit.nearFace ? faceHit.nearFace->key() : -1;
+        _hoverVertKey = closestVert ? closestVert->key() : -1;
 
         // figure out near edge and vertex
         update();
