@@ -33,7 +33,7 @@ public:
 private:
     int                   _meshKey;
     bool                  _validVBOs;
-    GLuint                _vboIds[5];
+    GLuint                _vboIds[3];
 };
 typedef QSharedPointer<MeshRenderer> MeshRendererP;
 

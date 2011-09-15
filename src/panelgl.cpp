@@ -286,6 +286,14 @@ public:
     float        excludeEdge;
 };
 
+class VertexData
+{
+public:
+                 VertexData() {}
+                 VertexData(Vector3 p) : position(p) {}
+    Vector3      position;
+};
+
 MeshRenderer::MeshRenderer(int meshKey)
 {
     _validVBOs = FALSE;
@@ -309,7 +317,6 @@ void MeshRenderer::render(PanelGL* panel)
 void MeshRenderer::renderFaces(PanelGL *panel)
 {
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
 
     MeshP mesh = panel->scene()->mesh(_meshKey);
     mesh->validateNormals();
@@ -386,9 +393,8 @@ void MeshRenderer::renderFaces(PanelGL *panel)
     meshShader->enableAttributeArray(excludeEdgeLocation);
     glVertexAttribPointer(excludeEdgeLocation, 1, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
 
-    glDrawElements(GL_TRIANGLES, numTriangles*3, GL_UNSIGNED_SHORT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, numTriangles*3);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     meshShader->release();
@@ -397,10 +403,9 @@ void MeshRenderer::renderFaces(PanelGL *panel)
 void MeshRenderer::renderVertices(PanelGL *panel)
 {
     MeshP mesh = panel->scene()->mesh(_meshKey);
-    const int numTriangles = mesh->numTriangles();
+    const int numVertices = mesh->numVertices();
 
-    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
 
     CameraP camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
@@ -419,77 +424,83 @@ void MeshRenderer::renderVertices(PanelGL *panel)
     // Tell OpenGL programmable pipeline how to locate vertex position data
     int vertexLocation = vertShader->attributeLocation("vertex");
     vertShader->enableAttributeArray(vertexLocation);
-    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+    glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
     // Offset for texture coordinate
 
-    offset += sizeof(QVector3D);
+    glDrawArrays(GL_POINTS, 0, numVertices);
 
-    // Tell OpenGL programmable pipeline how to locate vertex texture coordinate data
-    int colorLocation = vertShader->attributeLocation("color");
-    vertShader->enableAttributeArray(colorLocation);
-    glVertexAttribPointer(colorLocation, 4, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
-
-    glDrawElements(GL_POINTS, numTriangles, GL_UNSIGNED_SHORT, 0);
-/*
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-*/
     vertShader->release();
 }
 
 void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
 {
-    const int numTriangles = mesh->numTriangles();
-    const int numVertices = mesh->numVertices();
+    // load the faces
+    {
+        const int numTriangles = mesh->numTriangles();
+        const int numVertices = mesh->numVertices();
 
-    int triangleCount = 0;
-    GLushort indices[numTriangles*3];
-    MeshVertexData vertices[numTriangles*3];
-    QHashIterator<int,FaceP> i = mesh->faces();
-    while (i.hasNext()) {
-        i.next();
-        FaceP face = i.value();
-        QVector4D color;
-        if (SunshineUi::workMode() == WorkMode::MODEL) {
-            if (face->isSelected() && face->key() != panel->_hoverFaceKey)
-                color = SELECTED_COLOR;
-            else if (face->isSelected() && face->key() == panel->_hoverFaceKey && mesh->key() == panel->_hoverMeshKey)
-                color = SELECTED_HOVER_COLOR;
-            else if (face->key() == panel->_hoverFaceKey and mesh->key() == panel->_hoverMeshKey)
-                color = UNSELECTED_HOVER_COLOR;
-            else
+        int triangleCount = 0;
+        GLushort indices[numTriangles*3];
+        MeshVertexData vertices[numTriangles*3];
+        QHashIterator<int,FaceP> i = mesh->faces();
+        while (i.hasNext()) {
+            i.next();
+            FaceP face = i.value();
+            QVector4D color;
+            if (SunshineUi::workMode() == WorkMode::MODEL) {
+                if (face->isSelected() && face->key() != panel->_hoverFaceKey)
+                    color = SELECTED_COLOR;
+                else if (face->isSelected() && face->key() == panel->_hoverFaceKey && mesh->key() == panel->_hoverMeshKey)
+                    color = SELECTED_HOVER_COLOR;
+                else if (face->key() == panel->_hoverFaceKey and mesh->key() == panel->_hoverMeshKey)
+                    color = UNSELECTED_HOVER_COLOR;
+                else
+                    color = UNSELECTED_COLOR;
+            } else {
                 color = UNSELECTED_COLOR;
-        } else {
-            color = UNSELECTED_COLOR;
+            }
+
+            QListIterator<Triangle> j = face->buildTriangles();
+            while (j.hasNext()) {
+                Triangle triangle = j.next();
+                vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(),
+                                                             color, triangle.a->normal(),
+                                                             triangle.b->next() != triangle.c);
+                vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(),
+                                                             color, triangle.b->normal(),
+                                                             triangle.c->next() != triangle.a);
+                vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(),
+                                                             color, triangle.c->normal(),
+                                                             triangle.a->next() != triangle.b);
+                triangleCount++;
+            }
         }
 
-        QListIterator<Triangle> j = face->buildTriangles();
-        while (j.hasNext()) {
-            Triangle triangle = j.next();
-            vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(),
-                                                         color, triangle.a->normal(),
-                                                         triangle.b->next() != triangle.c);
-            vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(),
-                                                         color, triangle.b->normal(),
-                                                         triangle.c->next() != triangle.a);
-            vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(),
-                                                         color, triangle.c->normal(),
-                                                         triangle.a->next() != triangle.b);
-
-            indices[triangleCount*3+0] = triangleCount*3+0;
-            indices[triangleCount*3+1] = triangleCount*3+1;
-            indices[triangleCount*3+2] = triangleCount*3+2;
-            triangleCount++;
-        }
+        // Transfer vertex data to VBO 0
+        glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
+        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STATIC_DRAW);
     }
 
-    // Transfer vertex data to VBO 0
-    glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STATIC_DRAW);
+    // load the vertices
+    {
+        const int numVertices = mesh->numVertices();
 
-    // Transfer index data to VBO 1
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, numTriangles*3*sizeof(GLushort), indices, GL_STATIC_DRAW);
+        QHashIterator<int,VertexP> i = mesh->vertices();
+        int vertexCount = 0;
+        VertexData vertices[numVertices];
+        while (i.hasNext()) {
+            i.next();
+            VertexP vertex = i.value();
+            vertices[vertexCount] = VertexData(vertex->pos());
+            vertexCount++;
+        }
+
+        // Transfer vertex data to VBO 1
+        glPointSize(8);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
+        glBufferData(GL_ARRAY_BUFFER, numVertices*sizeof(VertexData), vertices, GL_STATIC_DRAW);
+    }
 }
 
 void PanelGL::mousePressEvent(QMouseEvent* event)
