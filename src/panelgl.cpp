@@ -8,6 +8,7 @@
 #include "contextmenu.h"
 #include "face_util.h"
 #include "vertex_util.h"
+#include <algorithm>
 
 namespace MouseMode {
     enum { FREE, CAMERA, TOOL, SELECT };
@@ -74,7 +75,8 @@ QGLFormat PanelGL::defaultFormat()
 {
     QGLFormat format;
     //format.setVersion(3,2);
-    format.setProfile(QGLFormat::CompatibilityProfile);
+    format.setVersion(3,1);
+    format.setProfile(QGLFormat::CoreProfile);
     return format;
 }
 
@@ -94,6 +96,8 @@ void PanelGL::initializeGL()
 
 void PanelGL::paintGL()
 {   
+    //buildMeshGrid();
+
     glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -194,6 +198,7 @@ void PanelGL::paintBackground()
 void PanelGL::resizeGL(int width, int height)
 {
     glViewport(0,0,width,height);
+    buildMeshGrid();
 }
 
 LineRenderer::LineRenderer(QVector<LineSegment> segments, float lineWidth)
@@ -290,8 +295,9 @@ class VertexData
 {
 public:
                  VertexData() {}
-                 VertexData(Vector3 p) : position(p) {}
+                 VertexData(Vector3 p, float cIndex) : position(p), colorIndex(cIndex) {}
     Vector3      position;
+    float        colorIndex;
 };
 
 MeshRenderer::MeshRenderer(int meshKey)
@@ -311,7 +317,8 @@ void MeshRenderer::render(PanelGL* panel)
     loadVBOs(panel, mesh);
 
     renderFaces(panel);
-    renderVertices(panel);
+    if (SunshineUi::workMode() == WorkMode::MODEL)
+        renderVertices(panel);
 }
 
 void MeshRenderer::renderFaces(PanelGL *panel)
@@ -345,11 +352,11 @@ void MeshRenderer::renderFaces(PanelGL *panel)
 
     if (SunshineUi::workMode() == WorkMode::LAYOUT) {
         QVector4D singleColor;
-        if (mesh->isSelected() && mesh->key() != panel->_hoverMeshKey)
+        if (mesh->isSelected() && mesh != panel->_hoverMesh)
             singleColor = SELECTED_COLOR;
-        else if (mesh->isSelected() && mesh->key() == panel->_hoverMeshKey)
+        else if (mesh->isSelected() && mesh == panel->_hoverMesh)
             singleColor = SELECTED_HOVER_COLOR;
-        else if (mesh->key() == panel->_hoverMeshKey)
+        else if (mesh == panel->_hoverMesh)
             singleColor = UNSELECTED_HOVER_COLOR;
         else
             singleColor = UNSELECTED_COLOR;
@@ -418,7 +425,26 @@ void MeshRenderer::renderVertices(PanelGL *panel)
     vertShader->bind();
     vertShader->setUniformValue("objToWorld", objToWorld);
     vertShader->setUniformValue("cameraPV", cameraProjViewM);
-    vertShader->setUniformValue("overrideStrength", 0.0f);
+    //vertShader->setUniformValue("overrideStrength", 0.0f);
+    int colorsLocation = vertShader->uniformLocation("colors");
+    QVector4D colorsArray[] = { UNSELECTED_COLOR,
+                                UNSELECTED_HOVER_COLOR,
+                                 SELECTED_COLOR,
+                                 SELECTED_HOVER_COLOR };
+    GLfloat colors[16];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (j == 0) colors[i*4+j] = colorsArray[i].x();
+            if (j == 1) colors[i*4+j] = colorsArray[i].y();
+            if (j == 2) colors[i*4+j] = colorsArray[i].z();
+            if (j == 3) colors[i*4+j] = colorsArray[i].w();
+        }
+    }
+    vertShader->setUniformValueArray(colorsLocation, colors, 4, 4);
+    //vertShader->setUniformValueArray(colorsLocation, &UNSELECTED_HOVER_COLOR, 4);
+    //vertShader->setUniformValueArray(colorsLocation, &SELECTED_COLOR, 4);
+    //vertShader->setUniformValueArray(colorsLocation, &SELECTED_HOVER_COLOR, 4);
+
 
     int offset = 0;
     // Tell OpenGL programmable pipeline how to locate vertex position data
@@ -426,6 +452,12 @@ void MeshRenderer::renderVertices(PanelGL *panel)
     vertShader->enableAttributeArray(vertexLocation);
     glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
     // Offset for texture coordinate
+
+    offset += sizeof(QVector3D);
+
+    int colorIndexLocation = vertShader->attributeLocation("colorIndex");
+    vertShader->enableAttributeArray(colorIndexLocation);
+    glVertexAttribPointer(colorIndexLocation, 1, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
 
     glDrawArrays(GL_POINTS, 0, numVertices);
 
@@ -449,11 +481,12 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
             FaceP face = i.value();
             QVector4D color;
             if (SunshineUi::workMode() == WorkMode::MODEL) {
-                if (face->isSelected() && face->key() != panel->_hoverFaceKey)
+                bool noVert = panel->_hoverVert.data() == 0; // if no vertex highlighted, maybe highlight face
+                if (face->isSelected() && face != panel->_hoverFace)
                     color = SELECTED_COLOR;
-                else if (face->isSelected() && face->key() == panel->_hoverFaceKey && mesh->key() == panel->_hoverMeshKey)
+                else if (face->isSelected() && face == panel->_hoverFace && mesh == panel->_hoverMesh && noVert)
                     color = SELECTED_HOVER_COLOR;
-                else if (face->key() == panel->_hoverFaceKey and mesh->key() == panel->_hoverMeshKey)
+                else if (face == panel->_hoverFace && mesh == panel->_hoverMesh && noVert)
                     color = UNSELECTED_HOVER_COLOR;
                 else
                     color = UNSELECTED_COLOR;
@@ -492,12 +525,17 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         while (i.hasNext()) {
             i.next();
             VertexP vertex = i.value();
-            vertices[vertexCount] = VertexData(vertex->pos());
+            float colorIndex;
+            if (vertex->isSelected() && vertex == panel->_hoverVert) colorIndex = 3.5;
+            else if (vertex->isSelected() && vertex != panel->_hoverVert) colorIndex = 2.5;
+            else if (vertex == panel->_hoverVert) colorIndex = 1.5;
+            else colorIndex = 0.5;
+            vertices[vertexCount] = VertexData(vertex->pos(), colorIndex);
             vertexCount++;
         }
 
         // Transfer vertex data to VBO 1
-        glPointSize(8);
+        glPointSize(4);
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
         glBufferData(GL_ARRAY_BUFFER, numVertices*sizeof(VertexData), vertices, GL_STATIC_DRAW);
     }
@@ -539,6 +577,9 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
         _camera->mouseReleased(event);
+
+        // update the grid from the new perspective
+        buildMeshGrid();
     }
     else if (mouseMode == MouseMode::SELECT && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
@@ -559,13 +600,17 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
         // calculate preselection
         Point3 rayOrig = camera()->eye();
         Vector3 rayDir = computeRayDirection(event->pos());
-        FaceUtil::FaceHit faceHit = FaceUtil::closestFace(_scene, rayOrig, rayDir, false);
+        //FaceUtil::FaceHit faceHit = FaceUtil::closestFace(_scene, rayOrig, rayDir, false);
 
-        VertexP closestVert = VertexUtil::closestVertex(this, event, false);
+        QList<Triangle> triangles = _meshGrid.trianglesByPoint(QPoint(event->pos().x(), height()-event->pos().y()));
+        //std::cout << "# triangles: " << triangles.size() << std::endl;
+        FaceUtil::FaceHit faceHit = FaceUtil::closestFace(triangles, rayOrig, rayDir, false);
 
-        _hoverMeshKey = faceHit.nearMesh ? faceHit.nearMesh->key() : -1;
-        _hoverFaceKey = faceHit.nearFace ? faceHit.nearFace->key() : -1;
-        _hoverVertKey = closestVert ? closestVert->key() : -1;
+        VertexUtil::VertexHit vertexHit = VertexUtil::closestVertex(this, event, false);
+
+        _hoverMesh = faceHit.nearMesh ? faceHit.nearMesh : MeshP(0);
+        _hoverFace = faceHit.nearFace ? faceHit.nearFace : FaceP(0);
+        _hoverVert = vertexHit.vertex ? vertexHit.vertex : VertexP(0);
 
         // figure out near edge and vertex
         update();
@@ -648,7 +693,14 @@ void PanelGL::showContextMenu(QMouseEvent *event)
     // get all the actions for
     ContextMenu popup;
 
-    QList<ContextAction*> actions = _scene->contextActions();
+    QList<ContextAction*> actions;
+    foreach (WorkToolP tool, _scene->_tools) {
+        if (tool->isViewable(this)) {
+            foreach(ContextAction* action, tool->actions()) {
+                actions << action;
+            }
+        }
+    }
 
     foreach(ContextAction* action, actions) {
         action->setParent(&popup);
@@ -700,4 +752,84 @@ void PanelGL::setBlankCursor()
     QCursor cursor;
     cursor.setShape(Qt::BlankCursor);
     this->setCursor(cursor);
+}
+
+void PanelGL::buildMeshGrid()
+{
+    // calculate scene triangles
+    //int totalTriangles = 0;
+    QList<Triangle> triangles;
+    QHashIterator<int,MeshP> meshes = _scene->meshes();
+    while (meshes.hasNext()) {
+        meshes.next();
+        int meshKey = meshes.key();
+        MeshP mesh = meshes.value();
+        QMatrix4x4 objToWorld = mesh->objectToWorld();
+        QHashIterator<int,FaceP> i = mesh->faces();
+        while (i.hasNext()) {
+            i.next();
+            FaceP face = i.value();
+            QListIterator<Triangle> j = face->buildTriangles();
+            while (j.hasNext()) {
+                Triangle triangle = j.next();
+
+                triangle.screenP[0] = project(objToWorld.map(triangle.a->vert()->pos()));
+                triangle.screenP[1] = project(objToWorld.map(triangle.b->vert()->pos()));
+                triangle.screenP[2] = project(objToWorld.map(triangle.c->vert()->pos()));
+
+                triangles << triangle;
+            }
+        }
+    }
+
+    _meshGrid = MeshGrid(this->width(), this->height(), triangles);
+}
+
+MeshGrid::MeshGrid(int xres, int yres, QList<Triangle> triangles)
+{
+    xCells = (int)(ceil((xres / (float)PIXEL_SIZE)));
+    yCells = (int)(ceil((yres / (float)PIXEL_SIZE)));
+    for (int i = 0; i < xCells*yCells; i++)
+        cells[i] = QList<Triangle>();
+
+    /*
+    int triangleCount[xCells][yCells];
+    for (int i = 0; i < xCells; i++)
+        for (int j = 0; j < yCells; j++)
+            triangleCount[i][j] = 0;
+            */
+
+    foreach (Triangle triangle, triangles) {
+        int minCellX = 10000;
+        int maxCellX = -1;
+        int minCellY = 10000;
+        int maxCellY = -1;
+        for (int a = 0; a < 3; a++) {
+            int cellX = (int)(floor((triangle.screenP[a].x() / (float)PIXEL_SIZE)));
+            int cellY = (int)(floor((triangle.screenP[a].y() / (float)PIXEL_SIZE)));
+            if (cellX >= 0 && cellX < xCells) {
+                minCellX = std::min(minCellX, cellX);
+                maxCellX = std::max(maxCellX, cellX);
+            }
+            if (cellY >= 0 && cellY < yCells) {
+                minCellY = std::min(minCellY, cellY);
+                maxCellY = std::max(maxCellY, cellY);
+            }
+        }
+
+        // put this triangle into its respective bins
+        for (int i = minCellX; i <= maxCellX; i++) {
+            for (int j = minCellY; j <= maxCellY; j++) {
+                cells[i*yCells+j] << triangle;
+            }
+        }
+    }
+}
+
+QList<Triangle> MeshGrid::trianglesByPoint(QPoint p)
+{
+    int cellX = (int)(floor((p.x() / (float)PIXEL_SIZE)));
+    int cellY = (int)(floor((p.y() / (float)PIXEL_SIZE)));
+
+    return cells[cellX*yCells+cellY];
 }

@@ -80,6 +80,7 @@ Scene::Scene()
     evalPythonFile(":/plugins/objImporter.py");
 
     _tools << WorkToolP(new TranslateTransformable());
+    //_tools << WorkToolP(new RotateTransformable());
 }
 
 MeshP Scene::mesh(int key)
@@ -136,15 +137,3 @@ QString Scene::uniqueName(QString prefix)
     return name;
 }
 
-QList<ContextAction*> Scene::contextActions()
-{
-    QList<ContextAction*> actions;
-    foreach (WorkToolP tool, _tools) {
-        if (tool->isViewable()) {
-            foreach(ContextAction* action, tool->actions()) {
-                actions << action;
-            }
-        }
-    }
-    return actions;
-}

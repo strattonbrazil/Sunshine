@@ -8,6 +8,7 @@
 #include "scene.h"
 //#include "Python.h"
 //#include "sunshineui.h"
+#include "worktool.h"
 
 namespace Ui {
         class Sunshine;
@@ -19,6 +20,10 @@ namespace SunshineUi {
     int workMode();
     int selectMode();
 };
+
+class PanelGL;
+class CursorTool;
+typedef QSharedPointer<CursorTool> CursorToolP;
 
 class Sunshine : public QMainWindow {
     Q_OBJECT
@@ -44,6 +49,8 @@ private slots:
     void                       on_boxSelectButton_clicked();
 
 private:
+    QList<PanelGL*>            _panels;
+    QHash<QString,CursorToolP> _cursorTools;
     void                       updateMode();
     Ui::Sunshine*              ui;
     SceneP                     _scene;

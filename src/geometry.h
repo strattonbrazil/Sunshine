@@ -47,6 +47,7 @@ public:
     static void                  buildByIndex(SceneP scene, PrimitiveParts parts);
     const int                    numTriangles();
     const int                    numVertices() { return _vertices.size(); }
+    FaceP                        face(int key) { return _faces[key]; }
     EdgeP                        edge(int key) { return _edges[key]; }
     VertexP                      vert(int key) { return _vertices[key]; }
     int                          key() { return _key; }
@@ -80,6 +81,7 @@ public:
     EdgeP                 next() { return mesh()->edge(_nextKey); }
     EdgeP                 prev() { return mesh()->edge(_prevKey); }
     EdgeP                 pair() { return mesh()->edge(_pairKey); }
+    FaceP                 face() { return mesh()->face(_faceKey); }
     MeshP                 mesh();// { return Register::mesh(_meshKey); }
     VertexP               vert() { return mesh()->vert(_vertexKey); }
     Vector3               normal() { return _normal; }
@@ -101,6 +103,7 @@ class Triangle
 public:
                           Triangle(EdgeP e1, EdgeP e2, EdgeP e3) : a(e1),b(e2),c(e3) {}
     EdgeP                 a,b,c;
+    Point3                screenP[3];
 };
 
 class Face
@@ -113,6 +116,7 @@ public:
     QListIterator<Triangle>   buildTriangles();
     void                      calculateNormal();
     bool                      isSelected() { return _selected; }
+    void                      setSelected(bool s) { _selected = s; }
 private:
     MeshP                     _mesh;
     int                       _faceKey;

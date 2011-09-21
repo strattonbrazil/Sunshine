@@ -37,8 +37,6 @@ class ObjImporter(MeshImporter):
                 group['faces'].append(map(lambda token: int(token.split('/')[0])-1, tokens[1:]))
         f.close()
 
-        print(group)
-
         parts = PrimitiveParts()
         parts.points = group['vertices']
         parts.faces = group['faces']

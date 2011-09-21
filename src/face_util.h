@@ -14,6 +14,7 @@ namespace FaceUtil {
     };
 
     FaceHit closestFace(SceneP scene, Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes);
+    FaceHit closestFace(QList<Triangle> triangles, Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes);
 }
 
 

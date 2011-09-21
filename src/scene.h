@@ -53,8 +53,7 @@ public:
         }
     }
                                 Scene();
-    QList<ContextAction*>              contextActions();
-
+                                QList<WorkToolP>                   _tools;
 protected:
     int                                uniqueCameraKey(); // TODO: replace these functions with one unique-key finder
     int                                uniqueMeshKey();
@@ -68,7 +67,6 @@ private:
 //    PythonQtObjectPtr                  _context;
     object                             _pyMainModule;
     object                             _pyMainNamespace;
-    QList<WorkToolP>                   _tools;
 public slots:
     void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
     void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }

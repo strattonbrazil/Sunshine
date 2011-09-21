@@ -22,11 +22,13 @@ public:
     Camera(QString name);
     static QMatrix4x4            getViewMatrix(CameraP camera, int width, int height);
     static QMatrix4x4            getProjMatrix(CameraP camera, int width, int height);
+    /*
     Point3                       eye();
     Vector3                      upDir();
     Point3                       lookat();
     Vector3                      lookDir();
     Vector3                      leftDir();
+    */
     void                         lookTransform(RtMatrix &t);
     void                         flipYZ(RtMatrix m);
     RotatePair                   aim(Vector3 dir);

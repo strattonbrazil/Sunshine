@@ -144,7 +144,6 @@ struct IntQListVectorFromPythonList
     // Determine if obj_ptr can be converted in a QVector<QList<int>>
     static void* convertible(PyObject* obj_ptr)
     {
-        std::cout << "can convert to IntQListVector?" << std::endl;
         try {
             if (!PyList_Check(obj_ptr))
                 return 0;
@@ -152,9 +151,7 @@ struct IntQListVectorFromPythonList
 
             int n = PyList_Size(obj_ptr);
             for (int i = 0; i < n; ++i) {
-                std::cout << boost::python::extract<QList<int> >(l[i]).check() << std::endl;
                 if (!boost::python::extract<QList<int> >(l[i]).check()) {
-                    std::cout << "erp" << std::endl;
                     return 0;
                 }
             }

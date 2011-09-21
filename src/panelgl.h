@@ -14,6 +14,7 @@
 #include "sunshine.h"
 
 class Mesh;
+class Triangle;
 class PanelGL;
 class Sunshine;
 class WorkTool;
@@ -36,6 +37,19 @@ private:
     GLuint                _vboIds[3];
 };
 typedef QSharedPointer<MeshRenderer> MeshRendererP;
+
+class MeshGrid
+{
+public:
+                            MeshGrid() {}
+                            MeshGrid(int xres, int yres, QList<Triangle> triangles);
+    QList<Triangle>         trianglesByPoint(QPoint p);
+private:
+    int                           xCells;
+    int                           yCells;
+    static const int              PIXEL_SIZE = 40;
+    QHash<int,QList<Triangle> >   cells;
+};
 
 class PanelGL : public QGLWidget
 {
@@ -67,9 +81,10 @@ public:
     void                     setBlankCursor();
 
     // for preselection
-    int                      _hoverMeshKey;
-    int                      _hoverFaceKey;
-    int                      _hoverVertKey;
+    MeshP                    _hoverMesh;
+    FaceP                    _hoverFace;
+    VertexP                  _hoverVert;
+    MeshGrid                 _meshGrid;
 
 public slots:
     void                     initWorkTool(WorkTool* tool, QString command, int button);
@@ -77,6 +92,7 @@ public slots:
 private:
     void                     init();
     void                     ravageMouse();
+    void                     buildMeshGrid();
     bool                     _ravagingMouse;
     bool                     _validShaders;
     CameraP                  _camera;
@@ -88,7 +104,6 @@ private:
     WorkTool*                _workTool;
     BasicSelectP             _basicSelect;
     Sunshine*                _sunshine;
-
     /*
     MeshP                    _closestMesh;
     FaceP                    _closestFace;

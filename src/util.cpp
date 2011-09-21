@@ -99,6 +99,7 @@ QMatrix4x4 Quat4::matrix() {
 Transformable::Transformable()
 {
     _startRotate = QQuaternion();
+    _rotateOrder = RotateOrder::YXZ;
     _yRot = 0.0f;
     _upRot = 0.0f;
     _fov = 60.0f;

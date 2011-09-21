@@ -153,13 +153,16 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
 
 QGLShaderProgramP ShaderFactory::buildVertexShader(QObject *parent)
 {
-    QString vertSource("in vec3 vertex;\n" \
-                       "in vec4 color;\n" \
+    QString vertSource("#version 130\n" \
+                       "in vec3 vertex;\n" \
+                       "in float colorIndex;\n" \
+                       "uniform vec4 colors[4]; // unselected, highlighted, selected, highlighted\n" \
                        "uniform mat4 objToWorld;\n" \
                        "uniform mat4 cameraPV;\n" \
                        "void main() {\n" \
                        "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0);\n" \
-                       "  gl_FrontColor = color;\n" \
+                       "  gl_FrontColor = colors[int(colorIndex)];\n" \
+                       "  //gl_FrontColor = vec4(colorIndex);\n" \
                        "}\n");
 
     QString fragSource("uniform vec4 overrideColor;\n" \
@@ -172,12 +175,12 @@ QGLShaderProgramP ShaderFactory::buildVertexShader(QObject *parent)
     QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
     vertShader->compileSourceCode(vertSource);
 
-    QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
-    fragShader->compileSourceCode(fragSource);
+    //QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
+    //fragShader->compileSourceCode(fragSource);
 
     QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
     program->addShader(vertShader);
-    program->addShader(fragShader);
+    //program->addShader(fragShader);
 
     program->link();
 

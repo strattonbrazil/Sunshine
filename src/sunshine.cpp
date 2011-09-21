@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include "panelgl.h"
 #include "sunshineui.h"
+#include "object_tools.h"
 
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
@@ -29,12 +30,25 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     clearScene();
     ui->setupUi(this);
 
-    ui->tabs->addTab(new PanelGL(_scene, this), "tab 1");
+    PanelGL* panel = new PanelGL(_scene, this);
+    _panels << panel;
+
+    ui->tabs->addTab(panel, "tab 1");
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
     _renderWidget = 0;
     _renderSettingsWidget = new SettingsWidget();
+
+    CursorToolP pointTool(new PointTool());
+    _cursorTools[pointTool->label()] = pointTool;
+
+    foreach(CursorToolP tool, _cursorTools) {
+        QToolButton* button = new QToolButton();
+        //button->setText(tool->label());
+        //ui->toolBar->addAction(tool->icon(), tool->label());
+        //ui->toolFrame->layout()->addWidget(button);
+    }
 }
 
 Sunshine::~Sunshine()
@@ -256,6 +270,9 @@ void Sunshine::on_boxSelectButton_clicked()
 
 void Sunshine::updateMode()
 {
+    foreach (PanelGL* panel, _panels)
+        panel->update();
+
     // hide selection mode buttons in tweak mode
     //if (Sunshine::workMode() != WorkMode::TWEAK) ui->selectFrame->show();
     //else ui->selectFrame->hide();

@@ -3,6 +3,7 @@
 #include "vertex_util.h"
 #include "sunshine.h"
 #include <algorithm>
+#include "scene.h"
 
 void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
 {
@@ -17,26 +18,91 @@ void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
     Point3 rayOrig = panel->camera()->eye();
     Vector3 rayDir = panel->computeRayDirection(event->pos());
 
-    // record the selection mode, basic object selection defaults to box regions
-    FaceUtil::FaceHit faceHit = FaceUtil::closestFace(panel->scene(), rayOrig, rayDir, false);
-    MeshP mesh = faceHit.nearMesh;
-    FaceP face = faceHit.nearFace;
-
-    int selectMode;
-    //if (SunshineUi::selectMode() == SelectMode::BASIC) {
-        if (SunshineUi::workMode() == WorkMode::LAYOUT)
-            selectMode = SelectMode::BOX;
-        else {
-            if (!face)
-                selectMode = SelectMode::BOX;
-            else
-                selectMode = SelectMode::LINE;
-        }
-    //}
-
-    if (selectMode == SelectMode::BOX) {
+    if (SunshineUi::workMode() == WorkMode::LAYOUT)
+        _selectMode = SelectMode::BOX;
+    else {
+        if (panel->_hoverFace.data() == 0 && panel->_hoverVert.data() == 0)
+            _selectMode = SelectMode::BOX;
+        else
+            _selectMode = SelectMode::LINE;
     }
-    else if (selectMode == SelectMode::LINE) {
+
+    // figure out if model mode should be NONE
+    if (SunshineUi::workMode() == WorkMode::MODEL) {
+
+        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
+        bool hasFaces = FALSE;
+        bool hasVertices = FALSE;
+        while (meshes.hasNext()) {
+            meshes.next();
+            int meshKey = meshes.key();
+            MeshP mesh = meshes.value();
+            if (mesh->isSelected()) {
+                // any selected faces?
+                QHashIterator<int,FaceP> i = mesh->faces();
+                while (i.hasNext()) {
+                    i.next();
+                    FaceP face = i.value();
+                    if (face->isSelected())
+                        hasFaces = TRUE;
+                }
+                // any selected edges?
+
+                // any selected vertices?
+                QHashIterator<int,VertexP> j = mesh->vertices();
+                while (j.hasNext()) {
+                    j.next();
+                    VertexP vertex = j.value();
+                    if (vertex->isSelected())
+                        hasVertices = TRUE;
+                }
+            }
+        }
+
+        // nothing selected anymore
+        if (!hasFaces && !hasVertices)
+            modelMode = ModelMode::NONE;
+    }
+
+    if (_selectMode == SelectMode::BOX) {
+        if (modelMode == ModelMode::NONE)
+            modelMode = ModelMode::VERTEX;
+    }
+    else if (_selectMode == SelectMode::LINE) {
+        if (SunshineUi::workMode() == WorkMode::LAYOUT) {
+            if (panel->_hoverMesh.data() != 0) {
+
+                if (panel->_hoverMesh->isSelected())
+                    selectToggle = SelectToggle::OFF;
+                else
+                    selectToggle = SelectToggle::ON;
+            }
+        }
+        else if (SunshineUi::workMode() == WorkMode::MODEL) {
+            if (modelMode == ModelMode::NONE) {
+                // anything happen to be under the mouse?
+                if (panel->_hoverVert) {
+                    modelMode = ModelMode::VERTEX;
+                    if (panel->_hoverVert->isSelected())
+                        selectToggle = SelectToggle::OFF;
+                    else
+                        selectToggle = SelectToggle::ON;
+                }
+                else if (panel->_hoverFace) {
+                    modelMode = ModelMode::FACE;
+                    if (panel->_hoverFace->isSelected())
+                        selectToggle = SelectToggle::OFF;
+                    else
+                        selectToggle = SelectToggle::ON;
+                }
+                else {
+                    modelMode = ModelMode::FACE;
+                    selectToggle = SelectToggle::ON;
+                }
+            } else {
+                std::cout << "need to decide on select toggle" << std::endl;
+            }
+        }
         /*
         if (Sunshine::geometryMode() == GeometryMode::OBJECT) {
             if (mesh) {
@@ -66,6 +132,9 @@ void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
         processLineSelection(panel, event);
         */
     }
+    panel->_hoverMesh = MeshP(0);
+    panel->_hoverFace = FaceP(0);
+    panel->_hoverVert = VertexP(0);
 }
 
 void BasicSelect::mouseReleased(PanelGL *panel, QMouseEvent *event)
@@ -81,12 +150,8 @@ void BasicSelect::mouseReleased(PanelGL *panel, QMouseEvent *event)
 
 void BasicSelect::mouseDragged(PanelGL* panel, QMouseEvent* event)
 {
-    /*
-    if @select_mode == SelectMode::LINE
-  processLineSelection(panel, event)
-end
-*/
-
+    if (_selectMode == SelectMode::LINE)
+        processLineSelection(panel, event);
 
     current = event->pos();
 
@@ -123,9 +188,60 @@ void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool se
                 }
             }
         }
+    } else {
+        // grab whatever the work
+        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
+        while (meshes.hasNext()) {
+            meshes.next();
+            int meshKey = meshes.key();
+            MeshP mesh = meshes.value();
+            if (mesh->isSelected()) {
+                QMatrix4x4 objToWorld = mesh->objectToWorld();
+                if (modelMode == ModelMode::VERTEX) {
+                    QHashIterator<int,VertexP> vertices = mesh->vertices();
+                    while (vertices.hasNext()) {
+                        vertices.next();
+                        int key = vertices.key();
+                        VertexP vertex = vertices.value();
+                        if (newSelection && selectValue)
+                            vertex->setSelected(!selectValue);
+
+                        Point3 objectP = vertex->pos();
+                        Point3 worldP = objToWorld.map(objectP);
+                        Point3 screenP = panel->project(worldP);
+
+                        if (screenP.x() >= minX && screenP.x() <= maxX && screenP.y() >= minY && screenP.y() <= maxY) {
+                            vertex->setSelected(selectValue);
+                        }
+                    }
+                }
+                else if (modelMode == ModelMode::EDGE) {
+                    std::cerr << "need to implement: box selecting edges" << std::endl;
+                }
+                else if (modelMode == ModelMode::FACE) {
+                    std::cerr << "need to implement: box selecting faces" << std::endl;
+                }
+            }
+        }
     }
 }
 
 void BasicSelect::processLineSelection(PanelGL *panel, QMouseEvent *event) {
+    SceneP scene = panel->scene();
+    Vector3 rayOrig = panel->camera()->eye();
+    Point3 rayDir = panel->computeRayDirection(event->pos());
+    if (SunshineUi::workMode() == WorkMode::LAYOUT) {
+    } else {
+        if (modelMode == ModelMode::FACE) {
+            FaceUtil::FaceHit faceHit = FaceUtil::closestFace(scene, rayOrig, rayDir, TRUE);
+            if (faceHit.nearFace)
+                faceHit.nearFace->setSelected(selectToggle == SelectToggle::ON);
+        }
+        else if (modelMode == ModelMode::VERTEX) {
+            VertexUtil::VertexHit vertexHit = VertexUtil::closestVertex(panel, event, TRUE);
+            if (vertexHit.vertex)
+                vertexHit.vertex->setSelected(selectToggle == SelectToggle::ON);
 
+        }
+    }
 }
