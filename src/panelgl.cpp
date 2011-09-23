@@ -3,6 +3,7 @@
 #include <QVarLengthArray>
 #include <QMouseEvent>
 #include <QMenu>
+#include <QGLFramebufferObject>
 #include "select.h"
 #include "project_util.h"
 #include "contextmenu.h"
@@ -46,7 +47,9 @@ void PanelGL::init()
 {
     setMouseTracking(true);
     _validShaders = false;
+    _validSelectionBuffer = FALSE;
     _ravagingMouse = FALSE;
+    _fbo, _beautyTexture, _indexTexture, _depthTexture = 0;
     _basicSelect = BasicSelectP(new BasicSelect());
 
     if (mainGrid == NULL) {
@@ -92,12 +95,84 @@ void PanelGL::initializeGL()
             std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
         }
     }
+
+
 }
 
 void PanelGL::paintGL()
 {   
-    //buildMeshGrid();
+    if (!_validShaders) {
+        _flatShader = ShaderFactory::buildFlatShader(this);
+        _meshShader = ShaderFactory::buildMeshShader(this);
+        _vertexShader = ShaderFactory::buildVertexShader(this);
+        _validShaders = true;
+    }
 
+    if (!SunshineUi::selectOccluded() && !_validSelectionBuffer) {
+        _selectionBuffer = QSharedPointer<GLuint>(new GLuint(width()*height()));
+        renderSelectionPass();
+        _validSelectionBuffer = TRUE;
+    }
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+    GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
+    glViewport( 0, 0, width(), height());
+    glDrawBuffers( 2, bufs);
+    renderBeautyPass();
+    glDrawBuffers( 1, bufs);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+    //renderBeautyPass();
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, 1, 0, 1, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, _beautyTexture);
+    glColor4f(1,1,1,1);
+    glBegin(GL_QUADS);
+    {
+        glTexCoord2f(0, 0);
+        glVertex2f(0, 0);
+        glTexCoord2f(1, 0);
+        glVertex2f(1, 0);
+        glTexCoord2f(1, 1);
+        glVertex2f(1, 1);
+        glTexCoord2f(0, 1);
+        glVertex2f(0, 1);
+    }
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
+void PanelGL::renderSelectionPass()
+{
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+
+    // render all the meshes
+    QHashIterator<int,MeshP> meshes = _scene->meshes();
+    while (meshes.hasNext()) {
+        meshes.next();
+        int meshKey = meshes.key();
+        MeshP mesh = meshes.value();
+
+        if (!_meshRenderers.contains(meshKey)) // create the mesh renderer if it doesn't exist for this mesh
+            _meshRenderers[meshKey] = MeshRendererP(new MeshRenderer(meshKey));
+
+        _meshRenderers[meshKey]->render(this);
+    }
+
+    glDisable(GL_DEPTH_TEST);
+}
+
+void PanelGL::renderBeautyPass()
+{
     glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -105,12 +180,6 @@ void PanelGL::paintGL()
 
     glEnable(GL_DEPTH_TEST);
 
-    if (!_validShaders) {
-        _flatShader = ShaderFactory::buildFlatShader(this);
-        _meshShader = ShaderFactory::buildMeshShader(this);
-        _vertexShader = ShaderFactory::buildVertexShader(this);
-        _validShaders = true;
-    }
 
     // render the grid
     mainGrid->render(this);
@@ -199,6 +268,79 @@ void PanelGL::resizeGL(int width, int height)
 {
     glViewport(0,0,width,height);
     buildMeshGrid();
+    _validSelectionBuffer = FALSE;
+
+    if (width && height)
+        initFBO(width, height);
+}
+
+void PanelGL::initFBO(int width, int height)
+{
+    if (_fbo) {
+        glDeleteFramebuffersEXT(1, &_fbo);
+        glDeleteTextures( 1, &_beautyTexture);
+        glDeleteTextures( 1, &_indexTexture);
+        glDeleteTextures( 1, &_depthTexture);
+    }
+
+    glGenFramebuffersEXT(1, &_fbo);
+    glGenTextures(1, &_beautyTexture);
+    glGenTextures(1, &_indexTexture);
+    glGenTextures(1, &_depthTexture);
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER, _fbo);
+
+    // setup beauty texture
+    glBindTexture(GL_TEXTURE_2D, _beautyTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, _beautyTexture, 0);
+
+    // setup index texture
+    glBindTexture(GL_TEXTURE_2D, _indexTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _indexTexture, 0);
+
+    // setup depth texture
+    glBindTexture( GL_TEXTURE_2D, _depthTexture);
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8_EXT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, _depthTexture, 0);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT_EXT, GL_TEXTURE_2D, _depthTexture, 0);
+
+    glBindTexture( GL_TEXTURE_2D, 0);
+
+    switch (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)) {
+    case GL_FRAMEBUFFER_COMPLETE_EXT:
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << std::endl;
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT" << std::endl;
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT" << std::endl;
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
+        std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT" << std::endl;
+        break;
+    case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
+        std::cerr << "GL_FRAMEBUFFER_UNSUPPORTED_EXT" << std::endl;
+        break;
+    }
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
 
 LineRenderer::LineRenderer(QVector<LineSegment> segments, float lineWidth)
@@ -271,11 +413,11 @@ void LineRenderer::loadVBOs(PanelGL* panel)
 
     // Transfer vertex data to VBO 0
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-    glBufferData(GL_ARRAY_BUFFER, _segments.size()*2*sizeof(VertexColorData), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, _segments.size()*2*sizeof(VertexColorData), vertices, GL_STREAM_DRAW);
 
     // Transfer index data to VBO 1
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STREAM_DRAW);
 }
 
 class MeshVertexData
@@ -512,7 +654,7 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
 
         // Transfer vertex data to VBO 0
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STREAM_DRAW);
     }
 
     // load the vertices
@@ -537,7 +679,7 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         // Transfer vertex data to VBO 1
         glPointSize(4);
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
-        glBufferData(GL_ARRAY_BUFFER, numVertices*sizeof(VertexData), vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, numVertices*sizeof(VertexData), vertices, GL_STREAM_DRAW);
     }
 }
 
@@ -580,6 +722,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 
         // update the grid from the new perspective
         buildMeshGrid();
+        _validSelectionBuffer = FALSE;
     }
     else if (mouseMode == MouseMode::SELECT && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
@@ -603,9 +746,7 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
         //FaceUtil::FaceHit faceHit = FaceUtil::closestFace(_scene, rayOrig, rayDir, false);
 
         QList<Triangle> triangles = _meshGrid.trianglesByPoint(QPoint(event->pos().x(), height()-event->pos().y()));
-        //std::cout << "# triangles: " << triangles.size() << std::endl;
         FaceUtil::FaceHit faceHit = FaceUtil::closestFace(triangles, rayOrig, rayDir, false);
-
         VertexUtil::VertexHit vertexHit = VertexUtil::closestVertex(this, event, false);
 
         _hoverMesh = faceHit.nearMesh ? faceHit.nearMesh : MeshP(0);

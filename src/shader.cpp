@@ -126,13 +126,13 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "    vec4 ambient = color * amb;\n" \
                        "    vec4 diffuse = color * (1.0 - amb) * max(dot(L, N), 0.0);\n" \
                        "    vec4 specular = vec4(0.0);\n" \
-                       "    gl_FragColor = (edgeIntensity * vec4(0.1,0.1,0.1,1.0)) + ((1.0-edgeIntensity) * vec4(ambient + diffuse + specular));\n" \
+                       "    gl_FragData[0] = (edgeIntensity * vec4(0.1,0.1,0.1,1.0)) + ((1.0-edgeIntensity) * vec4(ambient + diffuse + specular));\n" \
                        "    //gl_FragColor = vec4(nearD*0.1);\n" \
                        "}\n");
 
-    std::cout << vertSource.toStdString() << std::endl;
-    std::cout << geomSource.toStdString() << std::endl;
-    std::cout << fragSource.toStdString() << std::endl;
+    //std::cout << vertSource.toStdString() << std::endl;
+    //std::cout << geomSource.toStdString() << std::endl;
+    //std::cout << fragSource.toStdString() << std::endl;
 
     QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
     vertShader->compileSourceCode(vertSource);

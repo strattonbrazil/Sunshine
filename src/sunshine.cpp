@@ -290,7 +290,19 @@ int Sunshine::selectMode()
     else if (ui->boxSelectButton->isChecked()) return SelectMode::BOX;
 }
 
+bool Sunshine::selectOccluded()
+{
+    return ui->selectOccludedButton->isChecked();
+}
+
 namespace SunshineUi {
     int workMode() { return activeMainWindow->workMode(); }
     int selectMode() { return activeMainWindow->selectMode(); }
+    bool selectOccluded() { return activeMainWindow->selectOccluded(); }
+}
+
+void Sunshine::on_selectOccludedButton_clicked()
+{
+    foreach (PanelGL* panel, _panels)
+        panel->update();
 }

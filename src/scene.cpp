@@ -46,14 +46,6 @@ QList<QString> Scene::importExtensions()
         std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
     }
 
-    //std::vector<std::string> vec(len(pyList));
-    /*
-    for (std::size_t i = 0; i < vec.size(); ++i) {
-      vec[i] = extract<std::string>(pyList[i]);
-      std::cout << vec[i] << std::endl;
-    }
-    */
-
     return extensions;
 }
 

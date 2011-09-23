@@ -61,6 +61,7 @@ public:
     void               	     paintGL();
     void                     paintBackground();
     void 	             resizeGL(int width, int height);
+    void                     initFBO(int width, int height);
     QGLFormat                defaultFormat();
     QGLShaderProgramP        getFlatShader() { return _flatShader; }
     QGLShaderProgramP        getMeshShader() { return _meshShader; }
@@ -93,8 +94,13 @@ private:
     void                     init();
     void                     ravageMouse();
     void                     buildMeshGrid();
+    void                     renderSelectionPass();
+    void                     renderBeautyPass();
     bool                     _ravagingMouse;
     bool                     _validShaders;
+    QSharedPointer<GLuint>   _selectionBuffer;
+    GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
+    bool                     _validSelectionBuffer;
     CameraP                  _camera;
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
@@ -104,12 +110,6 @@ private:
     WorkTool*                _workTool;
     BasicSelectP             _basicSelect;
     Sunshine*                _sunshine;
-    /*
-    MeshP                    _closestMesh;
-    FaceP                    _closestFace;
-    VertexP                  _closestVertex;
-    EdgeP                    _closestEdge;
-    */
 };
 
 struct LineSegment {

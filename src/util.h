@@ -132,7 +132,6 @@ void printMatrix(QMatrix4x4 m);
 void printVector3(Vector3 v);
 void printQuat(QQuaternion q);
 
-
 const QVector4D SELECTED_COLOR(1,0,0,1);
 const QVector4D SELECTED_HOVER_COLOR(1,1,0,1);
 const QVector4D UNSELECTED_COLOR(1,1,1,1);

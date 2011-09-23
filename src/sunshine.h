@@ -19,6 +19,7 @@ namespace Ui {
 namespace SunshineUi {
     int workMode();
     int selectMode();
+    bool selectOccluded();
 };
 
 class PanelGL;
@@ -36,6 +37,7 @@ public:
     void                       setupDefaultLights();
     int                        workMode();
     int                        selectMode();
+    bool                       selectOccluded();
 
 protected:
     void                       changeEvent(QEvent *e);
@@ -47,6 +49,7 @@ private slots:
     void                       on_modelModeButton_released();
     void                       on_lineSelectButton_released();
     void                       on_boxSelectButton_clicked();
+    void                       on_selectOccludedButton_clicked();
 
 private:
     QList<PanelGL*>            _panels;
