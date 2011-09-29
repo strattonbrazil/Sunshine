@@ -16,6 +16,7 @@ public:
     void              mousePressed(PanelGL* panel, QMouseEvent* event);
     void              mouseReleased(PanelGL* panel, QMouseEvent* event);
     void              mouseDragged(PanelGL* panel, QMouseEvent* event);
+    void              postDrawOverlay(PanelGL* panel);
     int               minX, minY, maxX, maxY;
     int               modelMode;
 private:

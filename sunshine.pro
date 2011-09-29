@@ -36,7 +36,8 @@ HEADERS += src/camera.h \
     src/python_bindings.h \
     src/object_tools.h \
     src/worktool.h \
-    src/contextmenu.h
+    src/contextmenu.h \
+    src/cursor_tools.h
 FORMS += src/sunshine.ui \
     src/renderwidget.ui
 SOURCES += src/camera.cpp \
@@ -60,5 +61,16 @@ SOURCES += src/camera.cpp \
     src/exceptions.cpp \
     src/python_bindings.cpp \
     src/object_tools.cpp \
-    src/contextmenu.cpp
-RESOURCES += src/plugins.qrc
+    src/contextmenu.cpp \
+    src/cursor_tools.cpp \
+    src/draw_box_tool.cpp
+RESOURCES += src/plugins.qrc \
+    src/icons.qrc
+
+
+
+
+
+
+
+

@@ -23,16 +23,6 @@ public:
 };
 typedef QSharedPointer<WorkTool> WorkToolP;
 
-class CursorTool
-{
-public:
-    virtual bool isViewable() = 0; // on sidebar
-    virtual QIcon icon() = 0;
-    virtual QString label() = 0;
-    virtual void activate() = 0;
-    virtual void deactivate() = 0;
-    //virtual void paint(PanelGL* panel) = 0;
-};
-typedef QSharedPointer<CursorTool> CursorToolP;
+
 
 #endif // WORKTOOL_H

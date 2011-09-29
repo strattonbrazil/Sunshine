@@ -9,6 +9,7 @@
 //#include "Python.h"
 //#include "sunshineui.h"
 #include "worktool.h"
+#include <QToolButton>
 
 namespace Ui {
         class Sunshine;
@@ -16,15 +17,18 @@ namespace Ui {
 
 //namespace GeometryMode { enum { OBJECT, VERTEX, EDGE, FACE }; };
 //namespace SelectMode { enum { BASIC, LINE, BOX }; };
+
+class PanelGL;
+class CursorTool;
+typedef QSharedPointer<CursorTool> CursorToolP;
+
 namespace SunshineUi {
+    CursorToolP cursorTool();
     int workMode();
     int selectMode();
     bool selectOccluded();
 };
 
-class PanelGL;
-class CursorTool;
-typedef QSharedPointer<CursorTool> CursorToolP;
 
 class Sunshine : public QMainWindow {
     Q_OBJECT
@@ -35,6 +39,7 @@ public:
     void                       setupDefaultCameras();
     void                       setupDefaultMeshes();
     void                       setupDefaultLights();
+    CursorToolP                cursorTool();
     int                        workMode();
     int                        selectMode();
     bool                       selectOccluded();
@@ -50,15 +55,17 @@ private slots:
     void                       on_lineSelectButton_released();
     void                       on_boxSelectButton_clicked();
     void                       on_selectOccludedButton_clicked();
+    void                       on_cursorToolChanged(QAbstractButton* button);
 
 private:
-    QList<PanelGL*>            _panels;
-    QHash<QString,CursorToolP> _cursorTools;
-    void                       updateMode();
-    Ui::Sunshine*              ui;
-    SceneP                     _scene;
-    RenderWidget*              _renderWidget;
-    SettingsWidget*            _renderSettingsWidget;
+    QList<PanelGL*>                   _panels;
+    QButtonGroup*                     _cursorButtonGroup;
+    QHash<QToolButton*,CursorToolP>   _cursorTools;
+    void                              updateMode();
+    Ui::Sunshine*                     ui;
+    SceneP                            _scene;
+    RenderWidget*                     _renderWidget;
+    SettingsWidget*                   _renderSettingsWidget;
 };
 
 #endif // SUNSHINE_H

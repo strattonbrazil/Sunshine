@@ -44,13 +44,6 @@ class RotateTransformable : public WorkTool
 };
 */
 
-class PointTool : public CursorTool
-{
-    bool isViewable() { return TRUE; }
-    QIcon icon() {}
-    QString label() { return "Cursor"; }
-    void activate() {}
-    void deactivate() {};
-};
+
 
 #endif // OBJECT_TOOLS_H

@@ -143,9 +143,27 @@ namespace WorkMode {
     enum { LAYOUT, MODEL };
 }
 namespace SelectMode {
-    enum { LINE, BOX };
+    enum { NONE, LINE, BOX };
 }
 namespace ModelMode {
     enum { NONE, VERTEX, EDGE, FACE };
 }
+
+namespace DrawSettings {
+    enum {
+        DRAW_VERTICES =   1,
+        DRAW_EDGES =   2,
+        DRAW_FACES =   4,
+        USE_OBJECT_COLOR = 8,
+        STYLE5 =  16,
+        STYLE6 =  32,
+        STYLE7 =  64,
+        STYLE8 = 128
+    };
+};
+
+namespace PlaneUtil {
+    float intersect(Vector3 planeNormal, Point3 planeOrig, Vector3 rayDir, Point3 rayOrig);
+}
+
 #endif // UTIL_H

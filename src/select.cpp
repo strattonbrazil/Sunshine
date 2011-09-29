@@ -146,6 +146,7 @@ void BasicSelect::mouseReleased(PanelGL *panel, QMouseEvent *event)
         processBoxSelection(panel, !shiftDown, !controlDown);
 
     selectToggle = SelectToggle::NONE;
+    _selectMode = SelectMode::NONE;
 }
 
 void BasicSelect::mouseDragged(PanelGL* panel, QMouseEvent* event)
@@ -159,6 +160,50 @@ void BasicSelect::mouseDragged(PanelGL* panel, QMouseEvent* event)
     minY = std::min(panel->height() - pick.y(), panel->height() - current.y());
     maxX = std::max(pick.x(), current.x());
     maxY = std::max(panel->height() - pick.y(), panel->height() - current.y());
+}
+
+void BasicSelect::postDrawOverlay(PanelGL *panel)
+{
+    if (_selectMode == SelectMode::NONE)
+        return;
+
+    const int width = panel->width();
+    const int height = panel->height();
+
+    if (selectMode() == SelectMode::BOX) {
+        CameraP camera = panel->camera();
+        QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width, height);
+        QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width, height);
+        QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+        QMatrix4x4 objToWorld;
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(0, width, 0, height, -1, 1);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        glColor4f(1,.2f,1,.2f);
+        glBegin(GL_LINE_LOOP);
+        {
+            glVertex2f(minX,minY);
+            glVertex2f(minX,maxY);
+            glVertex2f(maxX,maxY);
+            glVertex2f(maxX,minY);
+        }
+        glEnd();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBegin(GL_QUADS);
+        {
+            glVertex2f(minX,minY);
+            glVertex2f(minX,maxY);
+            glVertex2f(maxX,maxY);
+            glVertex2f(maxX,minY);
+        }
+        glEnd();
+        glDisable(GL_BLEND);
+    }
 }
 
 void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool selectValue)

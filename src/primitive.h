@@ -13,6 +13,7 @@ public:
 
 namespace primitive {
     PrimitiveParts cubePrimitive(float width, float height, float depth);
+    PrimitiveParts planePrimitive(float width, float depth);
 };
 
 

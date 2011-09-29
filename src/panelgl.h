@@ -10,7 +10,7 @@
 #include "geometry.h"
 #include "scene.h"
 #include "worktool.h"
-#include "select.h"
+//#include "select.h"
 #include "sunshine.h"
 
 class Mesh;
@@ -20,8 +20,8 @@ class Sunshine;
 class WorkTool;
 typedef QSharedPointer<WorkTool> WorkToolP;
 
-class BasicSelect;
-typedef QSharedPointer<BasicSelect> BasicSelectP;
+//class BasicSelect;
+//typedef QSharedPointer<BasicSelect> BasicSelectP;
 
 class MeshRenderer
 {
@@ -67,6 +67,7 @@ public:
     QGLShaderProgramP        getMeshShader() { return _meshShader; }
     QGLShaderProgramP        getVertexShader() { return _vertexShader; }
     CameraP                  camera() const { return _camera; }
+    void                     enterEvent(QEvent *);
     void                     mousePressEvent(QMouseEvent* event);
     void                     mouseReleaseEvent(QMouseEvent* event);
     void                     mouseMoveEvent(QMouseEvent* event);
@@ -98,7 +99,7 @@ private:
     void                     renderBeautyPass();
     bool                     _ravagingMouse;
     bool                     _validShaders;
-    QSharedPointer<GLuint>   _selectionBuffer;
+    QVector<GLubyte>         _selectionBuffer;
     GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
     bool                     _validSelectionBuffer;
     CameraP                  _camera;
@@ -108,7 +109,7 @@ private:
     QHash<int,MeshRendererP> _meshRenderers;
     SceneP                   _scene;
     WorkTool*                _workTool;
-    BasicSelectP             _basicSelect;
+    //BasicSelectP             _basicSelect;
     Sunshine*                _sunshine;
 };
 

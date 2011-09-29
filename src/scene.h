@@ -27,6 +27,7 @@ class Scene : public boost::enable_shared_from_this<Scene>
 {
 public:
     MeshP                       mesh(int key);
+    void                        deleteMesh(int key) { _meshes.remove(key); }
     void                        clearScene();
     CameraP                     createCamera(QString name);
     MeshP                       createMesh(QString name);

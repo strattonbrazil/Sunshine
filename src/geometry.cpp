@@ -65,18 +65,10 @@ Mesh::Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHa
     _validNormals = FALSE;
 }
 
-void Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
+MeshP Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
 {
     MeshP emptyMesh = scene->createMesh("mesh");
     int meshKey = emptyMesh->key();
-
-    std::cout << "# vertices: " << parts.points.size() << std::endl;
-    std::cout << "# faces: " << parts.faces.size() << std::endl;
-
-    //QHash<int,VertexP> vertices;
-    //QHash<int,EdgeP> edges;
-    //QHash<int,FaceP> faces;
-
 
     // create vertices
     for (int vertKey = 0; vertKey < parts.points.size(); vertKey++)
@@ -115,6 +107,8 @@ void Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
     }
 
     emptyMesh->computeEdgePairs();
+
+    return emptyMesh;
 }
 
 const int Mesh::numTriangles()

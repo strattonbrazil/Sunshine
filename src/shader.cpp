@@ -46,6 +46,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "#extension GL_EXT_gpu_shader4 : enable\n" \
                        "in vec3 vertex;\n" \
                        "in vec4 color;\n" \
+                       "in vec4 selectIndex;\n" \
                        "in vec3 normal;\n" \
                        "in float excludeEdge;\n" \
                        "varying vec3 vertWorldPos;\n" \
@@ -66,10 +67,12 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "#extension GL_EXT_gpu_shader4 : enable\n" \
                        "#extension GL_EXT_geometry_shader4 : enable\n" \
                        "varying in vec3 vertWorldPos[3];\n" \
+                       "varying in vec4 vertSelectIndex[3];\n" \
                        "varying in vec3 vertWorldNormal[3];\n" \
                        "varying in float vertExcludeEdge[3];\n" \
                        "varying out vec3 worldNormal;\n" \
                        "varying out vec3 worldPos;\n" \
+                       "varying out vec4 selectIndex;\n" \
                        "uniform vec2 WIN_SCALE;\n" \
                        "noperspective varying vec3 dist;\n" \
                        "void main(void)\n" \
@@ -88,18 +91,21 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                    "  worldNormal = vertWorldNormal[0];\n" \
                    "  gl_Position = gl_PositionIn[0];\n" \
                    "  gl_FrontColor = gl_FrontColorIn[0];\n" \
+                   "  selectIndex = vertSelectIndex[0];\n" \
                    "  EmitVertex();\n" \
                    "  dist = vec3(vertExcludeEdge[0]*MEW,area/length(v1),vertExcludeEdge[2]*MEW);\n" \
                    "  worldPos = vertWorldPos[1];\n" \
                    "  worldNormal = vertWorldNormal[1];\n" \
                    "  gl_Position = gl_PositionIn[1];\n" \
                    "  gl_FrontColor = gl_FrontColorIn[1];\n" \
+                   "  selectIndex = vertSelectIndex[1];\n" \
                    "  EmitVertex();\n" \
                    "  dist = vec3(vertExcludeEdge[0]*MEW,vertExcludeEdge[1]*MEW,area/length(v2));\n" \
                    "  worldPos = vertWorldPos[2];\n" \
                    "  worldNormal = vertWorldNormal[2];\n" \
                    "  gl_Position = gl_PositionIn[2];\n" \
                    "  gl_FrontColor = gl_FrontColorIn[2];\n" \
+                   "  selectIndex = vertSelectIndex[2];\n" \
                    "  EmitVertex();\n" \
                    "  EndPrimitive();\n" \
                    "}\n");
@@ -108,6 +114,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "#extension GL_EXT_gpu_shader4 : enable\n" \
                        "varying vec3 worldPos;\n" \
                        "varying vec3 worldNormal;\n" \
+                       "varying vec4 selectIndex;\n" \
                        "noperspective varying vec3 dist;\n" \
                        "uniform vec3 cameraPos;\n" \
                        "uniform vec3 lightDir;\n" \
@@ -127,6 +134,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "    vec4 diffuse = color * (1.0 - amb) * max(dot(L, N), 0.0);\n" \
                        "    vec4 specular = vec4(0.0);\n" \
                        "    gl_FragData[0] = (edgeIntensity * vec4(0.1,0.1,0.1,1.0)) + ((1.0-edgeIntensity) * vec4(ambient + diffuse + specular));\n" \
+                       "    gl_FragData[1] = selectIndex;\n" \
                        "    //gl_FragColor = vec4(nearD*0.1);\n" \
                        "}\n");
 

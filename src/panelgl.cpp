@@ -10,9 +10,11 @@
 #include "face_util.h"
 #include "vertex_util.h"
 #include <algorithm>
+#include <QGLPixelBuffer>
+#include "cursor_tools.h"
 
 namespace MouseMode {
-    enum { FREE, CAMERA, TOOL, SELECT };
+    enum { FREE, CAMERA, TOOL };
 }
 
 LineRenderer* mainGrid = NULL;
@@ -50,7 +52,7 @@ void PanelGL::init()
     _validSelectionBuffer = FALSE;
     _ravagingMouse = FALSE;
     _fbo, _beautyTexture, _indexTexture, _depthTexture = 0;
-    _basicSelect = BasicSelectP(new BasicSelect());
+    //_basicSelect = BasicSelectP(new BasicSelect());
 
     if (mainGrid == NULL) {
         int range[] = {-10,10};
@@ -78,6 +80,8 @@ QGLFormat PanelGL::defaultFormat()
 {
     QGLFormat format;
     //format.setVersion(3,2);
+    format.setAlpha(TRUE);
+    format.setStencil(TRUE);
     format.setVersion(3,1);
     format.setProfile(QGLFormat::CoreProfile);
     return format;
@@ -108,18 +112,10 @@ void PanelGL::paintGL()
         _validShaders = true;
     }
 
-    if (!SunshineUi::selectOccluded() && !_validSelectionBuffer) {
-        _selectionBuffer = QSharedPointer<GLuint>(new GLuint(width()*height()));
-        renderSelectionPass();
-        _validSelectionBuffer = TRUE;
-    }
-
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
-    GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
     glViewport( 0, 0, width(), height());
-    glDrawBuffers( 2, bufs);
     renderBeautyPass();
-    glDrawBuffers( 1, bufs);
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
     //renderBeautyPass();
@@ -146,43 +142,57 @@ void PanelGL::paintGL()
     }
     glEnd();
     glDisable(GL_TEXTURE_2D);
-}
 
-void PanelGL::renderSelectionPass()
-{
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // copy selection indexes to CPU array
+    if (!SunshineUi::selectOccluded() && !_validSelectionBuffer) {
+        _selectionBuffer.resize(width()*height()*4);
 
-    glEnable(GL_DEPTH_TEST);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
-    // render all the meshes
-    QHashIterator<int,MeshP> meshes = _scene->meshes();
-    while (meshes.hasNext()) {
-        meshes.next();
-        int meshKey = meshes.key();
-        MeshP mesh = meshes.value();
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+        glReadBuffer(GL_COLOR_ATTACHMENT1_EXT);
+        glReadPixels(0, 0, width(), height(), GL_RGBA, GL_UNSIGNED_BYTE, _selectionBuffer.data());
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-        if (!_meshRenderers.contains(meshKey)) // create the mesh renderer if it doesn't exist for this mesh
-            _meshRenderers[meshKey] = MeshRendererP(new MeshRenderer(meshKey));
+        //glBindTexture(GL_TEXTURE_2D, _indexTexture);
+        //glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, _selectionBuffer.data());
 
-        _meshRenderers[meshKey]->render(this);
+        _validSelectionBuffer = TRUE;
     }
 
-    glDisable(GL_DEPTH_TEST);
+    QPoint p = this->mapFromGlobal(QCursor::pos());
+    p = QPoint(p.x(), height() - p.y());
+    GLubyte r = _selectionBuffer[(p.x()+width()*p.y())*4+0];
+    GLubyte g = _selectionBuffer[(p.x()+width()*p.y())*4+1];
+    GLubyte b = _selectionBuffer[(p.x()+width()*p.y())*4+2];
+    GLubyte a = _selectionBuffer[(p.x()+width()*p.y())*4+3];
+    //std::cout << "(" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")" << std::endl;
 }
 
 void PanelGL::renderBeautyPass()
 {
-    glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+
+    GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
+    glDrawBuffers( 2, bufs);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDrawBuffers( 1, bufs);
 
     paintBackground();
 
     glEnable(GL_DEPTH_TEST);
 
+    cursorTool->preDrawOverlay(this);
 
     // render the grid
     mainGrid->render(this);
+
+    glDrawBuffers( 2, bufs);
 
     // render all the meshes
     QHashIterator<int,MeshP> meshes = _scene->meshes();
@@ -199,44 +209,9 @@ void PanelGL::renderBeautyPass()
 
     glDisable(GL_DEPTH_TEST);
 
-    // render the selection box
-    if (mouseMode == MouseMode::SELECT) {
-        if (_basicSelect->selectMode() == SelectMode::BOX) {
+    glDrawBuffers(1, bufs);
 
-            CameraP camera = _camera;
-            QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
-            QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width(), height());
-            QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
-            QMatrix4x4 objToWorld;
-
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, width(), 0, height(), -1, 1);
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-
-            glColor4f(1,.2f,1,.2f);
-            glBegin(GL_LINE_LOOP);
-            {
-                glVertex2f(_basicSelect->minX,_basicSelect->minY);
-                glVertex2f(_basicSelect->minX,_basicSelect->maxY);
-                glVertex2f(_basicSelect->maxX,_basicSelect->maxY);
-                glVertex2f(_basicSelect->maxX,_basicSelect->minY);
-            }
-            glEnd();
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glBegin(GL_QUADS);
-            {
-                glVertex2f(_basicSelect->minX,_basicSelect->minY);
-                glVertex2f(_basicSelect->minX,_basicSelect->maxY);
-                glVertex2f(_basicSelect->maxX,_basicSelect->maxY);
-                glVertex2f(_basicSelect->maxX,_basicSelect->minY);
-            }
-            glEnd();
-            glDisable(GL_BLEND);
-        }
-    }
+    cursorTool->postDrawOverlay(this);
 }
 
 void PanelGL::paintBackground()
@@ -292,7 +267,7 @@ void PanelGL::initFBO(int width, int height)
 
     // setup beauty texture
     glBindTexture(GL_TEXTURE_2D, _beautyTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_SHORT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -301,7 +276,7 @@ void PanelGL::initFBO(int width, int height)
 
     // setup index texture
     glBindTexture(GL_TEXTURE_2D, _indexTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_SHORT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -418,6 +393,9 @@ void LineRenderer::loadVBOs(PanelGL* panel)
     // Transfer index data to VBO 1
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, _segments.size()*2*sizeof(GLushort), indices, GL_STREAM_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 class MeshVertexData
@@ -430,7 +408,8 @@ public:
     Vector3      position;
     Vector4      color;
     Vector3      normal;
-    float        excludeEdge;
+    GLfloat      excludeEdge;
+    GLuint       selectIndex;
 };
 
 class VertexData
@@ -450,6 +429,9 @@ MeshRenderer::MeshRenderer(int meshKey)
 
 void MeshRenderer::render(PanelGL* panel)
 {
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+    const int drawSettings = cursorTool->drawSettings();
+
     if (!_validVBOs) {
         glGenBuffers(2, _vboIds);
 
@@ -459,7 +441,7 @@ void MeshRenderer::render(PanelGL* panel)
     loadVBOs(panel, mesh);
 
     renderFaces(panel);
-    if (SunshineUi::workMode() == WorkMode::MODEL)
+    if (drawSettings & DrawSettings::DRAW_VERTICES)
         renderVertices(panel);
 }
 
@@ -492,7 +474,10 @@ void MeshRenderer::renderFaces(PanelGL *panel)
     meshShader->setUniformValue("cameraPos", camera->eye());
     meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
 
-    if (SunshineUi::workMode() == WorkMode::LAYOUT) {
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+    const int drawSettings = cursorTool->drawSettings();
+
+    if (drawSettings & DrawSettings::USE_OBJECT_COLOR) {
         QVector4D singleColor;
         if (mesh->isSelected() && mesh != panel->_hoverMesh)
             singleColor = SELECTED_COLOR;
@@ -542,9 +527,16 @@ void MeshRenderer::renderFaces(PanelGL *panel)
     meshShader->enableAttributeArray(excludeEdgeLocation);
     glVertexAttribPointer(excludeEdgeLocation, 1, GL_FLOAT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
 
+    offset += sizeof(GLfloat);
+
+    // tell OpenGL programmable pipeline if to draw opposing edge
+    int selectIndexLocation = meshShader->attributeLocation("selectIndex");
+    meshShader->enableAttributeArray(selectIndexLocation);
+    glVertexAttribPointer(selectIndexLocation, 1, GL_UNSIGNED_INT, GL_FALSE, sizeof(MeshVertexData), (const void *)offset);
+
     glDrawArrays(GL_TRIANGLES, 0, numTriangles*3);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     meshShader->release();
 }
@@ -609,6 +601,9 @@ void MeshRenderer::renderVertices(PanelGL *panel)
 
 void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
 {
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+    const int drawSettings = cursorTool->drawSettings();
+
     // load the faces
     {
         const int numTriangles = mesh->numTriangles();
@@ -622,7 +617,9 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
             i.next();
             FaceP face = i.value();
             QVector4D color;
-            if (SunshineUi::workMode() == WorkMode::MODEL) {
+            if (drawSettings & DrawSettings::USE_OBJECT_COLOR) {
+                color = UNSELECTED_COLOR;
+            } else {
                 bool noVert = panel->_hoverVert.data() == 0; // if no vertex highlighted, maybe highlight face
                 if (face->isSelected() && face != panel->_hoverFace)
                     color = SELECTED_COLOR;
@@ -632,8 +629,6 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
                     color = UNSELECTED_HOVER_COLOR;
                 else
                     color = UNSELECTED_COLOR;
-            } else {
-                color = UNSELECTED_COLOR;
             }
 
             QListIterator<Triangle> j = face->buildTriangles();
@@ -655,6 +650,8 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         // Transfer vertex data to VBO 0
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
         glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STREAM_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     // load the vertices
@@ -680,32 +677,41 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
         glPointSize(4);
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
         glBufferData(GL_ARRAY_BUFFER, numVertices*sizeof(VertexData), vertices, GL_STREAM_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+}
+
+void PanelGL::enterEvent(QEvent *)
+{
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+    //setCursor(Qt::ArrowCursor);
+    setCursor(cursorTool->cursor());
 }
 
 void PanelGL::mousePressEvent(QMouseEvent* event)
 {
     bool altDown = event->modifiers() & Qt::AltModifier;
 
-    if (mouseMode == MouseMode::TOOL) {
-        //workTool.mousePressed(event);
-    }
-    else if (mouseMode == MouseMode::FREE && altDown) {
+    if (mouseMode == MouseMode::FREE && altDown) {
         mouseMode = MouseMode::CAMERA;
         activeMouseButton = event->button();
         _camera->mousePressed(event);
     }
     else if (mouseMode == MouseMode::FREE && event->button() & Qt::LeftButton) {
-        mouseMode = MouseMode::SELECT;
+        mouseMode = MouseMode::TOOL;
         activeMouseButton = event->button();
         //basicSelect = BasicSelect.instance
         //basic_select.mousePressed(self,event)
-        _basicSelect->mousePressed(this, event);
+        //_basicSelect->mousePressed(this, event);
+        CursorToolP cursorTool = SunshineUi::cursorTool();
+        cursorTool->mousePressed(this, event);
     }
 }
 
 void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 {
+    /*
     if (mouseMode == MouseMode::TOOL) {
         if (event->button() == Qt::RightButton)
             _workTool->cancel(event);
@@ -715,7 +721,8 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
         _ravagingMouse = FALSE;
         setArrowCursor();
     }
-    else if (mouseMode == MouseMode::CAMERA && event->button() == activeMouseButton) {
+    */
+    if (mouseMode == MouseMode::CAMERA && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
         _camera->mouseReleased(event);
@@ -724,11 +731,12 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
         buildMeshGrid();
         _validSelectionBuffer = FALSE;
     }
-    else if (mouseMode == MouseMode::SELECT && event->button() == activeMouseButton) {
+    else if (mouseMode == MouseMode::TOOL && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
-        _basicSelect->mouseReleased(this, event);
 
+        CursorToolP cursorTool = SunshineUi::cursorTool();
+        cursorTool->mouseReleased(this, event);
     }
     else if (mouseMode == MouseMode::FREE && event->button() == Qt::RightButton) { // popup menu
         showContextMenu(event);
@@ -757,6 +765,8 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
         update();
     }
     else if (mouseMode == MouseMode::TOOL) {
+        mouseDragEvent(event);
+        /*
         //_workTool->mouseMoved(event);
         if (_ravagingMouse) { // move mouse back to center
             QPoint mouseDiff = QCursor::pos() - centerMouse(TRUE);
@@ -766,7 +776,9 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
             }
         }
         update();
+        */
     }
+
     else {
         mouseDragEvent(event);
     }
@@ -778,10 +790,12 @@ void PanelGL::mouseDragEvent(QMouseEvent* event)
         _camera->mouseDragged(event);
 
     }
-    else if (mouseMode == MouseMode::SELECT) {
+    else if (mouseMode == MouseMode::TOOL) {
+        CursorToolP cursorTool = SunshineUi::cursorTool();
+        cursorTool->mouseDragged(this, event);
         //basic_select = BasicSelect.instance
         //basic_select.mouseDrag(self, event)
-        _basicSelect->mouseDragged(this, event);
+        //_basicSelect->mouseDragged(this, event);
     }
 
     update();

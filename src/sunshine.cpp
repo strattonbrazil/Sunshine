@@ -9,6 +9,7 @@
 #include "panelgl.h"
 #include "sunshineui.h"
 #include "object_tools.h"
+#include "cursor_tools.h"
 
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
@@ -40,15 +41,31 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     _renderWidget = 0;
     _renderSettingsWidget = new SettingsWidget();
 
-    CursorToolP pointTool(new PointTool());
-    _cursorTools[pointTool->label()] = pointTool;
+    QList<CursorToolP> cursorTools;
+    cursorTools << CursorToolP(new PointTool());
+    cursorTools << CursorToolP(new EditTool());
+    cursorTools << CursorToolP(new DrawBoxTool());
+    cursorTools << CursorToolP(new TranslateTool());
+    cursorTools << CursorToolP(new RotateTool());
+    cursorTools << CursorToolP(new ExtrudeTool());
 
-    foreach(CursorToolP tool, _cursorTools) {
+    QToolButton* firstButton = 0;
+    _cursorButtonGroup = new QButtonGroup();
+    foreach(CursorToolP tool, cursorTools) {
         QToolButton* button = new QToolButton();
-        //button->setText(tool->label());
-        //ui->toolBar->addAction(tool->icon(), tool->label());
-        //ui->toolFrame->layout()->addWidget(button);
+        if (!firstButton) firstButton = button;
+        _cursorButtonGroup->addButton(button);
+        button->setIcon(tool->icon());
+        button->setToolTip(tool->label());
+        button->setCheckable(TRUE);
+        ui->toolBar->addWidget(button);
+
+        _cursorTools[button] = tool;
     }
+    firstButton->setChecked(TRUE);
+    connect(_cursorButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),
+            this, SLOT(on_cursorToolChanged(QAbstractButton*)));
+
 }
 
 Sunshine::~Sunshine()
@@ -278,6 +295,12 @@ void Sunshine::updateMode()
     //else ui->selectFrame->hide();
 }
 
+CursorToolP Sunshine::cursorTool()
+{
+    QToolButton* button = qobject_cast<QToolButton*>(_cursorButtonGroup->checkedButton());
+    return _cursorTools[button];
+}
+
 int Sunshine::workMode()
 {
     if (ui->layoutModeButton->isChecked()) return WorkMode::LAYOUT;
@@ -299,9 +322,16 @@ namespace SunshineUi {
     int workMode() { return activeMainWindow->workMode(); }
     int selectMode() { return activeMainWindow->selectMode(); }
     bool selectOccluded() { return activeMainWindow->selectOccluded(); }
+    CursorToolP cursorTool() { return activeMainWindow->cursorTool(); }
 }
 
 void Sunshine::on_selectOccludedButton_clicked()
+{
+    foreach (PanelGL* panel, _panels)
+        panel->update();
+}
+
+void Sunshine::on_cursorToolChanged(QAbstractButton* button)
 {
     foreach (PanelGL* panel, _panels)
         panel->update();

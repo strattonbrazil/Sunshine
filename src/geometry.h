@@ -27,6 +27,7 @@ public:
     void                  setEdge(EdgeP e);
     int                   key() { return _key; }
     Point3                pos() { return _point; }
+    void                  setPos(Point3 p) { _point = p; }
     bool                  isSelected() { return _selected; }
     void                  setSelected(bool s) { _selected = s; }
 private:
@@ -44,7 +45,7 @@ public:
                                  Mesh() {}
                                  Mesh(SceneP scene, int key, QString name);
                                  Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
-    static void                  buildByIndex(SceneP scene, PrimitiveParts parts);
+    static MeshP                 buildByIndex(SceneP scene, PrimitiveParts parts);
     const int                    numTriangles();
     const int                    numVertices() { return _vertices.size(); }
     FaceP                        face(int key) { return _faces[key]; }

@@ -200,3 +200,11 @@ void loadLuaFile(lua_State* state, QString fileName)
     file.close();
 }
 */
+
+namespace PlaneUtil {
+    float intersect(Vector3 planeNormal, Point3 planeOrig, Vector3 rayDir, Point3 rayOrig) {
+        float t = Vector3::dotProduct(planeNormal, planeOrig - rayOrig) /
+                Vector3::dotProduct(planeNormal, rayDir);
+        return t;
+    }
+}
