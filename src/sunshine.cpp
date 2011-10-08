@@ -10,6 +10,9 @@
 #include "sunshineui.h"
 #include "object_tools.h"
 #include "cursor_tools.h"
+#include "render_util.h"
+#include "material.h"
+#include "modeltest.h"
 
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
@@ -27,9 +30,9 @@ Sunshine* activeMainWindow = 0;
 Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {
     activeMainWindow = this;
-    int x = 5;
-    clearScene();
+
     ui->setupUi(this);
+    clearScene();
 
     PanelGL* panel = new PanelGL(_scene, this);
     _panels << panel;
@@ -47,7 +50,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     cursorTools << CursorToolP(new DrawBoxTool());
     cursorTools << CursorToolP(new TranslateTool());
     cursorTools << CursorToolP(new RotateTool());
-    cursorTools << CursorToolP(new ExtrudeTool());
+    cursorTools << CursorToolP(new PushPullTool());
 
     QToolButton* firstButton = 0;
     _cursorButtonGroup = new QButtonGroup();
@@ -65,6 +68,9 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     firstButton->setChecked(TRUE);
     connect(_cursorButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),
             this, SLOT(on_cursorToolChanged(QAbstractButton*)));
+
+    _propertyEditorModel = new AttributeEditor();
+    ui->propertyTable->setModel(_propertyEditorModel);
 
 }
 
@@ -91,9 +97,26 @@ void Sunshine::clearScene()
 {
     _scene = SceneP(new Scene());
     //activeRegister = RegisterP(new Register());
+    setupDefaultMaterials();
     setupDefaultCameras();
     setupDefaultMeshes();
     setupDefaultLights();
+
+    ShaderTreeModel* m = new ShaderTreeModel();
+    //new ModelTest(m);
+
+    ui->sceneHierarchyTree->setModel(_scene.get());
+    ui->shaderTree->setModel(_scene->shaderTreeModel());
+    ui->shaderTree->setColumnWidth(0, 25);
+    connect(ui->shaderTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+            this, SLOT(on_materialSelection_changed(const QModelIndex &, const QModelIndex &)));
+    //std::cout << ui->sceneHierarchyTree << std::endl;
+}
+
+void Sunshine::setupDefaultMaterials()
+{
+    _scene->createMaterial("defaultPhong", MaterialP(new PhongMaterial()));
+    _scene->createMaterial("otherPhong", MaterialP(new PhongMaterial()));
 }
 
 void Sunshine::setupDefaultCameras()
@@ -115,6 +138,11 @@ void Sunshine::setupDefaultLights()
 
 void Sunshine::on_renderButton_clicked()
 {
+
+    RenderUtil::renderGL(_panels[0]);
+
+
+    /*
     if (_renderWidget == NULL)
         _renderWidget = new RenderWidget();
 
@@ -238,6 +266,7 @@ void Sunshine::on_renderButton_clicked()
     RiEnd();
 
    _renderWidget->open(QString(fileName));
+   */
 }
 
 
@@ -318,11 +347,18 @@ bool Sunshine::selectOccluded()
     return ui->selectOccludedButton->isChecked();
 }
 
+void Sunshine::updateSceneHierarchy(SceneP scene)
+{
+    //ui->sceneHierarchyTree
+}
+
 namespace SunshineUi {
+    SceneP activeScene() { return activeMainWindow->activeScene(); }
     int workMode() { return activeMainWindow->workMode(); }
     int selectMode() { return activeMainWindow->selectMode(); }
     bool selectOccluded() { return activeMainWindow->selectOccluded(); }
     CursorToolP cursorTool() { return activeMainWindow->cursorTool(); }
+    void updateSceneHierarchy(SceneP scene) { return activeMainWindow->updateSceneHierarchy(scene); }
 }
 
 void Sunshine::on_selectOccludedButton_clicked()
@@ -335,4 +371,14 @@ void Sunshine::on_cursorToolChanged(QAbstractButton* button)
 {
     foreach (PanelGL* panel, _panels)
         panel->update();
+}
+
+void Sunshine::on_materialSelection_changed(const QModelIndex &current, const QModelIndex &previous )
+{
+    QString materialName = _scene->shaderTreeModel()->data(current.sibling(current.row(), 1), Qt::DisplayRole).toString();
+    MaterialP material = _scene->material(materialName);
+
+    _propertyEditorModel->update(material->attributes());
+    //ui->shaderTree->selectionModel()->
+    std::cout << "Material selection changed: " << materialName.toStdString() << std::endl;
 }

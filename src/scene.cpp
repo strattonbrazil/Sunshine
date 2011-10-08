@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QStringList>
 #include <QDir>
+#include <QStandardItem>
 //#include <PythonQt.h>
 
 #include "sunshine.h"
@@ -72,33 +73,54 @@ Scene::Scene()
     evalPythonFile(":/plugins/objImporter.py");
 
     _tools << WorkToolP(new TranslateTransformable());
-    //_tools << WorkToolP(new RotateTransformable());
 }
 
-MeshP Scene::mesh(int key)
+MaterialP Scene::createMaterial(QString name, MaterialP material)
 {
-    return MeshP(_meshes[key]);
-}
+    if (!_defaultMaterial)
+        _defaultMaterial = material;
 
+    QString unique = uniqueName(name);
+    _materials[unique] = material;
+
+    appendRow(new QStandardItem(QIcon(":/icons/material_icon.png"), unique));
+
+    QList<QStandardItem*> materialRow;
+    materialRow << new QStandardItem("");
+    materialRow << new QStandardItem(unique);
+    materialRow << new QStandardItem("-------");
+    _shaderTreeModel.appendRow(materialRow);
+
+    SunshineUi::updateSceneHierarchy(shared_from_this());
+
+    return material;
+}
 
 CameraP Scene::createCamera(QString name)
 {
-    std::cout << "Creating camera: " << name.toStdString() << std::endl;
+    //std::cout << "Creating camera: " << name.toStdString() << std::endl;
 
     int key = uniqueCameraKey();
     QString unique = uniqueName(name);
     _cameras[key] = CameraP(new Camera(unique));
     _names += unique;
+
+    this->appendRow(new QStandardItem(QIcon(":/icons/camera_icon.png"), unique));
+    SunshineUi::updateSceneHierarchy(shared_from_this());
+
     return _cameras[key];
 }
 
 MeshP Scene::createMesh(QString name)
 {
-    int key = uniqueMeshKey();
-    QString unique = uniqueName(name);
-    _meshes[key] = MeshP(new Mesh(SceneP(this),key,unique));
-    _names += unique;
-    return _meshes[key];
+    name = uniqueName(name);
+    _meshes[name] = MeshP(new Mesh(shared_from_this(), name));
+    _names += name;
+
+    this->appendRow(new QStandardItem(QIcon(":/icons/mesh_icon.png"), name));
+    SunshineUi::updateSceneHierarchy(shared_from_this());
+
+    return _meshes[name];
 }
 
 int Scene::uniqueCameraKey()
@@ -109,6 +131,7 @@ int Scene::uniqueCameraKey()
     return counter;
 }
 
+/*
 int Scene::uniqueMeshKey()
 {
     int counter = 0;
@@ -116,6 +139,7 @@ int Scene::uniqueMeshKey()
         counter++;
     return counter;
 }
+*/
 
 QString Scene::uniqueName(QString prefix)
 {

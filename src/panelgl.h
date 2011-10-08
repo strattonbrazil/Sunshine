@@ -26,13 +26,13 @@ typedef QSharedPointer<WorkTool> WorkToolP;
 class MeshRenderer
 {
 public:
-                          MeshRenderer(int meshKey);
+                          MeshRenderer(QString meshName);
     void                  render(PanelGL* panel);
     void                  renderFaces(PanelGL* panel);
     void                  renderVertices(PanelGL* panel);
     void                  loadVBOs(PanelGL* panel, MeshP mesh);
 private:
-    int                   _meshKey;
+    QString                   _meshName;
     bool                  _validVBOs;
     GLuint                _vboIds[3];
 };
@@ -81,6 +81,7 @@ public:
     QPoint                   centerMouse(bool mock);
     void                     setArrowCursor();
     void                     setBlankCursor();
+    void                     renderBeautyPass();
 
     // for preselection
     MeshP                    _hoverMesh;
@@ -95,8 +96,7 @@ private:
     void                     init();
     void                     ravageMouse();
     void                     buildMeshGrid();
-    void                     renderSelectionPass();
-    void                     renderBeautyPass();
+    void                     renderWorkPass();
     bool                     _ravagingMouse;
     bool                     _validShaders;
     QVector<GLubyte>         _selectionBuffer;
@@ -106,7 +106,7 @@ private:
     QGLShaderProgramP        _flatShader;
     QGLShaderProgramP        _meshShader;
     QGLShaderProgramP        _vertexShader;
-    QHash<int,MeshRendererP> _meshRenderers;
+    QHash<QString,MeshRendererP> _meshRenderers;
     SceneP                   _scene;
     WorkTool*                _workTool;
     //BasicSelectP             _basicSelect;

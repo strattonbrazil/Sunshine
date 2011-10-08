@@ -44,7 +44,7 @@ void DrawBoxTool::mouseReleased(PanelGL *panel, QMouseEvent *event)
     float zDist = std::fabs(_current.z() - _pick.z());
     if (xDist < EPS || zDist < EPS) {
         std::cout << "plane too small" << std::endl;
-        panel->scene()->deleteMesh(_plane->key());
+        panel->scene()->deleteMesh(_plane->name());
         _plane = MeshP(0);
     }
 }

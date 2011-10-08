@@ -4,7 +4,9 @@
 #include "util.h"
 #include "camera.h"
 #include "geometry.h"
+#include "material.h"
 #include <QFileInfo>
+#include <QStandardItemModel>
 
 #include <boost/python.hpp>
 #include <boost/python/module.hpp>
@@ -15,6 +17,7 @@
 #include "exceptions.h"
 #include "worktool.h"
 #include "contextmenu.h"
+#include "shader.h"
 
 using namespace boost::python;
 
@@ -23,21 +26,26 @@ class ContextAction;
 typedef QSharedPointer<WorkTool> WorkToolP;
 
 
-class Scene : public boost::enable_shared_from_this<Scene>
+class Scene : public boost::enable_shared_from_this<Scene>, public QStandardItemModel
 {
 public:
-    MeshP                       mesh(int key);
-    void                        deleteMesh(int key) { _meshes.remove(key); }
-    void                        clearScene();
-    CameraP                     createCamera(QString name);
-    MeshP                       createMesh(QString name);
-    void                        setMesh(int meshKey, MeshP mesh) { _meshes[meshKey] = mesh; }
-    QHashIterator<int, MeshP>   meshes() { return QHashIterator<int,MeshP>(_meshes); }
-    QHashIterator<int, CameraP> cameras() { return QHashIterator<int,CameraP>(_cameras); }
-    CameraP                     fetchCamera(QString name);
-    QList<QString>              importExtensions();
-    void                        importFile(QString fileName);
-    void                        evalPythonFile(QString fileName) {
+    void                            deleteMesh(QString name) { _meshes.remove(name); }
+    void                            clearScene();
+    MaterialP                       createMaterial(QString name, MaterialP m);
+    CameraP                         createCamera(QString name);
+    MeshP                           createMesh(QString name);
+    //void                            setMesh(QString name, MeshP mesh) { _meshes[name] = mesh; }
+    QList<QString>                  meshes() { return _meshes.keys(); }
+    QHashIterator<int, CameraP>     cameras() { return QHashIterator<int,CameraP>(_cameras); }
+    QList<QString>                  materials() { return _materials.keys(); }
+    MeshP                           mesh(QString name) { return _meshes[name]; }
+    MaterialP                       material(QString name) { return _materials[name]; }
+    MaterialP                       defaultMaterial() { return _defaultMaterial; }
+    CameraP                         fetchCamera(QString name);
+    ShaderTreeModel*                shaderTreeModel() { return &_shaderTreeModel; }
+    QList<QString>                  importExtensions();
+    void                            importFile(QString fileName);
+    void                            evalPythonFile(QString fileName) {
         QFile file(fileName);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
              return;
@@ -53,21 +61,25 @@ public:
             std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
         }
     }
+
                                 Scene();
                                 QList<WorkToolP>                   _tools;
+
 protected:
     int                                uniqueCameraKey(); // TODO: replace these functions with one unique-key finder
-    int                                uniqueMeshKey();
+    //int                                uniqueMeshKey();
     QString                            uniqueName(QString prefix);
 
 private:
-    QHash<int,MeshP>                   _meshes;
+    QHash<QString,MeshP>               _meshes;
     QHash<int,CameraP>                 _cameras;
-    //QHash<int,Light*>      _lights;
+    QHash<QString,MaterialP>           _materials;
     QSet<QString>                      _names;
 //    PythonQtObjectPtr                  _context;
     object                             _pyMainModule;
     object                             _pyMainNamespace;
+    MaterialP                          _defaultMaterial;
+    ShaderTreeModel                    _shaderTreeModel;
 public slots:
     void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
     void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }

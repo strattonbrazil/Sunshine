@@ -6,5 +6,8 @@
         <file>rotate_tool.png</file>
         <file>translate_tool.png</file>
         <file>draw_box_tool.png</file>
+        <file>mesh_icon.png</file>
+        <file>camera_icon.png</file>
+        <file>material_icon.png</file>
     </qresource>
 </RCC>

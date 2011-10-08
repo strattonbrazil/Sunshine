@@ -12,6 +12,10 @@ QT += opengl script
 LIBS += -lGLEW
 LIBS += -laqsis_core
 LIBS += -lboost_python
+#LIBS += -lCGAL
+#LIBS += -lCGAL_Core
+#LIBS += -lCGAL_PDB
+#load(qttest_p4)
 
 # Input
 HEADERS += src/camera.h \
@@ -37,7 +41,9 @@ HEADERS += src/camera.h \
     src/object_tools.h \
     src/worktool.h \
     src/contextmenu.h \
-    src/cursor_tools.h
+    src/cursor_tools.h \
+    src/render_util.h \
+    src/material.h
 FORMS += src/sunshine.ui \
     src/renderwidget.ui
 SOURCES += src/camera.cpp \
@@ -63,14 +69,8 @@ SOURCES += src/camera.cpp \
     src/object_tools.cpp \
     src/contextmenu.cpp \
     src/cursor_tools.cpp \
-    src/draw_box_tool.cpp
+    src/draw_box_tool.cpp \
+    src/render_util.cpp \
+    src/material.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc
-
-
-
-
-
-
-
-

@@ -1,11 +1,16 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
+//#include <CGAL/config.h>
+//#include <CGAL/Simple_cartesian.h>
+//#include <CGAL/Polyhedron_3.h>
 #include <QHash>
 #include <QString>
 #include <QSharedPointer>
 #include <boost/shared_ptr.hpp>
+//#include <CGAL/basic.h>
 #include "primitive.h"
+#include "material.h"
 
 class Vertex;
 class Edge;
@@ -43,25 +48,24 @@ class Mesh : public Transformable
 {
 public:
                                  Mesh() {}
-                                 Mesh(SceneP scene, int key, QString name);
-                                 Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
+                                 Mesh(SceneP scene, QString name);
+                                 Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
     static MeshP                 buildByIndex(SceneP scene, PrimitiveParts parts);
     const int                    numTriangles();
     const int                    numVertices() { return _vertices.size(); }
     FaceP                        face(int key) { return _faces[key]; }
     EdgeP                        edge(int key) { return _edges[key]; }
     VertexP                      vert(int key) { return _vertices[key]; }
-    int                          key() { return _key; }
     QString                      name() { return _name; }
     void                         computeEdgePairs();
     QHashIterator<int,FaceP>     faces() { return QHashIterator<int,FaceP>(_faces); }
     QHashIterator<int,VertexP>   vertices() { return QHashIterator<int,VertexP>(_vertices); }
+    MaterialP                    material();
     void                         validateNormals();
     bool                         isSelected() { return _selected; }
     void                         setSelected(bool s) { _selected = s; }
     QMatrix4x4                   normalToWorld();
 private:
-    int                          _key;
     QString                      _name;
     QHash<int,VertexP>           _vertices;
     QHash<int,EdgeP>             _edges;
@@ -69,6 +73,7 @@ private:
     bool                         _validNormals;
     bool                         _selected;
     SceneP                       _scene;
+    MaterialP                    _material;
 };
 
 class Edge

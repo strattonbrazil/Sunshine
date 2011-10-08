@@ -35,11 +35,8 @@ bool TranslateTransformable::init(PanelGL* inPanel, QString command, int button)
     xDiff = 0;
 
     // save off object positions
-    QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
-    while (meshes.hasNext()) {
-        meshes.next();
-        int meshKey = meshes.key();
-        MeshP mesh = meshes.value();
+    foreach(QString meshName, panel->scene()->meshes()) {
+        MeshP mesh = panel->scene()->mesh(meshName);
 
         if (mesh->isSelected())
             mesh->setCenterReference(mesh->center());
@@ -61,11 +58,9 @@ void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
         else if (axis == Axis::GlobalY) direction = Vector3(0,1,0);
         else if (axis == Axis::GlobalZ) direction = Vector3(0,0,1);
         direction = direction * xDiff * scale;
-        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
-        while (meshes.hasNext()) {
-            meshes.next();
-            int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+
+        foreach(QString meshName, panel->scene()->meshes()) {
+            MeshP mesh = panel->scene()->mesh(meshName);
 
             if (mesh->isSelected())
                 mesh->setCenter(mesh->centerReference() + direction);
@@ -76,11 +71,8 @@ void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
 
 void TranslateTransformable::cancel(QMouseEvent* event) {
     // restore objects to reference positions
-    QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
-    while (meshes.hasNext()) {
-        meshes.next();
-        int meshKey = meshes.key();
-        MeshP mesh = meshes.value();
+    foreach(QString meshName, panel->scene()->meshes()) {
+        MeshP mesh = panel->scene()->mesh(meshName);
 
         if (mesh->isSelected())
             mesh->setCenter(mesh->centerReference());

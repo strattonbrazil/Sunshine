@@ -10,11 +10,8 @@ namespace FaceUtil {
         float validMax = -1.0f;
 
         // render all the meshes
-        QHashIterator<int,MeshP> meshes = scene->meshes();
-        while (meshes.hasNext()) {
-            meshes.next();
-            int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+        foreach (QString meshName, scene->meshes()) {
+            MeshP mesh = scene->mesh(meshName);
             if (!mesh->isSelected() && onlySelectedMeshes)
                 continue;
 

@@ -114,7 +114,7 @@ void PanelGL::paintGL()
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
     glViewport( 0, 0, width(), height());
-    renderBeautyPass();
+    renderWorkPass();
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
@@ -171,7 +171,7 @@ void PanelGL::paintGL()
     //std::cout << "(" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")" << std::endl;
 }
 
-void PanelGL::renderBeautyPass()
+void PanelGL::renderWorkPass()
 {
     CursorToolP cursorTool = SunshineUi::cursorTool();
 
@@ -195,6 +195,39 @@ void PanelGL::renderBeautyPass()
     glDrawBuffers( 2, bufs);
 
     // render all the meshes
+    foreach(QString meshName, _scene->meshes()) {
+        MeshP mesh = _scene->mesh(meshName);
+
+        if (!_meshRenderers.contains(meshName)) // create the mesh renderer if it doesn't exist for this mesh
+            _meshRenderers[meshName] = MeshRendererP(new MeshRenderer(meshName));
+
+        _meshRenderers[meshName]->render(this);
+    }
+
+    glDisable(GL_DEPTH_TEST);
+
+    glDrawBuffers(1, bufs);
+
+    cursorTool->postDrawOverlay(this);
+}
+
+void PanelGL::renderBeautyPass()
+{
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+
+    GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT,
+                      GL_COLOR_ATTACHMENT2_EXT, GL_COLOR_ATTACHMENT3_EXT,};
+    glDrawBuffers( 3, bufs);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+
+    glDrawBuffers( 3, bufs);
+
+    // render all the meshes
+    /*
     QHashIterator<int,MeshP> meshes = _scene->meshes();
     while (meshes.hasNext()) {
         meshes.next();
@@ -206,12 +239,11 @@ void PanelGL::renderBeautyPass()
 
         _meshRenderers[meshKey]->render(this);
     }
+    */
 
     glDisable(GL_DEPTH_TEST);
 
     glDrawBuffers(1, bufs);
-
-    cursorTool->postDrawOverlay(this);
 }
 
 void PanelGL::paintBackground()
@@ -421,10 +453,10 @@ public:
     float        colorIndex;
 };
 
-MeshRenderer::MeshRenderer(int meshKey)
+MeshRenderer::MeshRenderer(QString meshName)
 {
     _validVBOs = FALSE;
-    _meshKey = meshKey;
+    _meshName = meshName;
 }
 
 void MeshRenderer::render(PanelGL* panel)
@@ -437,7 +469,7 @@ void MeshRenderer::render(PanelGL* panel)
 
         _validVBOs = TRUE;
     }
-    MeshP mesh = panel->scene()->mesh(_meshKey);
+    MeshP mesh = panel->scene()->mesh(_meshName);
     loadVBOs(panel, mesh);
 
     renderFaces(panel);
@@ -449,7 +481,7 @@ void MeshRenderer::renderFaces(PanelGL *panel)
 {
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
 
-    MeshP mesh = panel->scene()->mesh(_meshKey);
+    MeshP mesh = panel->scene()->mesh(_meshName);
     mesh->validateNormals();
     const int numTriangles = mesh->numTriangles();
 
@@ -543,7 +575,7 @@ void MeshRenderer::renderFaces(PanelGL *panel)
 
 void MeshRenderer::renderVertices(PanelGL *panel)
 {
-    MeshP mesh = panel->scene()->mesh(_meshKey);
+    MeshP mesh = panel->scene()->mesh(_meshName);
     const int numVertices = mesh->numVertices();
 
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
@@ -914,11 +946,9 @@ void PanelGL::buildMeshGrid()
     // calculate scene triangles
     //int totalTriangles = 0;
     QList<Triangle> triangles;
-    QHashIterator<int,MeshP> meshes = _scene->meshes();
-    while (meshes.hasNext()) {
-        meshes.next();
-        int meshKey = meshes.key();
-        MeshP mesh = meshes.value();
+    foreach(QString meshName, _scene->meshes()) {
+        MeshP mesh = _scene->mesh(meshName);
+
         QMatrix4x4 objToWorld = mesh->objectToWorld();
         QHashIterator<int,FaceP> i = mesh->faces();
         while (i.hasNext()) {

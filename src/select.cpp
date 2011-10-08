@@ -29,14 +29,10 @@ void BasicSelect::mousePressed(PanelGL *panel, QMouseEvent *event)
 
     // figure out if model mode should be NONE
     if (SunshineUi::workMode() == WorkMode::MODEL) {
-
-        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
         bool hasFaces = FALSE;
         bool hasVertices = FALSE;
-        while (meshes.hasNext()) {
-            meshes.next();
-            int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+        foreach(QString meshName, panel->scene()->meshes()) {
+            MeshP mesh = panel->scene()->mesh(meshName);
             if (mesh->isSelected()) {
                 // any selected faces?
                 QHashIterator<int,FaceP> i = mesh->faces();
@@ -209,11 +205,9 @@ void BasicSelect::postDrawOverlay(PanelGL *panel)
 void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool selectValue)
 {
     if (SunshineUi::workMode() == WorkMode::LAYOUT) {
-        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
-        while (meshes.hasNext()) {
-            meshes.next();
-            int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+        foreach(QString meshName, panel->scene()->meshes()) {
+            MeshP mesh = panel->scene()->mesh(meshName);
+
             if (newSelection && selectValue)
                 mesh->setSelected(!selectValue);
             QMatrix4x4 objToWorld = mesh->objectToWorld();
@@ -235,11 +229,9 @@ void BasicSelect::processBoxSelection(PanelGL *panel, bool newSelection, bool se
         }
     } else {
         // grab whatever the work
-        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
-        while (meshes.hasNext()) {
-            meshes.next();
-            int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+        foreach(QString meshName, panel->scene()->meshes()) {
+            MeshP mesh = panel->scene()->mesh(meshName);
+
             if (mesh->isSelected()) {
                 QMatrix4x4 objToWorld = mesh->objectToWorld();
                 if (modelMode == ModelMode::VERTEX) {

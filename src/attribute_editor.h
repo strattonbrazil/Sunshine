@@ -4,6 +4,8 @@
 #include <QTableView>
 #include <QScriptEngine>
 #include <QScriptValue>
+#include <QStandardItemModel>
+#include <QStandardItem>
 #include <iostream>
 #include "exceptions.h"
 
@@ -39,26 +41,13 @@ private:
 };
 typedef QSharedPointer<Entity> EntityP;
 
-class AttributeEditor : public QAbstractTableModel
+class AttributeEditor : public QStandardItemModel
 {
     Q_OBJECT
 public:
     explicit AttributeEditor(QWidget *parent = 0);
-    void update(EntityP instance) {
-        _instance = instance;
-    }
-    int rowCount(const QModelIndex &parent=QModelIndex()) const;
-    int columnCount(const QModelIndex &parent=QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role=Qt::DisplayRole) const;
-    QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const {
-        if (role == Qt::DisplayRole) {
-            if (section == 0)
-                return QVariant("Property");
-            else
-                return QVariant("Value");
-        }
-        return QVariant();
-    }
+    void update(EntityP instance);
+
 signals:
 
 public slots:

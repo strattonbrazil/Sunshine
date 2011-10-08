@@ -66,10 +66,10 @@ private:
     Point3 _current;
 };
 
-class ExtrudeTool : public CursorTool
+class PushPullTool : public CursorTool
 {
     QIcon icon() { return QIcon(":/icons/extrude_tool.png"); }
-    QString label() { return "Extrude"; }
+    QString label() { return "Push/Pull"; }
 };
 
 class TranslateTool : public CursorTool

@@ -46,18 +46,16 @@ QListIterator<Triangle> Face::buildTriangles()
     return QListIterator<Triangle>(triangles);
 }
 
-Mesh::Mesh(SceneP scene, int key, QString name) : Transformable()
+Mesh::Mesh(SceneP scene, QString name) : Transformable()
 {
     _scene = scene;
-    _key = key;
     _name = name;
     _validNormals = FALSE;
 }
 
-Mesh::Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
+Mesh::Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
 {
     _scene = scene;
-    _key = key;
     _name = name;
     _vertices = vertices;
     _edges = edges;
@@ -68,7 +66,7 @@ Mesh::Mesh(SceneP scene, int key, QString name, QHash<int,VertexP> vertices, QHa
 MeshP Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
 {
     MeshP emptyMesh = scene->createMesh("mesh");
-    int meshKey = emptyMesh->key();
+    QString meshName = emptyMesh->name();
 
     // create vertices
     for (int vertKey = 0; vertKey < parts.points.size(); vertKey++)
@@ -197,6 +195,13 @@ void Mesh::validateNormals()
     }
 
     _validNormals = TRUE;
+}
+
+MaterialP Mesh::material()
+{
+    if (!_material)
+        _material = _scene->defaultMaterial();
+    return _material;
 }
 
 QMatrix4x4 Mesh::normalToWorld()

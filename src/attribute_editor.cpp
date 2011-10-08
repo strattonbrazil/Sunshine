@@ -16,12 +16,34 @@ Entity::Entity(QStringList attributes) {
     }
 }
 
+
 AttributeEditor::AttributeEditor(QWidget *parent) :
-    QAbstractTableModel(parent), _instance(0)
+    QStandardItemModel(parent), _instance(0)
 {
 
 }
 
+void AttributeEditor::update(EntityP instance)
+{
+    _instance = instance;
+    clear();
+
+    for (int i = 0; i < _instance->numAttributes(); i++) {
+        QMap<QString,QVariant> attribute = _instance->attributeByIndex(i);
+
+        QList<QStandardItem*> attributeRow;
+        attributeRow << new QStandardItem(attribute["name"].toString());
+        attributeRow << new QStandardItem(attribute["value"].toString());
+
+        appendRow(attributeRow);
+    }
+
+    QStringList headers;
+    headers << "Property" << "Value";
+    setHorizontalHeaderLabels(headers);
+}
+
+/*
 int AttributeEditor::rowCount(const QModelIndex &parent) const
 {
     if (_instance != 0)
@@ -54,6 +76,7 @@ QVariant AttributeEditor::data(const QModelIndex &index, int role) const
     else
         return attribute["value"];
 }
+*/
 /*
 QVariant QAbstractItemModel::headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const {
     if (role == Qt::DisplayRole) {

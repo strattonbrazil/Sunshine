@@ -23,10 +23,12 @@ class CursorTool;
 typedef QSharedPointer<CursorTool> CursorToolP;
 
 namespace SunshineUi {
+    SceneP activeScene();
     CursorToolP cursorTool();
     int workMode();
     int selectMode();
     bool selectOccluded();
+    void updateSceneHierarchy(SceneP scene);
 };
 
 
@@ -36,14 +38,16 @@ public:
                                Sunshine(QWidget *parent = 0);
                                ~Sunshine();
     void                       clearScene();
+    void                       setupDefaultMaterials();
     void                       setupDefaultCameras();
     void                       setupDefaultMeshes();
     void                       setupDefaultLights();
+    SceneP                     activeScene() { return _scene; }
     CursorToolP                cursorTool();
     int                        workMode();
     int                        selectMode();
     bool                       selectOccluded();
-
+    void                       updateSceneHierarchy(SceneP scene);
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
@@ -55,7 +59,8 @@ private slots:
     void                       on_lineSelectButton_released();
     void                       on_boxSelectButton_clicked();
     void                       on_selectOccludedButton_clicked();
-    void                       on_cursorToolChanged(QAbstractButton* button);
+    void                       on_cursorToolChanged(QAbstractButton*);
+    void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
 
 private:
     QList<PanelGL*>                   _panels;
@@ -66,6 +71,7 @@ private:
     SceneP                            _scene;
     RenderWidget*                     _renderWidget;
     SettingsWidget*                   _renderSettingsWidget;
+    AttributeEditor*                  _propertyEditorModel;
 };
 
 #endif // SUNSHINE_H

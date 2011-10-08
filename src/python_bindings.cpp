@@ -20,7 +20,7 @@ BOOST_PYTHON_MODULE(primitive)
 BOOST_PYTHON_MODULE(geometry)
 {
     class_<Mesh>("Mesh")
-            .def(init<SceneP,int,QString>())
+            .def(init<SceneP,QString>())
             .def("buildByIndex", &Mesh::buildByIndex)
             .staticmethod("buildByIndex");
 
