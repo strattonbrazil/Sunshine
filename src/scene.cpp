@@ -123,6 +123,17 @@ MeshP Scene::createMesh(QString name)
     return _meshes[name];
 }
 
+LightP Scene::createLight(QString name, LightP light)
+{
+    name = uniqueName(name);
+    _lights[name] = light;
+    _names += name;
+
+    this->appendRow(new QStandardItem(QIcon(":/icons/point_light_icon.png"), name));
+
+    return _lights[name];
+}
+
 int Scene::uniqueCameraKey()
 {
     int counter = 0;

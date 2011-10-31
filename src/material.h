@@ -10,9 +10,11 @@ class Material
 {
 public:
     //virtual MaterialAttributesP attributes() { return _attributes; }
-    EntityP attributes() { return _attributes; }
+    BindableP constantAttributes() { return _constantAttributes; }
+    BindableP vertexAttributes() { return _vertexAttributes; }
 protected:
-    EntityP _attributes;
+    BindableP _constantAttributes;
+    BindableP _vertexAttributes;
 };
 typedef QSharedPointer<Material> MaterialP;
 

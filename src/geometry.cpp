@@ -51,9 +51,10 @@ Mesh::Mesh(SceneP scene, QString name) : Transformable()
     _scene = scene;
     _name = name;
     _validNormals = FALSE;
+    _selected = FALSE;
 }
 
-Mesh::Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces)
+Mesh::Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces) : Transformable()
 {
     _scene = scene;
     _name = name;

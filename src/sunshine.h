@@ -29,6 +29,7 @@ namespace SunshineUi {
     int selectMode();
     bool selectOccluded();
     void updateSceneHierarchy(SceneP scene);
+    void updatePanels();
 };
 
 
@@ -48,6 +49,7 @@ public:
     int                        selectMode();
     bool                       selectOccluded();
     void                       updateSceneHierarchy(SceneP scene);
+    void                       updatePanels();
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
@@ -61,7 +63,7 @@ private slots:
     void                       on_selectOccludedButton_clicked();
     void                       on_cursorToolChanged(QAbstractButton*);
     void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
-
+    void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
 private:
     QList<PanelGL*>                   _panels;
     QButtonGroup*                     _cursorButtonGroup;

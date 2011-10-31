@@ -14,16 +14,18 @@ class BasicSelect
 public:
     int               selectMode() { return _selectMode; }
     void              mousePressed(PanelGL* panel, QMouseEvent* event);
+    void	      mouseDoubleClicked(PanelGL*panel, QMouseEvent* event);
     void              mouseReleased(PanelGL* panel, QMouseEvent* event);
     void              mouseDragged(PanelGL* panel, QMouseEvent* event);
     void              postDrawOverlay(PanelGL* panel);
     int               minX, minY, maxX, maxY;
-    int               modelMode;
+    int               modelMode; // remove
 private:
+    int               _dragWorkMode;
     QPoint            pick;
     QPoint            current;
     int               selectToggle;
-    int               _selectMode;
+    int               _selectMode; // box, line, etc.
     void              processBoxSelection(PanelGL* panel, bool newSelection, bool selectValue);
     void              processLineSelection(PanelGL* panel, QMouseEvent* event);
 };

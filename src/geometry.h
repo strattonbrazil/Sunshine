@@ -25,29 +25,10 @@ typedef QSharedPointer<Mesh> MeshP;
 
 #include "scene.h"
 
-class Vertex
-{
-public:
-                          Vertex(MeshP mesh, int key, Point3 point);
-    void                  setEdge(EdgeP e);
-    int                   key() { return _key; }
-    Point3                pos() { return _point; }
-    void                  setPos(Point3 p) { _point = p; }
-    bool                  isSelected() { return _selected; }
-    void                  setSelected(bool s) { _selected = s; }
-private:
-    MeshP                 _mesh;
-    int                   _key;
-    Point3                _point;
-    int                   _edgeKey;
-    bool                  _selected;
-
-};
-
 class Mesh : public Transformable
 {
 public:
-                                 Mesh() {}
+                                 Mesh() : Transformable() {}
                                  Mesh(SceneP scene, QString name);
                                  Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
     static MeshP                 buildByIndex(SceneP scene, PrimitiveParts parts);
@@ -74,6 +55,28 @@ private:
     bool                         _selected;
     SceneP                       _scene;
     MaterialP                    _material;
+    Q_DISABLE_COPY(Mesh)
+    //QHash<QString,QHash<QPoint,QVariantList> > _faceVertAttributes;
+};
+
+class Vertex
+{
+public:
+                          Vertex(MeshP mesh, int key, Point3 point);
+    EdgeP                 edge() { return _mesh->edge(_edgeKey); }
+    void                  setEdge(EdgeP e);
+    int                   key() { return _key; }
+    Point3                pos() { return _point; }
+    void                  setPos(Point3 p) { _point = p; }
+    bool                  isSelected() { return _selected; }
+    void                  setSelected(bool s) { _selected = s; }
+private:
+    MeshP                 _mesh;
+    int                   _key;
+    Point3                _point;
+    int                   _edgeKey;
+    bool                  _selected;
+
 };
 
 class Edge

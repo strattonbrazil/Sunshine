@@ -43,7 +43,10 @@ HEADERS += src/camera.h \
     src/contextmenu.h \
     src/cursor_tools.h \
     src/render_util.h \
-    src/material.h
+    src/material.h \
+    src/light.h \
+    src/transformable.h \
+    src/bindable.h
 FORMS += src/sunshine.ui \
     src/renderwidget.ui
 SOURCES += src/camera.cpp \
@@ -71,6 +74,15 @@ SOURCES += src/camera.cpp \
     src/cursor_tools.cpp \
     src/draw_box_tool.cpp \
     src/render_util.cpp \
-    src/material.cpp
+    src/material.cpp \
+    src/light.cpp \
+    src/transformable.cpp \
+    src/bindable.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc
+
+
+
+
+
+

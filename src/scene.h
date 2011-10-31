@@ -34,12 +34,14 @@ public:
     MaterialP                       createMaterial(QString name, MaterialP m);
     CameraP                         createCamera(QString name);
     MeshP                           createMesh(QString name);
+    LightP                          createLight(QString name, LightP light);
     //void                            setMesh(QString name, MeshP mesh) { _meshes[name] = mesh; }
     QList<QString>                  meshes() { return _meshes.keys(); }
     QHashIterator<int, CameraP>     cameras() { return QHashIterator<int,CameraP>(_cameras); }
     QList<QString>                  materials() { return _materials.keys(); }
     MeshP                           mesh(QString name) { return _meshes[name]; }
     MaterialP                       material(QString name) { return _materials[name]; }
+    LightP                          light(QString name) { return _lights[name]; }
     MaterialP                       defaultMaterial() { return _defaultMaterial; }
     CameraP                         fetchCamera(QString name);
     ShaderTreeModel*                shaderTreeModel() { return &_shaderTreeModel; }
@@ -74,6 +76,7 @@ private:
     QHash<QString,MeshP>               _meshes;
     QHash<int,CameraP>                 _cameras;
     QHash<QString,MaterialP>           _materials;
+    QHash<QString,LightP>              _lights;
     QSet<QString>                      _names;
 //    PythonQtObjectPtr                  _context;
     object                             _pyMainModule;

@@ -15,7 +15,7 @@ Vector3 origLeft;
 Camera::Camera(QString name) : Transformable(), name(name)
 {
     resetLook();
-    _center = Point3(10,6,10);
+    _center = Point3(10.0,6.0,10.0);
     _yRot = 225;
     _upRot = 45;
     _distance = _center.length();

@@ -89,7 +89,7 @@ QVariant ShaderTreeModel::headerData(int section, Qt::Orientation orientation, i
 
 PhongMaterial::PhongMaterial()
 {
-    QString diffuseColor("{ 'var' : 'diffuseColor', 'name' : 'Diffuse Color', 'type' : 'color', 'value' : [1.0,1.0,1.0] }");
+    QString diffuseColor("{ 'var' : 'diffuseColor', 'name' : 'Diffuse Color', 'type' : 'color', 'value' : '#ff0000' }");
     QString diffuse("{ 'var' : 'diffuse', 'name' : 'Diffuse', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 1.0 }");
     QString specular("{ 'var' : 'specular', 'name' : 'Specular Power', 'type' : 'float', 'min' : 2.5, 'max' : 1000.0, 'value' : 5.0 }");
     QString reflectivity("{ 'var' : 'reflectivity', 'name' : 'Reflectivity', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 0.0 }");
@@ -97,5 +97,7 @@ PhongMaterial::PhongMaterial()
     QStringList atts;
     atts << diffuseColor << diffuse << specular << reflectivity;
 
-    _attributes = EntityP(new Entity(atts));
+    Bindable* bindable = new Bindable();
+    bindable->addAttributes(atts);
+    _constantAttributes = BindableP(bindable);
 }

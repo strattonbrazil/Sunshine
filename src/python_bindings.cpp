@@ -19,7 +19,7 @@ BOOST_PYTHON_MODULE(primitive)
 #include "geometry.h"
 BOOST_PYTHON_MODULE(geometry)
 {
-    class_<Mesh>("Mesh")
+    class_<Mesh,boost::noncopyable>("Mesh")
             .def(init<SceneP,QString>())
             .def("buildByIndex", &Mesh::buildByIndex)
             .staticmethod("buildByIndex");

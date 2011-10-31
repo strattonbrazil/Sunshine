@@ -2,7 +2,7 @@
 
 bool TranslateTransformable::isViewable(PanelGL* panel)
 {
-    return SunshineUi::workMode() == WorkMode::LAYOUT;
+    return SunshineUi::workMode() == WorkMode::OBJECT;
 }
 
 QList<ContextAction*> TranslateTransformable::actions()

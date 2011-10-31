@@ -9,5 +9,7 @@
         <file>mesh_icon.png</file>
         <file>camera_icon.png</file>
         <file>material_icon.png</file>
+        <file>object_work_mode.png</file>
+        <file>point_light_icon.png</file>
     </qresource>
 </RCC>

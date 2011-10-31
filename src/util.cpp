@@ -1,21 +1,30 @@
 #include "util.h"
 
+#include <QScriptEngine>
+#include <QScriptValue>
+#include <QStringList>
+
 //#include <iostream>
 //using namespace std;
 
 std::ostream& operator<< (std::ostream& o, Vector3 const& v)
 {
-   return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
+    return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
 }
 
 std::ostream& operator<< (std::ostream& o, QVector4D const& v)
 {
-   return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ", " << v.w() << ")";
+    return o << "(" << v.x() << ", " << v.y() << ", " << v.z() << ", " << v.w() << ")";
 }
 
 std::ostream& operator<< (std::ostream& o, QPoint const& p)
 {
-   return o << "(" << p.x() << ", " << p.y() << ")";
+    return o << "(" << p.x() << ", " << p.y() << ")";
+}
+
+std::ostream& operator<< (std::ostream& o, QString const& s)
+{
+    return o << s.toStdString();
 }
 
 Quat4::Quat4() : QQuaternion()
@@ -96,67 +105,7 @@ QMatrix4x4 Quat4::matrix() {
                       1.0f).transposed();
 }
 
-Transformable::Transformable()
-{
-    _startRotate = QQuaternion();
-    _rotateOrder = RotateOrder::YXZ;
-    _yRot = 0.0f;
-    _upRot = 0.0f;
-    _fov = 60.0f;
-    _distance = 1.0f;
-
-    _scale = Vector3(1,1,1);
-
-}
-
-void Transformable::resetLook()
-{
-    _startRotate = _rotate;
-    _yRot = 0.0f;
-    _upRot = 0.0f;
-}
-
-void Transformable::updateLook()
-{
-    // setups the rotation based on the two-camera controls
-    //Quat4 ySpin = Quat4(_yRot, _startRotate.rotatedVector(Vector3(0,1,0)));
-    Quat4 ySpin = Quat4::fromAxisAndAngle(_startRotate.rotatedVector(Vector3(0,1,0)), _yRot);
-    Vector3 tmpVec = ySpin.rotatedVector(_startRotate.rotatedVector(Vector3(1,0,0)));
-    //Quat4 upSpin = Quat4(_upRot, tmpVec);
-    Quat4 upSpin = Quat4::fromAxisAndAngle(tmpVec, _upRot);
-    const Quat4 mv = upSpin * ySpin;
-    _rotate = mv * _startRotate;
-    _rotate.normalize();
-}
-
-void Transformable::orient(Point3 eye, Point3 reference, Vector3 up)
-{
-    // similar to gluLookAt
-    _center = eye;
-
-    Vector3 lookDir = (reference - eye).normalized();
-    Vector3 leftDir = Vector3::crossProduct(up, lookDir).normalized();
-    Vector3 modifiedUp = Vector3::crossProduct(lookDir, leftDir).normalized();
-
-    _rotate = Quat4::fromMatrix(leftDir.x(), modifiedUp.x(), lookDir.x(),
-                                leftDir.y(), modifiedUp.y(), lookDir.y(),
-                                leftDir.z(), modifiedUp.z(), lookDir.z());
-
-}
-
-QMatrix4x4 Transformable::objectToWorld()
-{
-    QMatrix4x4 t(1.0f, 0.0f, 0.0f, _center.x(),
-                 0.0f, 1.0f, 0.0f, _center.y(),
-                 0.0f, 0.0f, 1.0f, _center.z(),
-                 0.0f, 0.0f, 0.0f, 1.0f);
-    QMatrix4x4 r = _rotate.matrix();
-    QMatrix4x4 s(_scale.x(), 0.0f, 0.0f, 0.0f,
-                 0.0f, _scale.y(), 0.0f, 0.0f,
-                 0.0f, 0.0f, _scale.z(), 0.0f,
-                 0.0f, 0.0f, 0.0f, 1.0f);
-    return t*r*s;
-}
+#include "light.h"
 
 
 void printMatrix(QMatrix4x4 m)

@@ -17,7 +17,10 @@ SettingsWidget::SettingsWidget()
     QStringList atts;
     atts << xres << yres;
 
-    _instance = EntityP(new Entity(atts));
+    /*
+    Bindable* bindable = new Bindable();
+    bindable->addAttributes(atts);
+    _instance = BindableP(bindable);
 
     _editor = new AttributeEditor(this);
     _editor->update(_instance);
@@ -27,6 +30,7 @@ SettingsWidget::SettingsWidget()
     view->setModel(_editor);
 
     layout->addWidget(view);
+    */
 }
 
 #if 0

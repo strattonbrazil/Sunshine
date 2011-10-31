@@ -12,6 +12,7 @@
 #include "cursor_tools.h"
 #include "render_util.h"
 #include "material.h"
+#include "light.h"
 #include "modeltest.h"
 
 void say_hello(const char* name) {
@@ -56,6 +57,16 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     _cursorButtonGroup = new QButtonGroup();
     foreach(CursorToolP tool, cursorTools) {
         QToolButton* button = new QToolButton();
+
+        QMenu* menu = new QMenu();
+        menu->addAction("Some action");
+
+        //button->style()->styleHint()
+        //button->style()
+        //styleHint(QStyle::SH_ToolButton_PopupDelay, 0, parent);
+        //button->setPopupMode(QToolButton::MenuButtonPopup);
+        button->setMenu(menu);
+
         if (!firstButton) firstButton = button;
         _cursorButtonGroup->addButton(button);
         button->setIcon(tool->icon());
@@ -71,6 +82,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 
     _propertyEditorModel = new AttributeEditor();
     ui->propertyTable->setModel(_propertyEditorModel);
+    ui->propertyTable->setItemDelegate(new AttributeItemDelegate());
 
 }
 
@@ -102,10 +114,11 @@ void Sunshine::clearScene()
     setupDefaultMeshes();
     setupDefaultLights();
 
-    ShaderTreeModel* m = new ShaderTreeModel();
-    //new ModelTest(m);
-
     ui->sceneHierarchyTree->setModel(_scene.get());
+    connect(ui->sceneHierarchyTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+            this, SLOT(on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &)));
+
+    ShaderTreeModel* m = new ShaderTreeModel();
     ui->shaderTree->setModel(_scene->shaderTreeModel());
     ui->shaderTree->setColumnWidth(0, 25);
     connect(ui->shaderTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
@@ -130,10 +143,15 @@ void Sunshine::setupDefaultCameras()
 void Sunshine::setupDefaultMeshes()
 {
     Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+
+    MeshP second = Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.2f, 0.8f, 1.2f));
+    second->setCenter(Point3(3,0,0));
 }
 
 void Sunshine::setupDefaultLights()
 {
+    LightP light = _scene->createLight("pointLight", LightP(new PointLight()));
+    light->setCenter(Point3(0,10,0));
 }
 
 void Sunshine::on_renderButton_clicked()
@@ -332,8 +350,29 @@ CursorToolP Sunshine::cursorTool()
 
 int Sunshine::workMode()
 {
-    if (ui->layoutModeButton->isChecked()) return WorkMode::LAYOUT;
-    else if (ui->modelModeButton->isChecked()) return WorkMode::MODEL;
+    foreach(QString meshName, activeScene()->meshes()) {
+        MeshP mesh = activeScene()->mesh(meshName);
+        std::cout << mesh << std::endl;
+        std::cout << meshName.toStdString() << std::endl;
+        if (mesh->isSelected()) {
+            QHashIterator<int,VertexP> i = mesh->vertices();
+            while(i.hasNext()) {
+                i.next();
+                VertexP vertex = i.value();
+                if (vertex->isSelected())
+                    return WorkMode::VERTEX;
+            }
+
+            QHashIterator<int,FaceP> j = mesh->faces();
+            while(j.hasNext()) {
+                j.next();
+                FaceP face = j.value();
+                if (face->isSelected())
+                    return WorkMode::FACE;
+            }
+        }
+    }
+    return WorkMode::OBJECT;
 }
 
 int Sunshine::selectMode()
@@ -352,6 +391,12 @@ void Sunshine::updateSceneHierarchy(SceneP scene)
     //ui->sceneHierarchyTree
 }
 
+void Sunshine::updatePanels()
+{
+    foreach (PanelGL* panel, _panels)
+        panel->update();
+}
+
 namespace SunshineUi {
     SceneP activeScene() { return activeMainWindow->activeScene(); }
     int workMode() { return activeMainWindow->workMode(); }
@@ -359,26 +404,36 @@ namespace SunshineUi {
     bool selectOccluded() { return activeMainWindow->selectOccluded(); }
     CursorToolP cursorTool() { return activeMainWindow->cursorTool(); }
     void updateSceneHierarchy(SceneP scene) { return activeMainWindow->updateSceneHierarchy(scene); }
+    void updatePanels() { activeMainWindow->updatePanels(); }
 }
 
 void Sunshine::on_selectOccludedButton_clicked()
 {
-    foreach (PanelGL* panel, _panels)
-        panel->update();
+    this->updatePanels();
 }
 
 void Sunshine::on_cursorToolChanged(QAbstractButton* button)
 {
-    foreach (PanelGL* panel, _panels)
-        panel->update();
+    this->updatePanels();
 }
 
-void Sunshine::on_materialSelection_changed(const QModelIndex &current, const QModelIndex &previous )
+void Sunshine::on_materialSelection_changed(const QModelIndex &current, const QModelIndex &previous)
 {
     QString materialName = _scene->shaderTreeModel()->data(current.sibling(current.row(), 1), Qt::DisplayRole).toString();
     MaterialP material = _scene->material(materialName);
 
-    _propertyEditorModel->update(material->attributes());
-    //ui->shaderTree->selectionModel()->
-    std::cout << "Material selection changed: " << materialName.toStdString() << std::endl;
+    _propertyEditorModel->update(material->constantAttributes());
+}
+
+void Sunshine::on_sceneHierarchySelection_changed(const QModelIndex &current, const QModelIndex &previous)
+{
+    // get the selection if its bindable
+    QString bindableName = _scene->data(current, Qt::DisplayRole).toString();
+    BindableP bindable = _scene->light(bindableName);
+    if (bindable == 0) bindable = _scene->mesh(bindableName);
+
+    std::cout << bindable << std::endl;
+
+    // update the property editor
+    if (bindable != 0) _propertyEditorModel->update(bindable);
 }

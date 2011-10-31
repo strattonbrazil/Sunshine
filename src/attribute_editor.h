@@ -2,57 +2,40 @@
 #define ATTRIBUTEEDITOR_H
 
 #include <QTableView>
-#include <QScriptEngine>
-#include <QScriptValue>
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include <iostream>
 #include "exceptions.h"
-
-class Entity
-{
-public:
-    Entity(QStringList attributes);
-
-    int numAttributes() const { return _attributes.size(); }
-    QMap<QString,QVariant> attributeByIndex(int index) const { return _attributes[index]; }
-
-    // called when an attribute changes in the editor
-    void toInstance(QString attribute, QVariant value) {}
-
-    // called when an attribute changes on the instance
-    void toEditor(QString attribute, QVariant value) {}
-
-    QVariant operator[](QString name) {
-        for (int i = 0; i < _attributes.length(); i++) {
-            QMap<QString,QVariant> attribute = _attributes[i];
-
-            //std::cout << attribute["var"].toString() .toStdString() << " vs " << name.toStdString() << std::endl;
-            if (attribute["var"].toString() == name)
-                return attribute["value"];
-        }
-
-        std::cerr << "Cannot find attribute: " << name.toStdString() << std::endl;
-        throw KeyErrorException();
-    }
-
-private:
-    QList<QMap<QString, QVariant> > _attributes;
-};
-typedef QSharedPointer<Entity> EntityP;
+#include "util.h"
+#include "bindable.h"
 
 class AttributeEditor : public QStandardItemModel
 {
     Q_OBJECT
 public:
     explicit AttributeEditor(QWidget *parent = 0);
-    void update(EntityP instance);
-
+    void update(BindableP instance);
+    Qt::ItemFlags flags(const QModelIndex &index) const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role);
+    Attribute attribute(QString name) { return _instance->attributeByName(name); }
+    BindableP instance() { return _instance; }
 signals:
 
 public slots:
 private:
-    EntityP _instance;
+    BindableP _instance;
+};
+
+#include <QSpinBox>
+#include <QStyledItemDelegate>
+
+class AttributeItemDelegate : public QStyledItemDelegate
+{
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+    void setEditorData(QWidget *editor, const QModelIndex &index) const;
+    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;
+    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 };
 
 #endif // ATTRIBUTEEDITOR_H

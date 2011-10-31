@@ -112,6 +112,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
 
     QString fragSource("#version 120\n" \
                        "#extension GL_EXT_gpu_shader4 : enable\n" \
+                       "#define STIPPLE_SIZE 2\n" \
                        "varying vec3 worldPos;\n" \
                        "varying vec3 worldNormal;\n" \
                        "varying vec4 selectIndex;\n" \
@@ -120,10 +121,13 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "uniform vec3 lightDir;\n" \
                        "uniform vec4 singleColor;\n" \
                        "uniform float isSingleColor;\n" \
+                       "uniform float stipple;\n" \
+                       "uniform float stippleFaces;\n" \
+                       "uniform float edgeThickness;\n" \
                        "void main() {\n" \
                        "    // determine frag distance to closest edge\n" \
                        "    float nearD = min(min(dist[0],dist[1]),dist[2]);\n" \
-                       "    float edgeIntensity = exp2(-1*nearD*nearD);\n" \
+                       "    float edgeIntensity = exp2(-edgeThickness*nearD*nearD);\n" \
                        "    vec3 L = lightDir;\n" \
                        "    vec3 V = normalize(cameraPos - worldPos);\n" \
                        "    vec3 N = normalize(worldNormal);\n" \
@@ -133,7 +137,11 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "    vec4 ambient = color * amb;\n" \
                        "    vec4 diffuse = color * (1.0 - amb) * max(dot(L, N), 0.0);\n" \
                        "    vec4 specular = vec4(0.0);\n" \
-                       "    gl_FragData[0] = (edgeIntensity * vec4(0.1,0.1,0.1,1.0)) + ((1.0-edgeIntensity) * vec4(ambient + diffuse + specular));\n" \
+                       "    "
+                       "    float stippleMaskX = int(mod(gl_FragCoord.x / STIPPLE_SIZE, 2.0)) * int(mod((gl_FragCoord.x-STIPPLE_SIZE+1) / STIPPLE_SIZE, 2.0));\n" \
+                       "    float stippleMaskY = int(mod(gl_FragCoord.y / STIPPLE_SIZE, 2.0)) * int(mod((gl_FragCoord.y-STIPPLE_SIZE+1) / STIPPLE_SIZE, 2.0));\n" \
+                       "    vec4 combined = mix(vec4(ambient + diffuse + specular), vec4(0.3,0,0.3,1), stippleFaces * stippleMaskX * stippleMaskY);\n" \
+                       "    gl_FragData[0] = (edgeIntensity * vec4(0.1,0.1,0.1,1.0)) + ((1.0-edgeIntensity) * combined);\n" \
                        "    gl_FragData[1] = selectIndex;\n" \
                        "    //gl_FragColor = vec4(nearD*0.1);\n" \
                        "}\n");
@@ -164,18 +172,23 @@ QGLShaderProgramP ShaderFactory::buildVertexShader(QObject *parent)
     QString vertSource("#version 130\n" \
                        "in vec3 vertex;\n" \
                        "in float colorIndex;\n" \
+                       "in float visible;\n" \
                        "uniform vec4 colors[4]; // unselected, highlighted, selected, highlighted\n" \
                        "uniform mat4 objToWorld;\n" \
                        "uniform mat4 cameraPV;\n" \
                        "void main() {\n" \
                        "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0);\n" \
                        "  gl_FrontColor = colors[int(colorIndex)];\n" \
+                       "  gl_FrontColor.a = visible;\n" \
                        "  //gl_FrontColor = vec4(colorIndex);\n" \
                        "}\n");
 
     QString fragSource("uniform vec4 overrideColor;\n" \
                        "uniform float overrideStrength;\n" \
+                       "in float discardFragment;"
                        "void main() {\n" \
+                       "  discard;\n" \
+                       "  if (discardFragment > 0.5) discard;\n" \
                        "  gl_FragColor = (1.0-overrideStrength) * gl_Color + overrideStrength * overrideColor;\n" \
                        "}\n");
 
@@ -206,10 +219,8 @@ QGLShaderProgramP ShaderFactory::buildPropertyShader(QObject *parent)
                        "  gl_FrontColor = color;\n" \
                        "}\n");
 
-    QString fragSource("uniform vec4 overrideColor;\n" \
-                       "uniform float overrideStrength;\n" \
-                       "void main() {\n" \
-                       "  gl_FragColor = (1.0-overrideStrength) * gl_Color + overrideStrength * overrideColor;\n" \
+    QString fragSource("void main() {\n" \
+                       "  gl_FragColor = gl_Color;\n" \
                        "}\n");
 
 
@@ -231,29 +242,50 @@ QGLShaderProgramP ShaderFactory::buildPropertyShader(QObject *parent)
     return program;
 }
 
-QGLShaderProgramP ShaderFactory::buildMaterialShader(MaterialP material, QObject *parent)
+QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP material, QObject *parent)
 {
+    QHash<QString,QString> typeToGL;
+    typeToGL["color"] = "vec3";
+    typeToGL["float"] = "float";
+
     // write vertex shader
     //
     QString vertSource;
-    vertSource += "uniform mat4 objToWorld;\n" \
+    vertSource += "#version 130\n" \
+                  "uniform mat4 objToWorld;\n" \
                   "uniform mat4 cameraPV;\n" \
-                  "in vec3 vertex;\n";
-    //foreach(MaterialAttribute att, material->attributes()) {
-    //    vertSource += "// check";
-    //}
+                  "in vec3 vertex;\n" \
+                  "out vec3 worldPos;\n";
     vertSource += "void main() {\n" \
+                  "  worldPos = (objToWorld * vec4(vertex,1.0)).xyz;\n" \
                   "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0);\n" \
                   "}\n";
 
     // write fragment shader
     //
     QString fragSource;
-    fragSource += "uniform vec4 overrideColor;\n" \
-                  "uniform float overrideStrength;\n" \
-                  "void main() {\n" \
-                  "  gl_FragColor = (1.0-overrideStrength) * gl_Color + overrideStrength * overrideColor;\n" \
-                  "}\n";
+    fragSource += "#version 120\n";
+
+    //for (int i = 0; i < material->constantAttributes()->attributeCount(); i++) {
+    foreach(Attribute attribute, material->constantAttributes()->attributes()) {
+        //Attribute attribute = material->constantAttributes()->at(i);
+        QString type = typeToGL[attribute->property("type").toString()];
+        QString var = attribute->property("var").toString();
+        fragSource += QString("uniform %1 %2;\n").arg(type).arg(var);
+    }
+    foreach(Attribute attribute, light->glslFragmentConstants()) {
+        QString type = typeToGL[attribute->property("type").toString()];
+        QString var = attribute->property("var").toString();
+        fragSource += QString("uniform %1 %2;\n").arg(type).arg(var);
+    }
+    fragSource += "in vec3 worldPos;\n";
+
+    fragSource += "void main() {\n" \
+                  "  vec3 lightPos = vec3(0, 10, 0);\n" \
+                  "  gl_FragColor = vec4(0,0,1,1);\n";
+    fragSource += light->glslFragmentBegin();
+    fragSource += light->glslFragmentEnd();
+    fragSource += "}\n";
 
 
     QGLShader* vertShader = new QGLShader(QGLShader::Vertex);

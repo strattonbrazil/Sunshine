@@ -12,11 +12,11 @@ class SettingsWidget : public QWidget
 public:
 
                                   SettingsWidget();
-    QVariant                      operator[](QString name) { return (*_instance)[name]; }
+                                  QVariant                      operator[](QString name) { return _instance->attributeByName(name)->property("value");}
     //QVariant                      operator[](const char* var) { return getValue(QString(var)); }
 private:
     AttributeEditor*              _editor;
-    EntityP                       _instance;
+    BindableP                       _instance;
     //    QHash<QString,QtProperty*>    _vars;
 };
 

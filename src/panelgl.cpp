@@ -448,9 +448,10 @@ class VertexData
 {
 public:
                  VertexData() {}
-                 VertexData(Vector3 p, float cIndex) : position(p), colorIndex(cIndex) {}
+                 VertexData(Vector3 p, float cIndex, float v) : position(p), colorIndex(cIndex), visible(v) {}
     Vector3      position;
     float        colorIndex;
+    float        visible;
 };
 
 MeshRenderer::MeshRenderer(QString meshName)
@@ -461,20 +462,27 @@ MeshRenderer::MeshRenderer(QString meshName)
 
 void MeshRenderer::render(PanelGL* panel)
 {
-    CursorToolP cursorTool = SunshineUi::cursorTool();
-    const int drawSettings = cursorTool->drawSettings();
-
     if (!_validVBOs) {
         glGenBuffers(2, _vboIds);
 
         _validVBOs = TRUE;
     }
     MeshP mesh = panel->scene()->mesh(_meshName);
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+    const int drawSettings = cursorTool->drawSettings(panel, mesh);
     loadVBOs(panel, mesh);
 
     renderFaces(panel);
-    if (drawSettings & DrawSettings::DRAW_VERTICES)
+    if (drawSettings & DrawSettings::DRAW_VERTICES) {
+        if (drawSettings & DrawSettings::CULL_BORING_VERTICES) {
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+        }
         renderVertices(panel);
+        if (drawSettings & DrawSettings::CULL_BORING_VERTICES) {
+            glDisable(GL_BLEND);
+        }
+    }
 }
 
 void MeshRenderer::renderFaces(PanelGL *panel)
@@ -507,15 +515,24 @@ void MeshRenderer::renderFaces(PanelGL *panel)
     meshShader->setUniformValue("lightDir", -camera->lookDir().normalized());
 
     CursorToolP cursorTool = SunshineUi::cursorTool();
-    const int drawSettings = cursorTool->drawSettings();
+    const int drawSettings = cursorTool->drawSettings(panel, mesh);
+
+    if (mesh->isSelected()) {
+        meshShader->setUniformValue("edgeThickness", 0.4f);
+        meshShader->setUniformValue("stippleFaces", 1.0f);
+    }
+    else {
+        meshShader->setUniformValue("edgeThickness", 1.2f);
+        meshShader->setUniformValue("stippleFaces", 0.0f);
+    }
 
     if (drawSettings & DrawSettings::USE_OBJECT_COLOR) {
         QVector4D singleColor;
         if (mesh->isSelected() && mesh != panel->_hoverMesh)
-            singleColor = SELECTED_COLOR;
+            singleColor = UNSELECTED_COLOR;
         else if (mesh->isSelected() && mesh == panel->_hoverMesh)
             singleColor = SELECTED_HOVER_COLOR;
-        else if (mesh == panel->_hoverMesh)
+        else if (mesh == panel->_hoverMesh && DrawSettings::HIGHLIGHT_OBJECTS & drawSettings)
             singleColor = UNSELECTED_HOVER_COLOR;
         else
             singleColor = UNSELECTED_COLOR;
@@ -525,9 +542,15 @@ void MeshRenderer::renderFaces(PanelGL *panel)
                                                    singleColor.z(),
                                                    singleColor.w());
         meshShader->setUniformValue("isSingleColor", 1.0f);
+
+        if (drawSettings & DrawSettings::STIPPLE_FACES)
+            meshShader->setUniformValue("stipple", 0.6f);
+        else
+            meshShader->setUniformValue("stipple", 1.0f);
     } else {
         meshShader->setUniformValue("singleColor", 0,0,0,0);
         meshShader->setUniformValue("isSingleColor", 0.0f);
+        meshShader->setUniformValue("stipple", 1.0f);
     }
 
 
@@ -625,6 +648,12 @@ void MeshRenderer::renderVertices(PanelGL *panel)
     vertShader->enableAttributeArray(colorIndexLocation);
     glVertexAttribPointer(colorIndexLocation, 1, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
 
+    offset += sizeof(float);
+
+    int visibilityLocation = vertShader->attributeLocation("visible");
+    vertShader->enableAttributeArray(visibilityLocation);
+    glVertexAttribPointer(visibilityLocation, 1, GL_FLOAT, GL_FALSE, sizeof(VertexData), (const void *)offset);
+
     glDrawArrays(GL_POINTS, 0, numVertices);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -634,7 +663,7 @@ void MeshRenderer::renderVertices(PanelGL *panel)
 void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
 {
     CursorToolP cursorTool = SunshineUi::cursorTool();
-    const int drawSettings = cursorTool->drawSettings();
+    const int drawSettings = cursorTool->drawSettings(panel, mesh);
 
     // load the faces
     {
@@ -652,12 +681,11 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
             if (drawSettings & DrawSettings::USE_OBJECT_COLOR) {
                 color = UNSELECTED_COLOR;
             } else {
-                bool noVert = panel->_hoverVert.data() == 0; // if no vertex highlighted, maybe highlight face
                 if (face->isSelected() && face != panel->_hoverFace)
                     color = SELECTED_COLOR;
-                else if (face->isSelected() && face == panel->_hoverFace && mesh == panel->_hoverMesh && noVert)
+                else if (face->isSelected() && face == panel->_hoverFace && mesh == panel->_hoverMesh && drawSettings & DrawSettings::HIGHLIGHT_FACES)
                     color = SELECTED_HOVER_COLOR;
-                else if (face == panel->_hoverFace && mesh == panel->_hoverMesh && noVert)
+                else if (face == panel->_hoverFace && mesh == panel->_hoverMesh && drawSettings & DrawSettings::HIGHLIGHT_FACES)
                     color = UNSELECTED_HOVER_COLOR;
                 else
                     color = UNSELECTED_COLOR;
@@ -701,12 +729,15 @@ void MeshRenderer::loadVBOs(PanelGL* panel, MeshP mesh)
             else if (vertex->isSelected() && vertex != panel->_hoverVert) colorIndex = 2.5;
             else if (vertex == panel->_hoverVert) colorIndex = 1.5;
             else colorIndex = 0.5;
-            vertices[vertexCount] = VertexData(vertex->pos(), colorIndex);
+            float visible = 1.0;
+            if (drawSettings & DrawSettings::CULL_BORING_VERTICES && !(vertex->isSelected()) && vertex != panel->_hoverVert)
+                visible = 0.0;
+            vertices[vertexCount] = VertexData(vertex->pos(), colorIndex, visible);
             vertexCount++;
         }
 
         // Transfer vertex data to VBO 1
-        glPointSize(4);
+        glPointSize(5);
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
         glBufferData(GL_ARRAY_BUFFER, numVertices*sizeof(VertexData), vertices, GL_STREAM_DRAW);
 
@@ -741,38 +772,47 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
     }
 }
 
+void PanelGL::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (mouseMode == MouseMode::FREE && event->button() & Qt::LeftButton) {
+        CursorToolP cursorTool = SunshineUi::cursorTool();
+        cursorTool->mouseDoubleClicked(this, event);
+        /*
+        mouseMode = MouseMode::TOOL;
+        activeMouseButton = event->button();
+        //basicSelect = BasicSelect.instance
+        //basic_select.mousePressed(self,event)
+        //_basicSelect->mousePressed(this, event);
+        CursorToolP cursorTool = SunshineUi::cursorTool();
+        cursorTool->mousePressed(this, event);
+        */
+    }
+}
+
 void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 {
-    /*
-    if (mouseMode == MouseMode::TOOL) {
-        if (event->button() == Qt::RightButton)
-            _workTool->cancel(event);
-        else
-            _workTool->finish(event);
-        mouseMode = MouseMode::FREE;
-        _ravagingMouse = FALSE;
-        setArrowCursor();
-    }
-    */
+    CursorToolP cursorTool = SunshineUi::cursorTool();
+
     if (mouseMode == MouseMode::CAMERA && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
         _camera->mouseReleased(event);
-
-        // update the grid from the new perspective
-        buildMeshGrid();
-        _validSelectionBuffer = FALSE;
     }
     else if (mouseMode == MouseMode::TOOL && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
 
-        CursorToolP cursorTool = SunshineUi::cursorTool();
         cursorTool->mouseReleased(this, event);
+    }
+    else if (mouseMode == MouseMode::FREE && event->button() == Qt::RightButton && cursorTool->canMouseCancel(this)) {
+        cursorTool->cancel(this);
     }
     else if (mouseMode == MouseMode::FREE && event->button() == Qt::RightButton) { // popup menu
         showContextMenu(event);
     }
+
+    buildMeshGrid();
+    _validSelectionBuffer = FALSE;
 
     update();
 }
@@ -793,7 +833,9 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
         _hoverFace = faceHit.nearFace ? faceHit.nearFace : FaceP(0);
         _hoverVert = vertexHit.vertex ? vertexHit.vertex : VertexP(0);
 
-        // figure out near edge and vertex
+        CursorToolP cursorTool = SunshineUi::cursorTool();
+        cursorTool->mouseMoved(this, event);
+
         update();
     }
     else if (mouseMode == MouseMode::TOOL) {
@@ -880,6 +922,9 @@ void PanelGL::showContextMenu(QMouseEvent *event)
     // get all the actions for
     ContextMenu popup;
 
+    SunshineUi::cursorTool()->updateMenu(&popup);
+
+    /*
     QList<ContextAction*> actions;
     foreach (WorkToolP tool, _scene->_tools) {
         if (tool->isViewable(this)) {
@@ -897,6 +942,7 @@ void PanelGL::showContextMenu(QMouseEvent *event)
 
         popup.addAction(action);
     }
+    */
 
     popup.exec(event->globalPos());
 }

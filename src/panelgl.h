@@ -69,6 +69,7 @@ public:
     CameraP                  camera() const { return _camera; }
     void                     enterEvent(QEvent *);
     void                     mousePressEvent(QMouseEvent* event);
+    void                     mouseDoubleClickEvent(QMouseEvent *);
     void                     mouseReleaseEvent(QMouseEvent* event);
     void                     mouseMoveEvent(QMouseEvent* event);
     void                     mouseDragEvent(QMouseEvent* event);

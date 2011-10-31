@@ -11,7 +11,7 @@ namespace VertexUtil {
     };
 
     //VertexHit closestVertex(PanelGL* panel, QMouseEvent* event, bool onlySelectedMeshes);
-    VertexP closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, MeshP mesh, FaceP face);
+    //VertexP closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, MeshP mesh, FaceP face);
     VertexHit closestVertex(PanelGL* panel, QMouseEvent* event, bool onlySelectedMeshes);
 };
 
