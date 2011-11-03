@@ -23,3 +23,13 @@ void RenderWidget::open(QString fileName)
 {
     _viewer->open(fileName);
 }
+
+RenderSettings::RenderSettings()
+{
+    QString samplingWidth("{ 'var' : 'samplingWidth', 'name' : 'Sampling Width', 'type' : 'float', 'min' : 1, 'max' : 4, 'value' : 1 }");
+
+    QStringList atts;
+    atts << samplingWidth;
+
+    addAttributes(atts);
+}

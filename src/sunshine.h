@@ -30,6 +30,7 @@ namespace SunshineUi {
     bool selectOccluded();
     void updateSceneHierarchy(SceneP scene);
     void updatePanels();
+    BindableP renderSettings();
 };
 
 
@@ -50,6 +51,7 @@ public:
     bool                       selectOccluded();
     void                       updateSceneHierarchy(SceneP scene);
     void                       updatePanels();
+    BindableP                  renderSettings() { return _renderSettings; }
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
@@ -74,6 +76,7 @@ private:
     RenderWidget*                     _renderWidget;
     SettingsWidget*                   _renderSettingsWidget;
     AttributeEditor*                  _propertyEditorModel;
+    BindableP                         _renderSettings;
 };
 
 #endif // SUNSHINE_H

@@ -21,7 +21,8 @@ public:
 
     Camera(QString name);
     static QMatrix4x4            getViewMatrix(CameraP camera, int width, int height);
-    static QMatrix4x4            getProjMatrix(CameraP camera, int width, int height);
+    //static QMatrix4x4            getProjMatrix(CameraP camera, int width, int height, float dx=0, float dy=0);
+    static QMatrix4x4            getProjMatrix(CameraP camera, int width, int height, float pixdx=0, float pixdy=0);
 
     void                         lookTransform(RtMatrix &t);
     void                         flipYZ(RtMatrix m);

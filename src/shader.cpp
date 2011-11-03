@@ -247,6 +247,7 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     QHash<QString,QString> typeToGL;
     typeToGL["color"] = "vec3";
     typeToGL["float"] = "float";
+    typeToGL["point3"] = "vec3";
 
     // write vertex shader
     //
@@ -254,10 +255,14 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     vertSource += "#version 130\n" \
                   "uniform mat4 objToWorld;\n" \
                   "uniform mat4 cameraPV;\n" \
+                  "uniform mat4 normalToWorld;\n" \
                   "in vec3 vertex;\n" \
-                  "out vec3 worldPos;\n";
+                  "in vec3 vertNormal;\n" \
+                  "out vec3 worldPos;\n" \
+                  "out vec3 fragNormal;\n";
     vertSource += "void main() {\n" \
                   "  worldPos = (objToWorld * vec4(vertex,1.0)).xyz;\n" \
+                  "  fragNormal = (normalToWorld * vec4(vertNormal,1.0)).xyz;\n" \
                   "  gl_Position = cameraPV * objToWorld * vec4(vertex,1.0);\n" \
                   "}\n";
 
@@ -275,15 +280,18 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     }
     foreach(Attribute attribute, light->glslFragmentConstants()) {
         QString type = typeToGL[attribute->property("type").toString()];
-        QString var = attribute->property("var").toString();
-        fragSource += QString("uniform %1 %2;\n").arg(type).arg(var);
+        QString varName = attribute->property("glslFragmentConstant").toString();
+        if (varName == "" || varName == "true")
+            varName = attribute->property("var").toString();
+        fragSource += QString("uniform %1 %2;\n").arg(type).arg(varName);
     }
     fragSource += "in vec3 worldPos;\n";
+    fragSource += "in vec3 fragNormal;\n";
 
-    fragSource += "void main() {\n" \
-                  "  vec3 lightPos = vec3(0, 10, 0);\n" \
-                  "  gl_FragColor = vec4(0,0,1,1);\n";
+    fragSource += "void main() {\n";
+    fragSource += "  vec3 normal = normalize(fragNormal);\n";
     fragSource += light->glslFragmentBegin();
+    fragSource += material->glslFragmentCode(); //"  gl_FragColor = vec4(normal,1);\n";
     fragSource += light->glslFragmentEnd();
     fragSource += "}\n";
 
@@ -300,11 +308,13 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
 
     program->link();
 
+    /*
     std::cout << "-- vert source -----" << std::endl;
     std::cout << vertSource.toStdString() << std::endl;
 
     std::cout << "\n-- frag source -----" << std::endl;
     std::cout << fragSource.toStdString() << std::endl;
+    */
 
     //cout << program->log() << endl;
     //cout << QString("Log end--") << endl;

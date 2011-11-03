@@ -12,6 +12,7 @@ public:
     //virtual MaterialAttributesP attributes() { return _attributes; }
     BindableP constantAttributes() { return _constantAttributes; }
     BindableP vertexAttributes() { return _vertexAttributes; }
+    virtual QString glslFragmentCode() = 0;
 protected:
     BindableP _constantAttributes;
     BindableP _vertexAttributes;
@@ -42,6 +43,7 @@ class PhongMaterial : public Material
 {
 public:
     PhongMaterial();
+    QString glslFragmentCode();
 };
 
 #endif // MATERIAL_H

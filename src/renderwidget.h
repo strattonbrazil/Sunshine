@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <imageviewer.h>
+#include <bindable.h>
 
 namespace Ui {
     class RenderWidget;
@@ -19,6 +20,12 @@ public:
 private:
     Ui::RenderWidget *ui;
     ImageViewer*           _viewer;
+};
+
+class RenderSettings : public Bindable
+{
+public:
+    RenderSettings();
 };
 
 #endif // RENDERWIDGET_H

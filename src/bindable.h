@@ -55,6 +55,7 @@ private:
     Q_DISABLE_COPY(Bindable)
 protected:
     QList<Attribute> _attributes;
+    void removeAttribute(Attribute attribute) { _attributes.removeOne(attribute); }
 };
 typedef QSharedPointer<Bindable> BindableP;
 

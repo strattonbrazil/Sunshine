@@ -101,3 +101,11 @@ PhongMaterial::PhongMaterial()
     bindable->addAttributes(atts);
     _constantAttributes = BindableP(bindable);
 }
+
+#define PHONGMATERIAL_GLSL_FRAGMENT_CODE \
+    "  gl_FragColor = vec4(lightColor*lightIntensity*clamp(dot(normal,lightDir),0,1),1);\n"
+
+QString PhongMaterial::glslFragmentCode()
+{
+    return PHONGMATERIAL_GLSL_FRAGMENT_CODE;
+}

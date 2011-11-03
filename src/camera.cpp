@@ -40,17 +40,85 @@ QMatrix4x4 Camera::getViewMatrix(CameraP camera, int width, int height)
     return m;
 }
 
-QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height)
+/*
+QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float dx, float dy)
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
     float zNear = 0.1f;
     float zFar = 1000.0f;
 
+    float top = tan(camera->fov()*3.14159/360.0) * zNear;
+    //float top = tan(fov*0.5) * zNear;
+    float bottom = -top;
+
+    float left = aspect * bottom;
+    float right = aspect * top;
+
+    QMatrix4x4 m;
+    m.frustum(left+dx, right+dx, bottom+dy, top+dy, zNear, zFar);
+    //m.perspective(camera->fov(), aspect, zNear, zFar);
+    return m;
+}
+*/
+
+QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float pixdx, float pixdy)
+{
+    // taken from gluPerspective docs
+    float aspect = (float)width / (float)height;
+    float zNear = 0.1f;
+    float zFar = 1000.0f;
+
+    float top = tan(camera->fov()*3.14159/360.0) * zNear;
+    //float top = tan(fov*0.5) * zNear;
+    float bottom = -top;
+
+    float left = aspect * bottom;
+    float right = aspect * top;
+
+    //int viewport[4];
+    //glGetIntegerv(GL_VIEWPORT, viewport);
+    float xwsize = right - left;
+    float ywsize = top - bottom;
+
+    // MAINT: width/height should be pulled from viewport if it doesn't match
+    // size of render
+    float dx = -(pixdx * xwsize / (float)width);
+    float dy = -(pixdy * ywsize / (float)height);
+
+    QMatrix4x4 m;
+    m.frustum(left+dx, right+dx, bottom+dy, top+dy, zNear, zFar);
+    //m.perspective(camera->fov(), aspect, zNear, zFar);
+    return m;
+}
+
+/*
+QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float offsetX, float offsetY)
+{
+    // taken from gluPerspective docs
+    float aspect = (float)width / (float)height;
+    float zNear = 0.1f;
+    float zFar = 1000.0f;
+
+
+    double fov2, left, right, bottom, top;
+
+        fov2 = ((fovy * Math.PI) / 180.0) / 2.0;
+
+        top = near / (Math.cos(fov2) / Math.sin(fov2));
+        bottom = -top;
+
+        right = top * aspect;
+        left = -right;
+
+        accFrustum(gl, left, right, bottom, top, near, far, pixdx, pixdy, eyedx,
+            eyedy, focus);
+
     QMatrix4x4 m;
     m.perspective(camera->fov(), aspect, zNear, zFar);
     return m;
 }
+*/
 
 void Camera::lookTransform(RtMatrix &t)
 {

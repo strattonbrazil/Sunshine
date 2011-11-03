@@ -39,9 +39,10 @@ public:
     QList<QString>                  meshes() { return _meshes.keys(); }
     QHashIterator<int, CameraP>     cameras() { return QHashIterator<int,CameraP>(_cameras); }
     QList<QString>                  materials() { return _materials.keys(); }
-    MeshP                           mesh(QString name) { return _meshes[name]; }
-    MaterialP                       material(QString name) { return _materials[name]; }
-    LightP                          light(QString name) { return _lights[name]; }
+    QList<QString>                  lights() { return _lights.keys(); }
+    MeshP                           mesh(QString name) { if (_meshes.contains(name)) return _meshes[name]; else return MeshP(0); }
+    MaterialP                       material(QString name) { if (_materials.contains(name)) return _materials[name]; else return MaterialP(0); }
+    LightP                          light(QString name) { if (_lights.contains(name)) return _lights[name]; else return LightP(0); }
     MaterialP                       defaultMaterial() { return _defaultMaterial; }
     CameraP                         fetchCamera(QString name);
     ShaderTreeModel*                shaderTreeModel() { return &_shaderTreeModel; }
@@ -53,8 +54,6 @@ public:
              return;
         QString content = file.readAll();
         file.close();
-
-        //std::cout << content.toStdString() << std::endl;
 
         try {
             object ignored = exec(content.toStdString().c_str(), _pyMainNamespace);
@@ -83,6 +82,7 @@ private:
     object                             _pyMainNamespace;
     MaterialP                          _defaultMaterial;
     ShaderTreeModel                    _shaderTreeModel;
+
 public slots:
     void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
     void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }

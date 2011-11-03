@@ -79,7 +79,9 @@ SOURCES += src/camera.cpp \
     src/transformable.cpp \
     src/bindable.cpp
 RESOURCES += src/plugins.qrc \
-    src/icons.qrc
+    src/icons.qrc \
+    src/textures.qrc
+
 
 
 

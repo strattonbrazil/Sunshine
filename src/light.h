@@ -32,4 +32,12 @@ public:
     QString glslFragmentEnd();
 };
 
+class AmbientLight : public Light
+{
+public:
+    AmbientLight();
+    QString glslFragmentBegin();
+    QString glslFragmentEnd();
+};
+
 #endif // LIGHT_H

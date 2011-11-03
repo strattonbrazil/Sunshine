@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/textures">
+        <file>checker_texture.png</file>
+        <file>checker_texture_soft.png</file>
+    </qresource>
+</RCC>

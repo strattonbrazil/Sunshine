@@ -84,6 +84,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     ui->propertyTable->setModel(_propertyEditorModel);
     ui->propertyTable->setItemDelegate(new AttributeItemDelegate());
 
+    _renderSettings = BindableP(new RenderSettings());
 }
 
 Sunshine::~Sunshine()
@@ -150,8 +151,10 @@ void Sunshine::setupDefaultMeshes()
 
 void Sunshine::setupDefaultLights()
 {
-    LightP light = _scene->createLight("pointLight", LightP(new PointLight()));
-    light->setCenter(Point3(0,10,0));
+    LightP point = _scene->createLight("point", LightP(new PointLight()));
+    point->setCenter(Point3(0,10,0));
+
+    LightP ambient = _scene->createLight("ambient", LightP(new AmbientLight()));
 }
 
 void Sunshine::on_renderButton_clicked()
@@ -291,7 +294,9 @@ void Sunshine::on_renderButton_clicked()
 
 void Sunshine::on_renderSettingsButton_clicked()
 {
-    _renderSettingsWidget->show();
+    _propertyEditorModel->update(_renderSettings);
+
+    ui->propertyTable->expandAll();
 }
 
 void Sunshine::on_importAction_triggered()
@@ -352,8 +357,6 @@ int Sunshine::workMode()
 {
     foreach(QString meshName, activeScene()->meshes()) {
         MeshP mesh = activeScene()->mesh(meshName);
-        std::cout << mesh << std::endl;
-        std::cout << meshName.toStdString() << std::endl;
         if (mesh->isSelected()) {
             QHashIterator<int,VertexP> i = mesh->vertices();
             while(i.hasNext()) {
@@ -405,6 +408,7 @@ namespace SunshineUi {
     CursorToolP cursorTool() { return activeMainWindow->cursorTool(); }
     void updateSceneHierarchy(SceneP scene) { return activeMainWindow->updateSceneHierarchy(scene); }
     void updatePanels() { activeMainWindow->updatePanels(); }
+    BindableP renderSettings() { return activeMainWindow->renderSettings(); }
 }
 
 void Sunshine::on_selectOccludedButton_clicked()
@@ -431,9 +435,10 @@ void Sunshine::on_sceneHierarchySelection_changed(const QModelIndex &current, co
     QString bindableName = _scene->data(current, Qt::DisplayRole).toString();
     BindableP bindable = _scene->light(bindableName);
     if (bindable == 0) bindable = _scene->mesh(bindableName);
-
-    std::cout << bindable << std::endl;
+    //if (bindable == 0) bindable = _scene->material(bindableName);
 
     // update the property editor
     if (bindable != 0) _propertyEditorModel->update(bindable);
+
+    ui->propertyTable->expandAll();
 }
