@@ -34,8 +34,8 @@ QString PointLight::glslFragmentEnd()
 
 AmbientLight::AmbientLight()
 {
-    QString color("{ 'var' : 'lightColor', 'name' : 'Color', 'type' : 'color', 'value' : '#ffffff', 'glslFragmentConstant' : true }");
-    QString intensity("{ 'var' : 'lightIntensity', 'name' : 'Intensity', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 0.1, 'glslFragmentConstant' : true }");
+    QString color("{ 'var' : 'lightColor', 'name' : 'Color', 'type' : 'color', 'value' : '#eeeeff', 'glslFragmentConstant' : true }");
+    QString intensity("{ 'var' : 'lightIntensity', 'name' : 'Intensity', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 0.2, 'glslFragmentConstant' : true }");
 
     QStringList atts;
     atts << color << intensity;

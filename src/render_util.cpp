@@ -10,12 +10,22 @@ typedef struct {
     float weight;
 } Sample;
 
+void exposureCorrection(float exposure, float maxLuminance, float *r, float *g, float *b)
+{
+    //float maxLuminance = std::max(*r, std::max(*g, *b));
+    float zeta = exposure * (exposure / maxLuminance + 1.0) / (exposure + 1.0);
+    //std::cout << zeta << std::endl;
+    *r *= zeta;
+    *g *= zeta;
+    *b *= zeta;
+}
+
 namespace RenderUtil {
     void renderGL(PanelGL* panel)
     {
         CameraP camera = panel->camera();
-        const int xres = 1000;
-        const int yres = 600;
+        const int xres = SunshineUi::renderSettings()->attributeByName("Image Width")->property("value").value<int>();
+        const int yres = SunshineUi::renderSettings()->attributeByName("Image Height")->property("value").value<int>();
         /*
         QGLWidget widget()
         QGLContext context(panel->format());
@@ -29,6 +39,7 @@ namespace RenderUtil {
 
 
 
+        /*
         QList<GLuint*> textures;
         GLuint diffuseSpecTexture;
         GLuint positionEmitTexture;
@@ -40,9 +51,12 @@ namespace RenderUtil {
 
         foreach(GLuint* addr, textures)
             glGenTextures(1, addr);
+            */
 
         // create VBOs and FBOs for drawing out geometry
-        GLuint fbo;
+        const int NUM_COLOR_ATTACHMENTS = 1;
+        GLuint fbo, depthBufferId;
+        GLuint colorBufferIds[NUM_COLOR_ATTACHMENTS];
         glGenFramebuffersEXT(1, &fbo);
         glBindFramebufferEXT(GL_FRAMEBUFFER, fbo);
         GLuint vboId;
@@ -50,6 +64,7 @@ namespace RenderUtil {
 
 
         // setup deferred textures
+        /*
         QList<GLuint> deferredTextures = QList<GLuint>() << diffuseSpecTexture << positionEmitTexture << normalTexture;
         for (int i = 0; i < deferredTextures.size(); i++) {
             // setup and attach texture
@@ -62,7 +77,8 @@ namespace RenderUtil {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT + i, GL_TEXTURE_2D, texture, 0);
         }
-
+        glBindTexture( GL_TEXTURE_2D, 0);
+*/
 
         // setup final texture
         /*
@@ -75,7 +91,25 @@ namespace RenderUtil {
         glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, finalTexture, 0);
         */
 
-        // setup depth texture
+        // Create depth renderbuffer
+        glGenRenderbuffers(1, &depthBufferId);
+        glBindRenderbuffer(GL_RENDERBUFFER, depthBufferId);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, xres, yres);
+        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBufferId);
+
+
+        // Create color renderbuffers
+        glGenRenderbuffers(NUM_COLOR_ATTACHMENTS, colorBufferIds);
+        for (int i = 0; i < NUM_COLOR_ATTACHMENTS; i++) {
+            glBindRenderbuffer(GL_RENDERBUFFER, colorBufferIds[i]);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, xres, yres);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_RENDERBUFFER, colorBufferIds[i]);
+        }
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+
+
+        /*
         glBindTexture( GL_TEXTURE_2D, depthTexture);
         glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8_EXT, xres, yres, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -86,6 +120,7 @@ namespace RenderUtil {
         glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT_EXT, GL_TEXTURE_2D, depthTexture, 0);
 
         glBindTexture( GL_TEXTURE_2D, 0);
+        */
 
         switch (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)) {
         case GL_FRAMEBUFFER_COMPLETE_EXT:
@@ -113,15 +148,18 @@ namespace RenderUtil {
 
         // draw properties to FBO textures (position, diffuse, spec, position, emissive, normal, etc.)
         //QGLShaderProgramP meshShader = ShaderFactory::buildMeshShader(panel);
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
+#if 1
         GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_COLOR_ATTACHMENT2_EXT, GL_COLOR_ATTACHMENT3_EXT };
-        glDrawBuffers(3, bufs);
+        //glDrawBuffers(3, bufs);
 
         QString dummyName = "sillyLightWithNameThatshouldnotExistinthewild";
         QList<QString> lights;
         lights << dummyName;
         lights.append(SunshineUi::activeScene()->lights());
+
+        const uint NUM_LIGHT_PASSES = lights.size() - 1; // don't count dummy light
 
         // simple box filtering
         QList<Sample> samples;
@@ -215,78 +253,77 @@ namespace RenderUtil {
 
 
 
-
-            //panel->renderBeautyPass();
-
-            // copy each attachment from OpenGL, save to disk
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-            for (int i = 0; i < deferredTextures.size(); i++) {
-                GLubyte data[xres*yres*4];
-                glReadBuffer(GL_COLOR_ATTACHMENT0_EXT + i);
-                glReadPixels(0, 0, xres, yres, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-                QImage image = QImage(data, xres, yres, QImage::Format_ARGB32).rgbSwapped();
-                QString outImage = QString("/tmp/test%1.png").arg(i);
-                image.mirrored().save(outImage);
-
-                if (i == 0)
-                    samplingImages << image.mirrored();
-
-
-            }
-
-        //                glDrawBuffers(1, bufs);
         }
 
         glDrawBuffers(1, bufs);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+#endif
 
         // read back accumulated buffer and do color/gamma correction
         //
-        GLfloat data[xres*yres*4];
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        //GLfloat data[xres*yres*4];
+        const float exposure = SunshineUi::renderSettings()->attributeByName("Exposure")->property("value").value<float>();
+        QImage outImage(xres, yres, QImage::Format_ARGB32);
+        GLfloat* data = new GLfloat[xres*yres*4];
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
         glReadPixels(0, 0, xres, yres, GL_RGBA, GL_FLOAT, data);
+        float maxLuminance = 0.0f;
+        for (int x = 0; x < xres; x++) {
+            for (int y = 0; y < yres; y++) {
+                float aInv = 1;
+                float aF = data[4*(x+y*xres)+3] / NUM_LIGHT_PASSES;
+                if (aF > .05) aInv = 1.0f / aF;
+                float rF = data[4*(x+y*xres)+0]*aInv;
+                float gF = data[4*(x+y*xres)+1]*aInv;
+                float bF = data[4*(x+y*xres)+2]*aInv;
+                aF = std::min(aF / samples.size(), 1.0f);
+                data[4*(x+y*xres)+0] = rF;
+                data[4*(x+y*xres)+1] = gF;
+                data[4*(x+y*xres)+2] = bF;
+                data[4*(x+y*xres)+3] = aF;
+                maxLuminance = std::max(maxLuminance, std::max(rF, std::max(gF, bF)));
+            }
+        }
+
+        for (int x = 0; x < xres; x++) {
+            for (int y = 0; y < yres; y++) {
+                float rF = data[4*(x+y*xres)+0];
+                float gF = data[4*(x+y*xres)+1];
+                float bF = data[4*(x+y*xres)+2];
+                float aF = data[4*(x+y*xres)+3];
+
+                // do gamma/tone-mapping here
+                if (maxLuminance > 0.000001)
+                    exposureCorrection(exposure, maxLuminance, &rF, &gF, &bF);
+
+                unsigned int r = std::min((int)(255*rF), 255);
+                unsigned int g = std::min((int)(255*gF), 255);
+                unsigned int b = std::min((int)(255*bF), 255);
+                unsigned int a = 255*aF;
+                //a = 255;
+
+                if (r > 125 || g > 125 || b > 125) {
+                    //std::cout << QString("(%1,%2,%3,%4)\n").arg(r).arg(g).arg(b).arg(a);
+                    //qRgba((int)(255*r), (int)(255*g), (int)(255*b), (int)(255*a))
+                }
+                //a = 1;
+
+                QColor pixelColor(r,g,b,a);
+                outImage.setPixel(x,y,pixelColor.rgba());
+                //outImage.setPixel(x,y,qRgba((int)(255*r), (int)(255*g), (int)(255*b), (int)(255*a)));
+                //outImage.setPixel(x,y,qRgba(225, 25, 25, 255));
+            }
+        }
+        outImage = outImage.mirrored();
+        delete[] data;
+
 
         // combine sampling images into one image
         //
         std::cout << "images rendered" << std::endl;
-        QImage outImage(samplingImages[0].width(), samplingImages[0].height(), samplingImages[0].format());
-        for (int x = 0; x < outImage.width(); x++) {
-            for (int y = 0; y < outImage.height(); y++) {
-                QColor empty(0,0,0,0);
-                outImage.setPixel(x,y,empty.rgba());
-            }
-        }
-        for (int i = 0; i < samplingImages.size(); i++) {
-            QImage image = samplingImages[i];
-            Sample sample = samples[i];
-
-            for (int x = 0; x < outImage.width(); x++) {
-                for (int y = 0; y < outImage.height(); y++) {
-                    QColor color(image.pixel(x,y));
-                    color.setAlpha(qAlpha(image.pixel(x,y)));
-                    QColor accumColor(outImage.pixel(x,y));
-                    accumColor.setAlpha(qAlpha(outImage.pixel(x,y)));
-
-                    QColor combinedColor;
-                    combinedColor.setRedF(std::min(color.redF()*sample.weight + accumColor.redF(), (qreal)1.0));
-                    combinedColor.setGreenF(std::min(color.greenF()*sample.weight + accumColor.greenF(), (qreal)1.0));
-                    combinedColor.setBlueF(std::min(color.blueF()*sample.weight + accumColor.blueF(), (qreal)1.0));
-                    combinedColor.setAlphaF(std::min(color.alphaF()*sample.weight + accumColor.alphaF(), (qreal)1.0));
-                    //std::cout << color.alphaF() * sample.weight << std::endl;
-                    //std::cout << accumColor.alphaF() << std::endl;
-
-                    outImage.setPixel(x, y, combinedColor.rgba());
-                }
-            }
-
-            // save sampling image
-            QString outPath = QString("/tmp/sampling%1.png").arg(i);
-            image.save(outPath);
-        }
-        std::cout << "done combining" << std::endl;
         outImage.save("/tmp/aa.png");
 
         {
@@ -295,8 +332,8 @@ namespace RenderUtil {
             QImage checkeredImage(outImage.width(), outImage.height(), outImage.format());
             QBrush checkeredBrush(QPixmap(":/textures/checker_texture_soft.png"));
             QPainter p(&checkeredImage);
-            //p.fillRect(QRect(0,0,outImage.width(),outImage.height()), checkeredBrush);
-            p.fillRect(QRect(0,0,outImage.width(),outImage.height()), Qt::yellow);
+            p.fillRect(QRect(0,0,outImage.width(),outImage.height()), checkeredBrush);
+            //p.fillRect(QRect(0,0,outImage.width(),outImage.height()), Qt::yellow);
 
             //p.setCompositionMode(QPainter::CompositionMode_SourceOver);
             p.drawImage(0, 0, outImage);
@@ -313,8 +350,8 @@ namespace RenderUtil {
 
         // release OpenGL resources
         //
-        foreach(GLuint* addr, textures)
-            glDeleteTextures(1, addr);
+        glDeleteRenderbuffers(1, &depthBufferId);
+        glDeleteRenderbuffers(NUM_COLOR_ATTACHMENTS, colorBufferIds);
         glDeleteFramebuffersEXT(1, &fbo);
         glDeleteBuffers(1, &vboId);
 

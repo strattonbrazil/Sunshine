@@ -103,7 +103,8 @@ PhongMaterial::PhongMaterial()
 }
 
 #define PHONGMATERIAL_GLSL_FRAGMENT_CODE \
-    "  gl_FragColor = vec4(lightColor*lightIntensity*clamp(dot(normal,lightDir),0,1),1);\n"
+    "  gl_FragColor = vec4(lightColor*lightIntensity*clamp(dot(normal,lightDir),0,1),1);\n" \
+    "//  gl_FragColor.a = max(gl_FragColor.x, max(gl_FragColor.y, gl_FragColor.z));\n"
 
 QString PhongMaterial::glslFragmentCode()
 {
