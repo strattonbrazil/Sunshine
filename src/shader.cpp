@@ -4,6 +4,63 @@
 //#include <iostream>
 //using namespace std;
 
+#define VERTEX_CHECK \
+"vec4 Ap, Bp, A_p, B_p;\n" \
+"if (p0.z > 0) {\n" \
+"  if (p1.z > 0) {\n" \
+"    if (p2.z > 0) { // case 0\n" \
+"      // easy standard case\n" \
+"    }\n" \
+"    else { // case 1\n" \
+"      Ap = p0;\n" \
+"      Bp = p1;\n" \
+"      A_p = p2;\n" \
+"      B_p = p2;\n" \
+"    }\n" \
+"  }\n" \
+"  else {\n" \
+"    if (p2.z > 0) { // case 2\n" \
+"      Ap = p0;\n" \
+"      Bp = p2;\n" \
+"      A_p = p1;\n" \
+"      B_p = p1;\n" \
+"    }\n" \
+"    else { // case 3\n" \
+"      Ap = p0;\n" \
+"      Bp = p0;\n" \
+"      A_p = p1;\n" \
+"      B_p = p2;\n" \
+"    }\n" \
+"  }\n" \
+"}\n" \
+"else {\n" \
+"  if (p1.z > 0) {\n" \
+"    if (p2.z > 0) { // case 4\n" \
+"      Ap = p1;\n" \
+"      Bp = p2;\n" \
+"      A_p = p0;\n" \
+"      B_p = p0;\n" \
+"    }\n" \
+"    else { // case 5\n" \
+"      Ap = p1;\n" \
+"      Bp = p1;\n" \
+"      A_p = p0;\n" \
+"      B_p = p2;\n" \
+"    }\n" \
+"  }\n" \
+"  else {\n" \
+"    if (p2.z > 0) { // case 6\n" \
+"      Ap = p2;\n" \
+"      Bp = p2;\n" \
+"      A_p = p0;\n" \
+"      B_p = p1;\n" \
+"    }\n" \
+"    else { // case 7\n" \
+"      // triangle not visible\n" \
+"    }\n" \
+"  }\n" \
+"}\n"
+
 QGLShaderProgramP ShaderFactory::buildFlatShader(QObject *parent)
 {
     QString vertSource("in vec3 vertex;\n" \
@@ -77,14 +134,14 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                        "noperspective varying vec3 dist;\n" \
                        "void main(void)\n" \
                    "{\n" \
-                   "  float MEW = 100.0; // max edge width\n" \
+                   "  float MEW = 10.0; // max edge width\n" \
                    "  // adapted from 'Single-Pass Wireframe Rendering'\n"
                    "  vec2 p0 = WIN_SCALE * gl_PositionIn[0].xy/gl_PositionIn[0].w;\n" \
                    "  vec2 p1 = WIN_SCALE * gl_PositionIn[1].xy/gl_PositionIn[1].w;\n" \
                    "  vec2 p2 = WIN_SCALE * gl_PositionIn[2].xy/gl_PositionIn[2].w;\n" \
-                   "  vec2 v0 = p2-p1;\n" \
-                   "  vec2 v1 = p2-p0;\n" \
-                   "  vec2 v2 = p1-p0;\n" \
+                   "  vec2 v0 = p2.xy-p1.xy;\n" \
+                   "  vec2 v1 = p2.xy-p0.xy;\n" \
+                   "  vec2 v2 = p1.xy-p0.xy;\n" \
                    "  float area = abs(v1.x*v2.y - v1.y * v2.x);\n" \
                    "  dist = vec3(area/length(v0),vertExcludeEdge[1]*MEW,vertExcludeEdge[2]*MEW);\n" \
                    "  worldPos = vertWorldPos[0];\n" \
@@ -110,6 +167,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
                    "  EndPrimitive();\n" \
                    "}\n");
 
+    //std::cout << geomSource << std::endl;
     QString fragSource("#version 120\n" \
                        "#extension GL_EXT_gpu_shader4 : enable\n" \
                        "#define STIPPLE_SIZE 2\n" \
@@ -248,6 +306,9 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     typeToGL["color"] = "vec3";
     typeToGL["float"] = "float";
     typeToGL["point3"] = "vec3";
+    typeToGL["samplerCubeShadow"] = "samplerCubeShadow";
+    typeToGL["sampler2DShadow"] = "sampler2DShadow";
+    typeToGL["mat4"] = "mat4";
 
     // write vertex shader
     //
@@ -269,7 +330,10 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     // write fragment shader
     //
     QString fragSource;
-    fragSource += "#version 120\n";
+    fragSource += "#version 130\n";
+    fragSource += "#extension GL_EXT_gpu_shader4 : enable\n";
+    fragSource += "#define zShadowNear 0.1\n";
+    fragSource += "#define zShadowFar 100.0\n";
 
     //for (int i = 0; i < material->constantAttributes()->attributeCount(); i++) {
     foreach(Attribute attribute, material->constantAttributes()->attributes()) {
@@ -308,16 +372,71 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
 
     program->link();
 
-    /*
-    std::cout << "-- vert source -----" << std::endl;
-    std::cout << vertSource.toStdString() << std::endl;
+
+    //std::cout << "-- vert source -----" << std::endl;
+    //std::cout << vertSource.toStdString() << std::endl;
 
     std::cout << "\n-- frag source -----" << std::endl;
     std::cout << fragSource.toStdString() << std::endl;
-    */
+
 
     //cout << program->log() << endl;
     //cout << QString("Log end--") << endl;
+
+    return program;
+}
+
+
+QGLShaderProgramP ShaderFactory::buildDistanceShader(QObject *parent)
+{
+    QString vertSource("#define zShadowNear 0.1\n" \
+                       "#define zShadowFar 100.0\n" \
+                       "uniform mat4 objToLight;\n" \
+                       "uniform vec4 d0;\n" \
+                       "//uniform mat4 worldToLight;\n" \
+                       "in vec3 vertex;\n" \
+                       "//out vec3 parabP;\n" \
+                       "void main() {\n" \
+                       "  float zScale = zShadowFar;\n" \
+                       "  float zBias = 0.005;\n" \
+                       "  //vec4 d0 = vec4(0,0,1,0);\n" \
+                       "  vec4 P = (objToLight * vec4(vertex,1.0));\n" \
+                       "  P = P / P.w;\n" \
+                       "  float alpha = 0.5 + (P.z/zScale);\n" \
+                       "  float lengthP = length(P);\n" \
+                       "  P = P / lengthP;\n" \
+                       "  P = P + d0;\n" \
+                       "  P.x = P.x / P.z;\n" \
+                       "  P.y = P.y / P.z;\n" \
+                       "  P.z = (lengthP-zShadowNear)/(zShadowFar-zShadowNear) + zBias;\n" \
+                       "  P.w = 1.0;\n" \
+                       "  gl_Position = P;\n" \
+                       "}\n");
+
+    QString fragSource("uniform vec3 origin;\n" \
+                       "#define zShadowNear 0.1\n" \
+                       "#define zShadowFar 1000.0\n" \
+                       "in vec3 parabP;\n" \
+                       "void main() {\n" \
+                       "  //gl_FragData[0] = vec4(1,0,0,0);\n" \
+                       "  gl_FragDepth = (distance(origin,world)-zShadowNear)/(zShadowFar-zShadowNear);\n" \
+                       "}\n");
+
+
+    QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
+    vertShader->compileSourceCode(vertSource);
+
+    //QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
+    //fragShader->compileSourceCode(fragSource);
+
+    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    program->addShader(vertShader);
+    //program->addShader(fragShader);
+
+    program->link();
+
+    //std::cout << program->log() << std::endl;
+    //std::cout << QString("Log end--") << std::endl;
 
     return program;
 }

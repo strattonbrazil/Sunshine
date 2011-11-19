@@ -20,9 +20,52 @@ void exposureCorrection(float exposure, float maxLuminance, float *r, float *g, 
     *b *= zeta;
 }
 
+void checkGL(QString s)
+{
+    GLenum errCode;
+    std::string errString;
+    errCode = glGetError();
+    if (errCode != GL_NO_ERROR)
+    {
+        errString = std::string((const char*)gluErrorString(errCode));
+        std::cerr << s << ":" << errString << std::endl;
+    }
+}
+
+/*
+static GLenum faceTarget[6] = {
+  GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+  GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+  GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+  GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+  GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+  GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+};
+
+static QVector3D faceTargetDir[6] = {
+    QVector3D(1,0,0),
+    QVector3D(-1,0,0),
+    QVector3D(0,1,0),
+    QVector3D(0,-1,0),
+    QVector3D(0,0,1),
+    QVector3D(0,0,-1)
+};
+
+static QVector3D faceTargetUp[6] = {
+    QVector3D(0,1,0),
+    QVector3D(0,1,0),
+    QVector3D(1,0,0),
+    QVector3D(1,0,0),
+    QVector3D(0,1,0),
+    QVector3D(0,1,0)
+};
+*/
+
 namespace RenderUtil {
     void renderGL(PanelGL* panel)
     {
+        checkGL("renderGL start");
+
         CameraP camera = panel->camera();
         const int xres = SunshineUi::renderSettings()->attributeByName("Image Width")->property("value").value<int>();
         const int yres = SunshineUi::renderSettings()->attributeByName("Image Height")->property("value").value<int>();
@@ -35,7 +78,7 @@ namespace RenderUtil {
 
         QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
         QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
-        QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
+        //QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
 
 
 
@@ -55,12 +98,15 @@ namespace RenderUtil {
 
         // create VBOs and FBOs for drawing out geometry
         const int NUM_COLOR_ATTACHMENTS = 1;
-        GLuint fbo, depthBufferId;
+        GLuint fbos[2];
+        GLuint depthBufferIds[2];
         GLuint colorBufferIds[NUM_COLOR_ATTACHMENTS];
-        glGenFramebuffersEXT(1, &fbo);
-        glBindFramebufferEXT(GL_FRAMEBUFFER, fbo);
+        glGenFramebuffersEXT(2, fbos);
+
         GLuint vboId;
         glGenBuffers(1, &vboId);
+
+        GLuint depthMaps[2];
 
 
         // setup deferred textures
@@ -91,14 +137,37 @@ namespace RenderUtil {
         glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, finalTexture, 0);
         */
 
-        // Create depth renderbuffer
-        glGenRenderbuffers(1, &depthBufferId);
-        glBindRenderbuffer(GL_RENDERBUFFER, depthBufferId);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, xres, yres);
-        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBufferId);
+        // depth map setup
+        glGenTextures(2, depthMaps);
+        for (int i = 0; i < 2; i++) {
+            glBindTexture(GL_TEXTURE_2D, depthMaps[i]);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE );
+            glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
 
+        // Create depth renderbuffers
+        glGenRenderbuffers(2, depthBufferIds);
+        for (int i = 0; i < 2; i++) {
+            glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[i]);
+            glBindRenderbuffer(GL_RENDERBUFFER, depthBufferIds[i]);
 
-        // Create color renderbuffers
+            if (i == 0)
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, xres, yres);
+            else
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 1024, 1024);
+            glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBufferIds[i]);
+        }
+        glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+        // Create color renderbuffers (just for first FBO)
+        glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[0]);
         glGenRenderbuffers(NUM_COLOR_ATTACHMENTS, colorBufferIds);
         for (int i = 0; i < NUM_COLOR_ATTACHMENTS; i++) {
             glBindRenderbuffer(GL_RENDERBUFFER, colorBufferIds[i]);
@@ -106,7 +175,9 @@ namespace RenderUtil {
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_RENDERBUFFER, colorBufferIds[i]);
         }
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
 
+        checkGL("build general resources");
 
 
         /*
@@ -122,24 +193,27 @@ namespace RenderUtil {
         glBindTexture( GL_TEXTURE_2D, 0);
         */
 
-        switch (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)) {
-        case GL_FRAMEBUFFER_COMPLETE_EXT:
-            break;
-        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-            std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << std::endl;
-            break;
-        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
-            std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT" << std::endl;
-            break;
-        case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
-            std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT" << std::endl;
-            break;
-        case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
-            std::cerr << "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT" << std::endl;
-            break;
-        case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-            std::cerr << "GL_FRAMEBUFFER_UNSUPPORTED_EXT" << std::endl;
-            break;
+        for (int i = 0; i < 2; i++) {
+            glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[i]);
+            switch (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)) {
+            case GL_FRAMEBUFFER_COMPLETE_EXT:
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
+                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
+                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT" << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
+                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT" << std::endl;
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
+                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT" << std::endl;
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
+                std::cerr << i << "GL_FRAMEBUFFER_UNSUPPORTED_EXT" << std::endl;
+                break;
+            }
         }
 
         // prepare all the lights in the scene (render shadow maps, calculate bounding boxes, etc.)
@@ -148,9 +222,8 @@ namespace RenderUtil {
 
         // draw properties to FBO textures (position, diffuse, spec, position, emissive, normal, etc.)
         //QGLShaderProgramP meshShader = ShaderFactory::buildMeshShader(panel);
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbos[0]);
 
-#if 1
         GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_COLOR_ATTACHMENT2_EXT, GL_COLOR_ATTACHMENT3_EXT };
         //glDrawBuffers(3, bufs);
 
@@ -201,51 +274,87 @@ namespace RenderUtil {
                     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                 }
 
-                foreach(QString meshName, SunshineUi::activeScene()->meshes()) {
-                    MeshP mesh = SunshineUi::activeScene()->mesh(meshName);
-                    const int numTriangles = mesh->numTriangles();
-                    MaterialP material = mesh->material();
+                // update shadows if necessary
+                //
+                bool casting = false;
+                Attribute castShadows = light->attributeByName("Casts Shadows");
+                if (castShadows && castShadows->property("value").isValid()) {
+                    casting = castShadows->property("value").value<bool>();
 
-                    QMatrix4x4 objToWorld = mesh->objectToWorld();
-                    QMatrix4x4 normalToWorld = mesh->normalToWorld();
+                    if (casting) {
+                        const int shadowXres = 1024;
+                        const int shadowYres = 1024;
+                        glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[1]); checkGL("bound depth FBO");
+                        glViewport(0, 0, shadowXres, shadowYres); checkGL("set viewport");
+                        CameraP shadowCamera(new Camera("shadowCamera"));
+                        //shadowCamera->setCenter(light->center());
 
-                    QMatrix4x4 samplingOffsetM;
-                    samplingOffsetM.ortho(-1,1,-1,1,0,1);
-                    //printMatrix(samplingOffsetM);
-                    //QMatrix4x4 cameraPVOffset(cameraProjViewM);
-                    //cameraPVOffset.translate(sample.x, sample.y);
+                        // shadowCamera <- set direction and up vector
+                        QImage depthImage(shadowXres, shadowYres, QImage::Format_ARGB32);
+                        GLfloat* pixels = new GLfloat[shadowXres*shadowYres];
+                        QGLShaderProgramP distanceShader = ShaderFactory::buildDistanceShader(panel); checkGL("created distance shader");
+                        distanceShader->bind(); checkGL("bound distance shader");
+                        distanceShader->setUniformValue("origin", light->center()); checkGL("set light center");
 
-                    // rebuild projection matrix using sampling offset
-                    //
-                    float dx = sample.x;
-                    float dy = sample.y;
-                    cameraProjViewM = Camera::getProjMatrix(camera,panel->width(),panel->height(),dx,dy) * cameraViewM;
 
-                    // build the material shader
-                    QGLShaderProgramP shader = ShaderFactory::buildMaterialShader(light, material, panel);
-                    shader->bind();
-                    shader->setUniformValue("objToWorld", objToWorld);
-                    shader->setUniformValue("normalToWorld", normalToWorld);
-                    //shader->setUniformValue("cameraPV", cameraProjViewM);
-                    shader->setUniformValue("cameraPV", cameraProjViewM);
-                    shader->setUniformValue("cameraPos", camera->eye());
 
-                    //shader->setUniformValue("lightDir", -camera->lookDir().normalized());
+                        QVector4D d0[] = { QVector4D(0,0,1,0), QVector4D(0,0,-1,0) };
+                        for (int i = 0; i < 2; i++) { // render scene in both directions
+                            distanceShader->setUniformValue("d0", d0[i]);
+                            glBindTexture(GL_TEXTURE_2D, depthMaps[i]); checkGL("bound depth map");
+                            //shadowCamera->orient(light->center(), light->center()+faceTargetDir[i], faceTargetUp[i]);
+                            glClear(GL_DEPTH_BUFFER_BIT); checkGL("cleared depth buffer");
 
-                    // set uniform constants for light
-                    setShaderUniforms(shader, light, light->glslFragmentConstants());
+                            QMatrix4x4 worldToLightM;
+                            worldToLightM.translate(-light->center());
+                            //QMatrix4x4 shadowCameraViewM = Camera::getViewMatrix(shadowCamera, shadowXres, shadowYres);
+                            //QMatrix4x4 shadowCameraProjViewM = Camera::getProjMatrix(shadowCamera,shadowXres,shadowYres,0,0) * shadowCameraViewM;
+                            renderMeshes(worldToLightM, light, panel, shadowCamera, vboId, distanceShader);  checkGL("renderMeshes() for shadow map");
+                            //renderMeshes(shadowCameraProjViewM, light, panel, shadowCamera, vboId, QGLShaderProgramP(0));
 
-                    // pack mesh data (vertices, normals, etc.) into VBO
-                    packVBO(mesh, numTriangles, vboId, shader);
+                            // copy into correct face
+                            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, shadowXres, shadowYres, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0); checkGL("glteximage2d to depth texture");
+                            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, shadowXres, shadowYres); checkGL("copytexsubimage2d to depth texture");
 
-                    // render to the framebuffer
-                    glBindBuffer(GL_ARRAY_BUFFER, vboId);
-                    //glBufferData(GL_ARRAY_BUFFER, numTriangles*3*blockSize, vertices, GL_STREAM_DRAW);
-                    glDrawArrays(GL_TRIANGLES, 0, numTriangles*3);
-                    glBindBuffer(GL_ARRAY_BUFFER, 0);
+                            /*
+                            glReadPixels(0, 0, shadowXres, shadowYres, GL_DEPTH_COMPONENT, GL_FLOAT, pixels); checkGL("read pixels from depth buffer");
+                            for (int x = 0; x < shadowXres; x++) {
+                                for (int y = 0; y < shadowYres; y++) {
+                                    float depth = pixels[x+y*shadowXres];
+                                    //if (depth < 0.5)
+                                        //std::cout << depth << std::endl;
+                                    QColor depthColor(depth*255,depth*255,depth*255,255);
+                                    depthImage.setPixel(x,y,depthColor.rgba());
+                                }
+                            }
+                            QString fileName = QString("/tmp/depth%1.png").arg(i);
+                            depthImage.save(fileName);
+                            */
+                        }
+                        delete[] pixels;
+                        glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[0]);  checkGL("bound beauty FBO");
+                        glViewport(0, 0, xres, yres);  checkGL("reset viewport");
+                        //glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+                        distanceShader->release(); checkGL("released distance shader");
+                    }
 
-                    shader->release();
+
+
+                    //glClear(GL_DEPTH_BUFFER_BIT);
+                    checkGL("updated shadow map");
                 }
+
+                // rebuild projection matrix using sampling offset
+                //
+                float dx = sample.x;
+                float dy = sample.y;
+                QMatrix4x4 cameraProjViewM = Camera::getProjMatrix(camera,xres,yres,dx,dy) * cameraViewM;
+                //glEnable(GL_TEXTURE_2D);
+                if (casting)
+                    renderMeshes(cameraProjViewM, light, panel, camera, vboId, QGLShaderProgramP(0), depthMaps);
+                else
+                    renderMeshes(cameraProjViewM, light, panel, camera, vboId, QGLShaderProgramP(0), 0);
+                //glDisable(GL_TEXTURE_2D);
 
                 if (zPrepass)
                     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -258,7 +367,8 @@ namespace RenderUtil {
         glDrawBuffers(1, bufs);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
-#endif
+
+        checkGL("collected samples");
 
         // read back accumulated buffer and do color/gamma correction
         //
@@ -288,43 +398,29 @@ namespace RenderUtil {
             }
         }
 
-        for (int x = 0; x < xres; x++) {
-            for (int y = 0; y < yres; y++) {
-                float rF = data[4*(x+y*xres)+0];
-                float gF = data[4*(x+y*xres)+1];
-                float bF = data[4*(x+y*xres)+2];
-                float aF = data[4*(x+y*xres)+3];
+        for (int i = 0; i < xres*yres; i++) {
+            float rF = data[4*i+0];
+            float gF = data[4*i+1];
+            float bF = data[4*i+2];
+            float aF = data[4*i+3];
 
-                // do gamma/tone-mapping here
-                if (maxLuminance > 0.000001)
-                    exposureCorrection(exposure, maxLuminance, &rF, &gF, &bF);
+            // do gamma/tone-mapping here
+            if (maxLuminance > 0.000001)
+                exposureCorrection(exposure, maxLuminance, &rF, &gF, &bF);
 
-                unsigned int r = std::min((int)(255*rF), 255);
-                unsigned int g = std::min((int)(255*gF), 255);
-                unsigned int b = std::min((int)(255*bF), 255);
-                unsigned int a = 255*aF;
-                //a = 255;
+            unsigned int r = std::min((int)(255*rF), 255);
+            unsigned int g = std::min((int)(255*gF), 255);
+            unsigned int b = std::min((int)(255*bF), 255);
+            unsigned int a = std::min((int)(255*aF), 255);
 
-                if (r > 125 || g > 125 || b > 125) {
-                    //std::cout << QString("(%1,%2,%3,%4)\n").arg(r).arg(g).arg(b).arg(a);
-                    //qRgba((int)(255*r), (int)(255*g), (int)(255*b), (int)(255*a))
-                }
-                //a = 1;
-
-                QColor pixelColor(r,g,b,a);
-                outImage.setPixel(x,y,pixelColor.rgba());
-                //outImage.setPixel(x,y,qRgba((int)(255*r), (int)(255*g), (int)(255*b), (int)(255*a)));
-                //outImage.setPixel(x,y,qRgba(225, 25, 25, 255));
-            }
+            outImage.bits()[4*i+0] = r;
+            outImage.bits()[4*i+1] = g;
+            outImage.bits()[4*i+2] = b;
+            outImage.bits()[4*i+3] = a;
         }
+
         outImage = outImage.mirrored();
         delete[] data;
-
-
-        // combine sampling images into one image
-        //
-        std::cout << "images rendered" << std::endl;
-        outImage.save("/tmp/aa.png");
 
         {
             // make a checkered background as a cue for alpha transparency
@@ -350,13 +446,91 @@ namespace RenderUtil {
 
         // release OpenGL resources
         //
-        glDeleteRenderbuffers(1, &depthBufferId);
+        glDeleteFramebuffersEXT(2, fbos);
+        glDeleteRenderbuffers(2, depthBufferIds);
         glDeleteRenderbuffers(NUM_COLOR_ATTACHMENTS, colorBufferIds);
-        glDeleteFramebuffersEXT(1, &fbo);
         glDeleteBuffers(1, &vboId);
 
+        glDeleteTextures(2, depthMaps);
+
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+        checkGL("renderGL end");
     } // end of RenderUtil::renderGL(...)
+
+    // renders each mesh in the scene
+    //
+    void renderMeshes(QMatrix4x4 cameraProjViewM, LightP light, PanelGL* panel, CameraP camera, GLuint vboId, QGLShaderProgramP forceShader, GLuint* depthMaps)    {
+        foreach(QString meshName, SunshineUi::activeScene()->meshes()) {
+            MeshP mesh = SunshineUi::activeScene()->mesh(meshName);
+            const int numTriangles = mesh->numTriangles();
+            MaterialP material = mesh->material();
+
+            QMatrix4x4 objToWorld = mesh->objectToWorld();
+            QMatrix4x4 normalToWorld = mesh->normalToWorld();
+
+            QMatrix4x4 samplingOffsetM;
+            samplingOffsetM.ortho(-1,1,-1,1,0,1);
+            //printMatrix(samplingOffsetM);
+            //QMatrix4x4 cameraPVOffset(cameraProjViewM);
+            //cameraPVOffset.translate(sample.x, sample.y);
+
+
+
+            // build the material shader
+            QGLShaderProgramP shader = forceShader;
+            if (forceShader == 0) {
+                //glActiveTexture(GL_TEXTURE0);
+                shader = ShaderFactory::buildMaterialShader(light, material, panel);  checkGL("created material shader");
+                shader->bind(); checkGL("bound material shader");
+                shader->setUniformValue("normalToWorld", normalToWorld);
+                shader->setUniformValue("cameraPos", camera->eye());
+                shader->setUniformValue("cameraPV", cameraProjViewM);
+                shader->setUniformValue("objToWorld", objToWorld);
+                checkGL("set material shader camera uniforms");
+
+                // set uniform constants for light
+                setShaderUniforms(shader, light, light->glslFragmentConstants()); checkGL("set material shader light uniforms");
+
+                if (depthMaps != 0) {
+                    QString depthMapNames[] = { "depthMapP", "depthMapN" };
+                    for (int i = 0; i < 2; i++) {
+                        glActiveTexture(GL_TEXTURE0+i);
+                        glEnable(GL_TEXTURE_2D);
+                        glBindTexture(GL_TEXTURE_2D, depthMaps[i]); checkGL("bind depth texture");
+                        shader->setUniformValue(depthMapNames[i].toStdString().c_str(), i); checkGL("set dm texture uniform");
+                    }
+                    QMatrix4x4 worldToLightM;
+                    worldToLightM.translate(-light->center());
+                    shader->setUniformValue("worldToLight", worldToLightM);
+                }
+            }
+            else
+                shader->setUniformValue("objToLight", cameraProjViewM * objToWorld);
+
+            //shader->setUniformValue("objToLight", objToWorld);
+
+
+            // pack mesh data (vertices, normals, etc.) into VBO
+            packVBO(mesh, numTriangles, vboId, shader); checkGL("packed VBO");
+
+            // render to the framebuffer
+            glBindBuffer(GL_ARRAY_BUFFER, vboId); checkGL("bound VBO");
+            //glBufferData(GL_ARRAY_BUFFER, numTriangles*3*blockSize, vertices, GL_STREAM_DRAW);
+            glDrawArrays(GL_TRIANGLES, 0, numTriangles*3); checkGL("draw arrays");
+            glBindBuffer(GL_ARRAY_BUFFER, 0); checkGL("disable VBO");
+
+            if (forceShader == 0) {
+                shader->release(); checkGL("released mesh shader");
+                if (depthMaps != 0) { // turn off shadow maps
+                    for (int i = 1; i >= 0; i--) {
+                        glActiveTexture(GL_TEXTURE0+i);
+                        glDisable(GL_TEXTURE_2D);
+                    }
+                }
+            }
+        }
+    }
 
     // put stuff into VBO from mesh
     //
@@ -403,23 +577,25 @@ namespace RenderUtil {
         }
 
         // build the mesh VBO based on the required mesh parameters
-        glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*blockSize, vertices, GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, vboId); checkGL("packVBO: glBindBuffer");
+        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*blockSize, vertices, GL_STREAM_DRAW); checkGL("packVBO: glBufferData");
 
         int offset = 0;
         // Tell OpenGL programmable pipeline how to locate vertex position data
-        int vertexLocation = shader->attributeLocation("vertex");
-        shader->enableAttributeArray(vertexLocation);
-        glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, blockSize, (const void *)offset);
+        int vertexLocation = shader->attributeLocation("vertex");  checkGL("packVBO: vertex");
+        shader->enableAttributeArray(vertexLocation);  checkGL("packVBO: enabled attributes");
+        glVertexAttribPointer(vertexLocation, 3, GL_FLOAT, GL_FALSE, blockSize, (const void *)offset);  checkGL("packVBO: pointed at vertex info");
 
         offset += sizeof(Point3);
 
         // Tell OpenGL programmable pipeline how to locate vertex position data
-        int normalLocation = shader->attributeLocation("vertNormal");
-        shader->enableAttributeArray(normalLocation);
-        glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, blockSize, (const void *)offset);
+        int normalLocation = shader->attributeLocation("vertNormal");  checkGL("packVBO: normal");
+        if (normalLocation != -1) {
+            shader->enableAttributeArray(normalLocation); checkGL("packVBO: enabled attributes again");
+            glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, blockSize, (const void *)offset); checkGL("packVBO: pointed at normal info");
+        }
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);  checkGL("packVBO: released array buffer");
 
     }
 
@@ -457,6 +633,9 @@ void setShaderUniforms(QGLShaderProgramP shader, BindableP obj, QList<Attribute>
             else
                 f = attribute->property("value").value<float>();
             shader->setUniformValue(varName.toStdString().c_str(), f);
+        }
+        else if (attribute->type() == "samplerCubeShadow") {
+            // set later
         }
         else {
             std::cerr << "unimplemented uniform type: " << attribute->type() << "(" << varName << ")" << std::endl;

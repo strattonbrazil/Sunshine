@@ -66,8 +66,8 @@ QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float pi
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
-    float zNear = 0.1f;
-    float zFar = 1000.0f;
+    float zNear = 1.0f;
+    float zFar = 100.0f;
 
     float top = tan(camera->fov()*3.14159/360.0) * zNear;
     //float top = tan(fov*0.5) * zNear;

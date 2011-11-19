@@ -18,6 +18,7 @@ public:
     static QGLShaderProgramP buildVertexShader(QObject *parent);
     static QGLShaderProgramP buildPropertyShader(QObject *parent);
     static QGLShaderProgramP buildMaterialShader(LightP light, MaterialP material, QObject *parent);
+    static QGLShaderProgramP buildDistanceShader(QObject *parent);
 };
 
 #endif // SHADER_H

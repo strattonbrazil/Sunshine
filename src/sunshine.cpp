@@ -143,10 +143,13 @@ void Sunshine::setupDefaultCameras()
 
 void Sunshine::setupDefaultMeshes()
 {
-    Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+    MeshP first = Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+    first->setCenter(Point3(0,2,0));
 
     MeshP second = Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.2f, 0.8f, 1.2f));
     second->setCenter(Point3(3,0,0));
+
+    MeshP plane = Mesh::buildByIndex(_scene, primitive::planePrimitive(12,12));
 }
 
 void Sunshine::setupDefaultLights()
@@ -155,6 +158,9 @@ void Sunshine::setupDefaultLights()
     point->setCenter(Point3(0,10,0));
 
     LightP ambient = _scene->createLight("ambient", LightP(new AmbientLight()));
+
+    //LightP spot = _scene->createLight("spot", LightP(new SpotLight()));
+    //spot->orient(Point3(8,4,-8), Point3(0,0,0), Vector3(0,1,0));
 }
 
 void Sunshine::on_renderButton_clicked()

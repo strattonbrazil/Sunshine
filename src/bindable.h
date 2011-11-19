@@ -32,7 +32,7 @@ public:
             if (attribute->property("name").toString() == name)
                 return attribute;
         }
-        std::cerr << "Cannot find attribute: " << name.toStdString() << std::endl;
+        //std::cerr << "Cannot find attribute: " << name.toStdString() << std::endl;
         //throw KeyErrorException();
         return Attribute(0);
     }
