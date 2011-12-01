@@ -105,6 +105,49 @@ QMatrix4x4 Quat4::matrix() {
                       1.0f).transposed();
 }
 
+Box3D::Box3D()
+{
+    _valid = false;
+}
+
+void Box3D::includePoint(QVector3D p)
+{
+    const float EPS = 0.00001;
+    if (_valid) {
+        _min = Point3(std::min(_min.x(), p.x() - EPS),
+                      std::min(_min.y(), p.y() - EPS),
+                      std::min(_min.z(), p.z() - EPS));
+        _max = Point3(std::max(_max.x(), p.x() + EPS),
+                      std::max(_max.y(), p.y() + EPS),
+                      std::max(_max.z(), p.z() + EPS));
+    } else {
+        _min = Point3(p.x() - EPS,
+                      p.y() - EPS,
+                      p.z() - EPS);
+        _max = Point3(p.x() + EPS,
+                      p.y() + EPS,
+                      p.z() + EPS);
+        _valid = true;
+    }
+}
+
+void Box3D::includeBox(Box3D b)
+{
+    if (_valid) {
+        _min = Point3(std::min(_min.x(), b.min().x()),
+                      std::min(_min.y(), b.min().y()),
+                      std::min(_min.z(), b.min().z()));
+        _max = Point3(std::max(_max.x(), b.max().x()),
+                      std::max(_max.y(), b.max().y()),
+                      std::max(_max.z(), b.max().z()));
+    } else {
+        _min = b.min();
+        _max = b.max();
+        _valid = true;
+    }
+
+}
+
 #include "light.h"
 
 
@@ -127,6 +170,16 @@ void printVector3(Vector3 v)
 void printQuat(QQuaternion q)
 {
     printf("<%f,%f,%f,%f>\n", q.x(), q.y(), q.z(), q.scalar());
+    fflush(stdout);
+}
+
+void printBox3D(Box3D box)
+{
+    Point3 min = box.min();
+    Point3 max = box.max();
+    printf("<%f,%f,%f> to <%f,%f,%f>\n",
+           min.x(), min.y(), min.z(),
+           max.x(), max.y(), max.z());
     fflush(stdout);
 }
 

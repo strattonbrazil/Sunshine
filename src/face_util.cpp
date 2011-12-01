@@ -2,7 +2,7 @@
 #include "sunshine.h"
 
 namespace FaceUtil {
-    FaceHit closestFace(SceneP scene, Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes)
+    FaceHit closestFace(Scene* scene, Point3 rayOrig, Vector3 rayDir, bool onlySelectedMeshes)
     {
         // taken from Fast, Minimum Storage Ray/Triangle Intersection by Moeller et al.
         FaceHit faceHit;
@@ -11,15 +11,15 @@ namespace FaceUtil {
 
         // render all the meshes
         foreach (QString meshName, scene->meshes()) {
-            MeshP mesh = scene->mesh(meshName);
+            Mesh* mesh = scene->mesh(meshName);
             if (!mesh->isSelected() && onlySelectedMeshes)
                 continue;
 
             QMatrix4x4 objectToWorld = mesh->objectToWorld();
-            QHashIterator<int,FaceP> i = mesh->faces();
+            QHashIterator<int,Face*> i = mesh->faces();
             while (i.hasNext()) {
                 i.next();
-                FaceP face = i.value();
+                Face* face = i.value();
                 QListIterator<Triangle> j = face->buildTriangles();
                 while (j.hasNext()) {
                     Triangle triangle = j.next();

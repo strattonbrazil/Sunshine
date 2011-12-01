@@ -1,26 +1,32 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include <QSharedPointer>
 #include <QColor>
 #include <QStandardItemModel>
 #include "attribute_editor.h"
 
-class Material
+class Material : public Bindable
 {
+    Q_OBJECT
 public:
+    // maybe move to a factory class later
+    static QList<QString> materialTypes();
+    static Material* buildByType(QString type);
+
     //virtual MaterialAttributesP attributes() { return _attributes; }
-    BindableP constantAttributes() { return _constantAttributes; }
-    BindableP vertexAttributes() { return _vertexAttributes; }
+    virtual QList<Attribute> glslFragmentConstants();// { return constantAttributes; }
+    //Bindable* vertexAttributes() { return _vertexAttributes; }
     virtual QString glslFragmentCode() = 0;
+    int assetType() { return AssetType::MATERIAL_ASSET; }
+
 protected:
-    BindableP _constantAttributes;
-    BindableP _vertexAttributes;
+    //Bindable* constantAttributes;
+    //Bindable* _vertexAttributes;
 };
-typedef QSharedPointer<Material> MaterialP;
 
 class ShaderTreeModel : public QStandardItemModel
 {
+    Q_OBJECT
 public:
     ShaderTreeModel();
     Qt::ItemFlags flags(const QModelIndex &index) const;

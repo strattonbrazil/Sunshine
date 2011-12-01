@@ -17,44 +17,40 @@ class Edge;
 class Face;
 class Mesh;
 class Scene;
-typedef boost::shared_ptr<Scene> SceneP;
-typedef QSharedPointer<Vertex> VertexP;
-typedef QSharedPointer<Edge> EdgeP;
-typedef QSharedPointer<Face> FaceP;
-typedef QSharedPointer<Mesh> MeshP;
 
 #include "scene.h"
 
 class Mesh : public Transformable
 {
+    Q_OBJECT
 public:
-                                 Mesh() : Transformable() {}
-                                 Mesh(SceneP scene, QString name);
-                                 Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces);
-    static MeshP                 buildByIndex(SceneP scene, PrimitiveParts parts);
+
+                                 Mesh();
+                                 Mesh(QHash<int,Vertex*> vertices, QHash<int,Edge*> edges, QHash<int,Face*> faces);
+    int                          assetType() { return AssetType::MESH_ASSET; }
+    static Mesh*                 buildByIndex(PrimitiveParts parts);
     const int                    numTriangles();
     const int                    numVertices() { return _vertices.size(); }
-    FaceP                        face(int key) { return _faces[key]; }
-    EdgeP                        edge(int key) { return _edges[key]; }
-    VertexP                      vert(int key) { return _vertices[key]; }
-    QString                      name() { return _name; }
+    Face*                        face(int key) { return _faces[key]; }
+    Edge*                        edge(int key) { return _edges[key]; }
+    Vertex*                      vert(int key) { return _vertices[key]; }
     void                         computeEdgePairs();
-    QHashIterator<int,FaceP>     faces() { return QHashIterator<int,FaceP>(_faces); }
-    QHashIterator<int,VertexP>   vertices() { return QHashIterator<int,VertexP>(_vertices); }
-    MaterialP                    material();
+    QHashIterator<int,Face*>     faces() { return QHashIterator<int,Face*>(_faces); }
+    QHashIterator<int,Vertex*>   vertices() { return QHashIterator<int,Vertex*>(_vertices); }
+    Material*                    material();
+    void                         setMaterial(Material* material);
     void                         validateNormals();
     bool                         isSelected() { return _selected; }
     void                         setSelected(bool s) { _selected = s; }
     QMatrix4x4                   normalToWorld();
+    Box3D                        worldBounds();
 private:
-    QString                      _name;
-    QHash<int,VertexP>           _vertices;
-    QHash<int,EdgeP>             _edges;
-    QHash<int,FaceP>             _faces;
+    QHash<int,Vertex*>           _vertices;
+    QHash<int,Edge*>             _edges;
+    QHash<int,Face*>             _faces;
     bool                         _validNormals;
     bool                         _selected;
-    SceneP                       _scene;
-    MaterialP                    _material;
+    Material*                    _material;
     Q_DISABLE_COPY(Mesh)
     //QHash<QString,QHash<QPoint,QVariantList> > _faceVertAttributes;
 };
@@ -62,16 +58,16 @@ private:
 class Vertex
 {
 public:
-                          Vertex(MeshP mesh, int key, Point3 point);
-    EdgeP                 edge() { return _mesh->edge(_edgeKey); }
-    void                  setEdge(EdgeP e);
+                          Vertex(Mesh* mesh, int key, Point3 point);
+    Edge*                 edge() { return _mesh->edge(_edgeKey); }
+    void                  setEdge(Edge* e);
     int                   key() { return _key; }
     Point3                pos() { return _point; }
     void                  setPos(Point3 p) { _point = p; }
     bool                  isSelected() { return _selected; }
     void                  setSelected(bool s) { _selected = s; }
 private:
-    MeshP                 _mesh;
+    Mesh*                 _mesh;
     int                   _key;
     Point3                _point;
     int                   _edgeKey;
@@ -82,21 +78,21 @@ private:
 class Edge
 {
 public:
-                          Edge(MeshP mesh, int vertexKey, int faceKey, int edgeKey);
+                          Edge(Mesh* mesh, int vertexKey, int faceKey, int edgeKey);
     int                   key() { return _edgeKey; }
-    void                  setNext(EdgeP e) { _nextKey = e->key(); }
-    void                  setPrev(EdgeP e) { _prevKey = e->key(); }
-    void                  setPair(EdgeP e) { _pairKey = e->key(); }
-    EdgeP                 next() { return mesh()->edge(_nextKey); }
-    EdgeP                 prev() { return mesh()->edge(_prevKey); }
-    EdgeP                 pair() { return mesh()->edge(_pairKey); }
-    FaceP                 face() { return mesh()->face(_faceKey); }
-    MeshP                 mesh();// { return Register::mesh(_meshKey); }
-    VertexP               vert() { return mesh()->vert(_vertexKey); }
+    void                  setNext(Edge* e) { _nextKey = e->key(); }
+    void                  setPrev(Edge* e) { _prevKey = e->key(); }
+    void                  setPair(Edge* e) { _pairKey = e->key(); }
+    Edge*                 next() { return mesh()->edge(_nextKey); }
+    Edge*                 prev() { return mesh()->edge(_prevKey); }
+    Edge*                 pair() { return mesh()->edge(_pairKey); }
+    Face*                 face() { return mesh()->face(_faceKey); }
+    Mesh*                 mesh();// { return Register::mesh(_meshKey); }
+    Vertex*               vert() { return mesh()->vert(_vertexKey); }
     Vector3               normal() { return _normal; }
     void                  setNormal(Vector3 n) { _normal = n; }
 private:
-    MeshP                 _mesh;
+    Mesh*                 _mesh;
     int                   _vertexKey;
     int                   _faceKey;
     int                   _edgeKey;
@@ -110,24 +106,24 @@ private:
 class Triangle
 {
 public:
-                          Triangle(EdgeP e1, EdgeP e2, EdgeP e3) : a(e1),b(e2),c(e3) {}
-    EdgeP                 a,b,c;
+                          Triangle(Edge* e1, Edge* e2, Edge* e3) : a(e1),b(e2),c(e3) {}
+    Edge                  *a,*b,*c;
     Point3                screenP[3];
 };
 
 class Face
 {
 public:
-                              Face(MeshP mesh, int faceKey);
+                              Face(Mesh* mesh, int faceKey);
     int                       key() { return _faceKey; }
-    EdgeP                     edge();
-    void                      setEdge(EdgeP e) { _edgeKey = e->key(); }
+    Edge*                     edge();
+    void                      setEdge(Edge* e) { _edgeKey = e->key(); }
     QListIterator<Triangle>   buildTriangles();
     void                      calculateNormal();
     bool                      isSelected() { return _selected; }
     void                      setSelected(bool s) { _selected = s; }
 private:
-    MeshP                     _mesh;
+    Mesh*                     _mesh;
     int                       _faceKey;
     int                       _edgeKey;
     bool                      _selected;

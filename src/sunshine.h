@@ -20,17 +20,18 @@ namespace Ui {
 
 class PanelGL;
 class CursorTool;
-typedef QSharedPointer<CursorTool> CursorToolP;
 
 namespace SunshineUi {
-    SceneP activeScene();
-    CursorToolP cursorTool();
+    Scene* activeScene();
+    CursorTool* cursorTool();
     int workMode();
     int selectMode();
     bool selectOccluded();
-    void updateSceneHierarchy(SceneP scene);
+    void updateSceneHierarchy(Scene* scene);
     void updatePanels();
-    BindableP renderSettings();
+    Bindable* renderSettings();
+    void showBindableAttributes(Bindable* bindable);
+    void selectAsset(QString assetName);
 };
 
 
@@ -44,14 +45,16 @@ public:
     void                       setupDefaultCameras();
     void                       setupDefaultMeshes();
     void                       setupDefaultLights();
-    SceneP                     activeScene() { return _scene; }
-    CursorToolP                cursorTool();
+    Scene*                     activeScene() { return _scene; }
+    CursorTool*                cursorTool();
     int                        workMode();
     int                        selectMode();
     bool                       selectOccluded();
-    void                       updateSceneHierarchy(SceneP scene);
+    void                       updateSceneHierarchy(Scene* scene);
     void                       updatePanels();
-    BindableP                  renderSettings() { return _renderSettings; }
+    Bindable*                  renderSettings() { return _renderSettings; }
+    void                       showBindableAttributes(Bindable* bindable);
+    void                       selectAsset(QString assetName);
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
@@ -66,17 +69,21 @@ private slots:
     void                       on_cursorToolChanged(QAbstractButton*);
     void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
     void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
+
+    void                       createPointLight();
+    void                       createCube();
+    void                       createPlane();
 private:
     QList<PanelGL*>                   _panels;
     QButtonGroup*                     _cursorButtonGroup;
-    QHash<QToolButton*,CursorToolP>   _cursorTools;
+    QHash<QToolButton*,CursorTool*>   _cursorTools;
     void                              updateMode();
     Ui::Sunshine*                     ui;
-    SceneP                            _scene;
+    Scene*                            _scene;
     RenderWidget*                     _renderWidget;
     SettingsWidget*                   _renderSettingsWidget;
     AttributeEditor*                  _propertyEditorModel;
-    BindableP                         _renderSettings;
+    Bindable*                         _renderSettings;
 };
 
 #endif // SUNSHINE_H

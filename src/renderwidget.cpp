@@ -28,7 +28,7 @@ RenderSettings::RenderSettings()
 {
     QString xres("{ 'var' : 'xres', 'name' : 'Image Width', 'type' : 'int', 'min' : 1, 'max' : 4096, 'value' : 1024 }");
     QString yres("{ 'var' : 'yres', 'name' : 'Image Height', 'type' : 'int', 'min' : 1, 'max' : 4096, 'value' : 768 }");
-    QString samplingWidth("{ 'var' : 'samplingWidth', 'name' : 'Sampling Width', 'type' : 'float', 'min' : 1, 'max' : 8, 'value' : 1 }");
+    QString samplingWidth("{ 'var' : 'samplingWidth', 'name' : 'Sampling Width', 'type' : 'float', 'min' : 1, 'max' : 8, 'value' : 3 }");
     QString exposure("{ 'var' : 'exposure', 'name' : 'Exposure', 'type' : 'float', 'min' : 0.001, 'max' : 1000, 'value' : 1.0 }");
 
     QStringList atts;

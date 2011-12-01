@@ -8,17 +8,15 @@
 
 //using namespace std;
 
-typedef QSharedPointer<QGLShaderProgram> QGLShaderProgramP;
-
 class ShaderFactory
 {
 public:
-    static QGLShaderProgramP buildFlatShader(QObject *parent);
-    static QGLShaderProgramP buildMeshShader(QObject *parent);
-    static QGLShaderProgramP buildVertexShader(QObject *parent);
-    static QGLShaderProgramP buildPropertyShader(QObject *parent);
-    static QGLShaderProgramP buildMaterialShader(LightP light, MaterialP material, QObject *parent);
-    static QGLShaderProgramP buildDistanceShader(QObject *parent);
+    static QGLShaderProgram* buildFlatShader(QObject* parent);
+    static QGLShaderProgram* buildMeshShader(QObject* parent);
+    static QGLShaderProgram* buildVertexShader(QObject *parent);
+    static QGLShaderProgram* buildPropertyShader(QObject *parent);
+    static QGLShaderProgram* buildMaterialShader(Light* light, Material* material, QObject* parent);
+    static QGLShaderProgram* buildDistanceShader(QObject* parent);
 };
 
 #endif // SHADER_H

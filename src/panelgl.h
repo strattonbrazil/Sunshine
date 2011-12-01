@@ -18,10 +18,9 @@ class Triangle;
 class PanelGL;
 class Sunshine;
 class WorkTool;
-typedef QSharedPointer<WorkTool> WorkToolP;
 
 //class BasicSelect;
-//typedef QSharedPointer<BasicSelect> BasicSelectP;
+//typedef QSharedPointer<BasicSelect> BasicSelect*;
 
 class MeshRenderer
 {
@@ -30,7 +29,7 @@ public:
     void                  render(PanelGL* panel);
     void                  renderFaces(PanelGL* panel);
     void                  renderVertices(PanelGL* panel);
-    void                  loadVBOs(PanelGL* panel, MeshP mesh);
+    void                  loadVBOs(PanelGL* panel, Mesh* mesh);
 private:
     QString                   _meshName;
     bool                  _validVBOs;
@@ -55,7 +54,7 @@ class PanelGL : public QGLWidget
 {
     Q_OBJECT
 public:
-                             PanelGL(SceneP scene, Sunshine* sunshine);
+                             PanelGL(Scene* scene, Sunshine* sunshine);
                              PanelGL(const PanelGL &panel);
     void             	     initializeGL();
     void               	     paintGL();
@@ -63,31 +62,33 @@ public:
     void 	             resizeGL(int width, int height);
     void                     initFBO(int width, int height);
     QGLFormat                defaultFormat();
-    QGLShaderProgramP        getFlatShader() { return _flatShader; }
-    QGLShaderProgramP        getMeshShader() { return _meshShader; }
-    QGLShaderProgramP        getVertexShader() { return _vertexShader; }
-    CameraP                  camera() const { return _camera; }
+    QGLShaderProgram*        getFlatShader() { return _flatShader; }
+    QGLShaderProgram*        getMeshShader() { return _meshShader; }
+    QGLShaderProgram*        getVertexShader() { return _vertexShader; }
+    Camera*                  camera() const { return _camera; }
     void                     enterEvent(QEvent *);
     void                     mousePressEvent(QMouseEvent* event);
     void                     mouseDoubleClickEvent(QMouseEvent *);
     void                     mouseReleaseEvent(QMouseEvent* event);
     void                     mouseMoveEvent(QMouseEvent* event);
     void                     mouseDragEvent(QMouseEvent* event);
+    void                     keyReleaseEvent(QKeyEvent* event);
     Point3                   project(Point3 p);
     Point3                   unproject(Point3 p);
     Vector3                  computeRayDirection(QPoint p);
-    SceneP                   scene() const { return _scene; }
+    Scene*                   scene() const { return _scene; }
     Sunshine*                sunshine() const { return _sunshine; }
     void                     showContextMenu(QMouseEvent* event);
     QPoint                   centerMouse(bool mock);
     void                     setArrowCursor();
     void                     setBlankCursor();
     void                     renderBeautyPass();
+    void                     frameSelection();
 
     // for preselection
-    MeshP                    _hoverMesh;
-    FaceP                    _hoverFace;
-    VertexP                  _hoverVert;
+    Mesh*                    _hoverMesh;
+    Face*                    _hoverFace;
+    Vertex*                  _hoverVert;
     MeshGrid                 _meshGrid;
 
 public slots:
@@ -98,20 +99,22 @@ private:
     void                     ravageMouse();
     void                     buildMeshGrid();
     void                     renderWorkPass();
-    bool                     _ravagingMouse;
+    void                     renderLights();
     bool                     _validShaders;
     QVector<GLubyte>         _selectionBuffer;
     GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
     bool                     _validSelectionBuffer;
-    CameraP                  _camera;
-    QGLShaderProgramP        _flatShader;
-    QGLShaderProgramP        _meshShader;
-    QGLShaderProgramP        _vertexShader;
+    Camera*                  _camera;
+    QGLShaderProgram*        _flatShader;
+    QGLShaderProgram*        _meshShader;
+    QGLShaderProgram*        _vertexShader;
     QHash<QString,MeshRendererP> _meshRenderers;
-    SceneP                   _scene;
+    Scene*                   _scene;
     WorkTool*                _workTool;
-    //BasicSelectP             _basicSelect;
+    //BasicSelect*             _basicSelect;
     Sunshine*                _sunshine;
+
+    GLuint                   _pointLightTexture;
 };
 
 struct LineSegment {

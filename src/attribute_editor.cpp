@@ -12,7 +12,7 @@ AttributeEditor::AttributeEditor(QWidget *parent) :
 
 }
 
-void AttributeEditor::update(BindableP instance)
+void AttributeEditor::update(Bindable* instance)
 {
     _instance = instance;
     clear();

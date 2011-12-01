@@ -2,7 +2,6 @@
 #define CURSOR_TOOLS_H
 
 #include <QIcon>
-#include <QSharedPointer>
 #include <QString>
 #include <QMouseEvent>
 #include <QWidgetAction>
@@ -29,7 +28,7 @@ public:
     virtual void preDrawOverlay(PanelGL* panel) {}
     virtual void postDrawOverlay(PanelGL* panel) {}
     virtual void updateMenu(QMenu* menu) {}
-    virtual int drawSettings(PanelGL* panel, MeshP mesh) {
+    virtual int drawSettings(PanelGL* panel, Mesh* mesh) {
         int workMode = SunshineUi::workMode();
         if (workMode == WorkMode::OBJECT) {
             if (mesh->isSelected() && panel->_hoverMesh == mesh) { // any mode
@@ -40,7 +39,7 @@ public:
             // if there's a mesh selected, see if hovering over anything
             bool someMeshSelected = FALSE;
             foreach(QString meshName, panel->scene()->meshes()) {
-                MeshP m = panel->scene()->mesh(meshName);
+                Mesh* m = panel->scene()->mesh(meshName);
                 /*
                 if (mesh->isSelected() && panel->_hoverMesh == mesh) {
                     if (panel->_hoverVert != 0) return DrawSettings::DRAW_VERTICES | DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::CULL_BORING_VERTICES  | DrawSettings::HIGHLIGHT_VERTICES;
@@ -71,8 +70,9 @@ public:
             return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::USE_OBJECT_COLOR;
         }
     }
+protected:
+    BasicSelect _basicSelect;
 };
-typedef QSharedPointer<CursorTool> CursorToolP;
 
 class WorkModeAction : public QWidgetAction
 {
@@ -89,9 +89,6 @@ public:
 class PointTool : public CursorTool
 {
 public:
-    PointTool() {
-        _basicSelect = BasicSelectP(new BasicSelect());
-    }
     QIcon icon() { return QIcon(":/icons/point_tool.png"); }
     QString label() { return "Cursor"; }
 
@@ -104,12 +101,11 @@ public:
         //menu->addAction(new WorkModeAction(menu));
         //menu->addAction(QIcon(":/icons/object_work_mode.png"), "other");
     }
-private:
-    BasicSelectP _basicSelect;
 };
 
 class EditTool : public CursorTool
 {
+public:
     QIcon icon() { return QIcon(":/icons/edit_tool.png"); }
     QString label() { return "Edit"; }
     int drawSettings() { return DrawSettings::DRAW_VERTICES | DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES; }
@@ -126,7 +122,7 @@ public:
     void mouseReleased(PanelGL *panel, QMouseEvent *event);
 private:
     void updateWorkspacePlane();
-    MeshP _plane;
+    Mesh* _plane;
     Point3 _pick;
     Point3 _current;
 };

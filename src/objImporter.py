@@ -1,14 +1,20 @@
+from PythonQt import *
 #from meshImporter import *
-from primitive import PrimitiveParts
-from util import Point3,Vector3
-from geometry import Mesh
-from scene import Scene
+
+from PythonQt.primitives import PrimitiveParts
+from PythonQt.geometry import Mesh
+#from util import Point3,Vector3
+#from geometry import Mesh
+#from scene import Scene
+
+
+from PythonQt.QtGui import QVector3D
+
 
 class ObjImporter(MeshImporter):
     def extension(self):
         return '.obj'
     def importFile(self, scene, fileName):
-        print('Importing mesh: %s' % fileName)
         def newGroup(name='default'):
             return {'name' : name,
                     'vertices' : [],
@@ -30,17 +36,26 @@ class ObjImporter(MeshImporter):
 #                else:
 #                    groups.append(newGroup('default'))
             elif tokens[0] == 'v':
-                group['vertices'].append(Point3(float(tokens[1]),float(tokens[2]),float(tokens[3])))
+                group['vertices'].append(QVector3D(float(tokens[1]),float(tokens[2]),float(tokens[3])))
             elif tokens[0] == 'vn':
-                group['normals'].append(Vector3(float(tokens[1]),float(tokens[2]),float(tokens[3])))
+                group['normals'].append(QVector3D(float(tokens[1]),float(tokens[2]),float(tokens[3])))
             elif tokens[0] == 'f':
                 group['faces'].append(map(lambda token: int(token.split('/')[0])-1, tokens[1:]))
         f.close()
 
         parts = PrimitiveParts()
-        parts.points = group['vertices']
-        parts.faces = group['faces']
+        parts.setNumVertices(len(group['vertices']))
+        for i,point in enumerate(group['vertices']):
+            parts.setVertex(i,point)
+#        parts.setPoints(group['vertices'])
 
-        Mesh.buildByIndex(scene, parts)
+        parts.setNumFaces(len(group['faces']))
+        for i,face in enumerate(group['faces']):
+            parts.setFace(i,face)
+#        parts.setFaces(group['faces'])
+
+        mesh = Mesh.buildByIndex(parts)
+        scene.addAsset(mesh)
 
 MeshImporter.register(ObjImporter())
+

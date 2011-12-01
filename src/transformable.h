@@ -22,6 +22,7 @@ public:
     void               resetLook();
     void               updateLook();
     void               orient(Point3 eye, Point3 reference, Vector3 up);
+    float              distance() { return _distance; }
 
     Q_INVOKABLE QVector3D           center() { return _center; }
     Q_INVOKABLE void               setCenter(QVector3D c) { _center = c; }
@@ -56,8 +57,8 @@ public:
         float theta1 =*/
         _rotate = r; resetLook();
     }
-    Vector3            scale() { return _scale; }
-    void               setScale(Vector3 s) { _scale = s; }
+    Q_INVOKABLE QVector3D            scale() { return _scale; }
+    Q_INVOKABLE void               setScale(QVector3D s) { _scale = s; }
 
     Point3             centerReference() { return _centerReference; }
     void               setCenterReference(Point3 c) { _centerReference = c; }

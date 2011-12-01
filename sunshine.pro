@@ -12,6 +12,7 @@ QT += opengl script
 LIBS += -lGLEW
 LIBS += -laqsis_core
 LIBS += -lboost_python
+LIBS += -lPythonQt
 #LIBS += -lCGAL
 #LIBS += -lCGAL_Core
 #LIBS += -lCGAL_PDB
@@ -46,7 +47,9 @@ HEADERS += src/camera.h \
     src/material.h \
     src/light.h \
     src/transformable.h \
-    src/bindable.h
+    src/bindable.h \
+    src/com_trolltech_qt_gui10.h \
+    src/menu_tools.h
 FORMS += src/sunshine.ui \
     src/renderwidget.ui
 SOURCES += src/camera.cpp \
@@ -77,10 +80,22 @@ SOURCES += src/camera.cpp \
     src/material.cpp \
     src/light.cpp \
     src/transformable.cpp \
-    src/bindable.cpp
+    src/bindable.cpp \
+    src/com_trolltech_qt_gui10.cpp \
+    src/cursor_tools/point_tool.cpp \
+    src/cursor_tools/translate_tool.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc \
     src/textures.qrc
+
+
+
+
+
+
+
+
+
 
 
 

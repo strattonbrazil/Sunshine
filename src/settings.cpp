@@ -20,7 +20,7 @@ SettingsWidget::SettingsWidget()
     /*
     Bindable* bindable = new Bindable();
     bindable->addAttributes(atts);
-    _instance = BindableP(bindable);
+    _instance = Bindable*(bindable);
 
     _editor = new AttributeEditor(this);
     _editor->update(_instance);

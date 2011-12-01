@@ -61,7 +61,7 @@
 "  }\n" \
 "}\n"
 
-QGLShaderProgramP ShaderFactory::buildFlatShader(QObject *parent)
+QGLShaderProgram* ShaderFactory::buildFlatShader(QObject *parent)
 {
     QString vertSource("in vec3 vertex;\n" \
                        "in vec4 color;\n" \
@@ -85,7 +85,7 @@ QGLShaderProgramP ShaderFactory::buildFlatShader(QObject *parent)
     QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
     fragShader->compileSourceCode(fragSource);
 
-    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
     program->addShader(fragShader);
 
@@ -97,7 +97,7 @@ QGLShaderProgramP ShaderFactory::buildFlatShader(QObject *parent)
     return program;
 }
 
-QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
+QGLShaderProgram* ShaderFactory::buildMeshShader(QObject *parent)
 {
     QString vertSource("#version 120\n" \
                        "#extension GL_EXT_gpu_shader4 : enable\n" \
@@ -217,7 +217,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
     QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
     fragShader->compileSourceCode(fragSource);
 
-    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
     program->addShader(geomShader);
     program->addShader(fragShader);
@@ -225,7 +225,7 @@ QGLShaderProgramP ShaderFactory::buildMeshShader(QObject *parent)
     return program;
 }
 
-QGLShaderProgramP ShaderFactory::buildVertexShader(QObject *parent)
+QGLShaderProgram* ShaderFactory::buildVertexShader(QObject *parent)
 {
     QString vertSource("#version 130\n" \
                        "in vec3 vertex;\n" \
@@ -257,7 +257,7 @@ QGLShaderProgramP ShaderFactory::buildVertexShader(QObject *parent)
     //QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
     //fragShader->compileSourceCode(fragSource);
 
-    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
     //program->addShader(fragShader);
 
@@ -266,7 +266,7 @@ QGLShaderProgramP ShaderFactory::buildVertexShader(QObject *parent)
     return program;
 }
 
-QGLShaderProgramP ShaderFactory::buildPropertyShader(QObject *parent)
+QGLShaderProgram* ShaderFactory::buildPropertyShader(QObject *parent)
 {
     QString vertSource("in vec3 vertex;\n" \
                        "in vec4 color;\n" \
@@ -288,7 +288,7 @@ QGLShaderProgramP ShaderFactory::buildPropertyShader(QObject *parent)
     QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
     fragShader->compileSourceCode(fragSource);
 
-    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
     program->addShader(fragShader);
 
@@ -300,7 +300,7 @@ QGLShaderProgramP ShaderFactory::buildPropertyShader(QObject *parent)
     return program;
 }
 
-QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP material, QObject *parent)
+QGLShaderProgram* ShaderFactory::buildMaterialShader(Light* light, Material* material, QObject *parent)
 {
     QHash<QString,QString> typeToGL;
     typeToGL["color"] = "vec3";
@@ -336,7 +336,7 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     fragSource += "#define zShadowFar 100.0\n";
 
     //for (int i = 0; i < material->constantAttributes()->attributeCount(); i++) {
-    foreach(Attribute attribute, material->constantAttributes()->attributes()) {
+    foreach(Attribute attribute, material->glslFragmentConstants()) {
         //Attribute attribute = material->constantAttributes()->at(i);
         QString type = typeToGL[attribute->property("type").toString()];
         QString var = attribute->property("var").toString();
@@ -366,7 +366,7 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
     QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
     fragShader->compileSourceCode(fragSource);
 
-    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
     program->addShader(fragShader);
 
@@ -387,7 +387,7 @@ QGLShaderProgramP ShaderFactory::buildMaterialShader(LightP light, MaterialP mat
 }
 
 
-QGLShaderProgramP ShaderFactory::buildDistanceShader(QObject *parent)
+QGLShaderProgram* ShaderFactory::buildDistanceShader(QObject *parent)
 {
     QString vertSource("#define zShadowNear 0.1\n" \
                        "#define zShadowFar 100.0\n" \
@@ -429,7 +429,7 @@ QGLShaderProgramP ShaderFactory::buildDistanceShader(QObject *parent)
     //QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
     //fragShader->compileSourceCode(fragSource);
 
-    QGLShaderProgramP program = QGLShaderProgramP(new QGLShaderProgram(parent));
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
     program->addShader(vertShader);
     //program->addShader(fragShader);
 

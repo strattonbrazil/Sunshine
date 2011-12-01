@@ -13,17 +13,17 @@ class AttributeEditor : public QStandardItemModel
 {
     Q_OBJECT
 public:
-    explicit AttributeEditor(QWidget *parent = 0);
-    void update(BindableP instance);
+    explicit AttributeEditor(QWidget* parent = 0);
+    void update(Bindable* instance);
     Qt::ItemFlags flags(const QModelIndex &index) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role);
     Attribute attribute(QString name) { return _instance->attributeByName(name); }
-    BindableP instance() { return _instance; }
+    Bindable* instance() { return _instance; }
 signals:
 
 public slots:
 private:
-    BindableP _instance;
+    Bindable* _instance;
 };
 
 #include <QSpinBox>

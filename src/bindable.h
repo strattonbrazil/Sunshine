@@ -3,10 +3,10 @@
 
 #include <QObject>
 #include <QVariant>
-#include <QSharedPointer>
 
 #include <iostream>
 #include "exceptions.h"
+#include "util.h"
 
 class AttributeObject : public QObject
 { // convenience class for pulling out properties
@@ -16,13 +16,14 @@ public:
     bool event(QEvent* event);
     //QVariant getter(EntityP entity);
 };
-typedef QSharedPointer<AttributeObject> Attribute;
+typedef AttributeObject* Attribute;
 
 class Bindable : public QObject
 {
     Q_OBJECT
 public:
     explicit Bindable(QObject *parent = 0);
+    virtual int assetType() { return AssetType::NULL_ASSET; }
     void addAttributes(QStringList attributes);
 
     //int numAttributes() const { return this->size(); }
@@ -57,18 +58,16 @@ protected:
     QList<Attribute> _attributes;
     void removeAttribute(Attribute attribute) { _attributes.removeOne(attribute); }
 };
-typedef QSharedPointer<Bindable> BindableP;
 
 #include <typeinfo>
 
 template <class T>
-T getBoundValue(BindableP bindable, Attribute attribute) {
+T getBoundValue(Bindable* bindable, Attribute attribute) {
   T result;
 
   QString funcName = attribute->property("getter").toString();
 
-  Bindable *bindableRef = bindable.data();
-  QObject* obj = qobject_cast<QObject*>(bindableRef);
+  QObject* obj = qobject_cast<QObject*>(bindable);
 
   // only works on types registered using qMetaTypeRegister
   const int typeId = qMetaTypeId<T>();
@@ -84,11 +83,9 @@ T getBoundValue(BindableP bindable, Attribute attribute) {
 }
 
 template <class T>
-void setBoundValue(BindableP bindable, Attribute attribute, T inValue) {
+void setBoundValue(Bindable* bindable, Attribute attribute, T inValue) {
     QString funcName = attribute->property("setter").toString();
-
-    Bindable *bindableRef = bindable.data();
-    QObject* obj = qobject_cast<QObject*>(bindableRef);
+    QObject* obj = qobject_cast<QObject*>(bindable);
 
     // only works on types registered using qMetaTypeRegister
     const int typeId = qMetaTypeId<T>();

@@ -47,6 +47,24 @@ public:
     QMatrix4x4          matrix();
 };
 
+class Box3D
+{
+public:
+    Box3D();
+    void includePoint(QVector3D p);
+    void includeBox(Box3D b);
+    Point3 min() { return _min; }
+    Point3 max() { return _max; }
+    bool isValid() { return _valid; }
+    Point3 midpoint() { return Point3(0.5 * (_min.x() + _max.x()),
+                                      0.5 * (_min.y() + _max.y()),
+                                      0.5 * (_min.z() + _max.z())); }
+private:
+    Point3 _min;
+    Point3 _max;
+    bool _valid;
+};
+
 namespace RotateOrder {
     enum { XYZ, YZX, ZXY, XZY, YXZ, ZYX };
 }
@@ -110,6 +128,7 @@ typedef QSharedPointer<Entity> EntityP;
 void printMatrix(QMatrix4x4 m);
 void printVector3(Vector3 v);
 void printQuat(QQuaternion q);
+void printBox3D(Box3D box);
 
 const QVector4D SELECTED_COLOR(1,0,1,1);
 const QVector4D SELECTED_HOVER_COLOR(1,1,0,1);
@@ -145,5 +164,11 @@ namespace DrawSettings {
 namespace PlaneUtil {
     float intersect(Vector3 planeNormal, Point3 planeOrig, Vector3 rayDir, Point3 rayOrig);
 }
+
+namespace AssetType {
+    enum {
+        NULL_ASSET, MESH_ASSET, CAMERA_ASSET, MATERIAL_ASSET, LIGHT_ASSET
+    };
+};
 
 #endif // UTIL_H

@@ -8,7 +8,20 @@ bool TranslateTransformable::isViewable(PanelGL* panel)
 QList<ContextAction*> TranslateTransformable::actions()
 {
     QList <ContextAction*> actions;
-    actions << new ContextAction(".Move.", 0, this);
+
+    Scene* scene = SunshineUi::activeScene();
+    bool hasMeshSelected = false;
+    foreach(QString meshName, scene->meshes()) {
+        hasMeshSelected = hasMeshSelected | scene->mesh(meshName)->isSelected();
+    }
+    if (!hasMeshSelected)
+        return actions;
+
+
+    if (SunshineUi::workMode() == WorkMode::OBJECT) {
+        actions << new ContextAction(".Move.", 0, this);
+    }
+
     return actions;
 }
 
@@ -36,7 +49,7 @@ bool TranslateTransformable::init(PanelGL* inPanel, QString command, int button)
 
     // save off object positions
     foreach(QString meshName, panel->scene()->meshes()) {
-        MeshP mesh = panel->scene()->mesh(meshName);
+        Mesh* mesh = panel->scene()->mesh(meshName);
 
         if (mesh->isSelected())
             mesh->setCenterReference(mesh->center());
@@ -60,7 +73,7 @@ void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
         direction = direction * xDiff * scale;
 
         foreach(QString meshName, panel->scene()->meshes()) {
-            MeshP mesh = panel->scene()->mesh(meshName);
+            Mesh* mesh = panel->scene()->mesh(meshName);
 
             if (mesh->isSelected())
                 mesh->setCenter(mesh->centerReference() + direction);
@@ -72,7 +85,7 @@ void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
 void TranslateTransformable::cancel(QMouseEvent* event) {
     // restore objects to reference positions
     foreach(QString meshName, panel->scene()->meshes()) {
-        MeshP mesh = panel->scene()->mesh(meshName);
+        Mesh* mesh = panel->scene()->mesh(meshName);
 
         if (mesh->isSelected())
             mesh->setCenter(mesh->centerReference());
@@ -114,11 +127,11 @@ bool RotateTransformable::init(PanelGL* inPanel, QString command, int button) {
     xDiff = 0;
 
     // save off object positions
-    QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
+    QHashIterator<int,Mesh*> meshes = panel->scene()->meshes();
     while (meshes.hasNext()) {
         meshes.next();
         int meshKey = meshes.key();
-        MeshP mesh = meshes.value();
+        Mesh* mesh = meshes.value();
 
         if (mesh->isSelected())
             mesh->setRotateReference(mesh->rotate());
@@ -140,11 +153,11 @@ void RotateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
         else if (axis == Axis::GlobalY) direction = Vector3(0,1,0);
         else if (axis == Axis::GlobalZ) direction = Vector3(0,0,1);
         direction = direction * xDiff * scale;
-        QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
+        QHashIterator<int,Mesh*> meshes = panel->scene()->meshes();
         while (meshes.hasNext()) {
             meshes.next();
             int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+            Mesh* mesh = meshes.value();
 
             if (mesh->isSelected())
                 mesh->setCenter(mesh->centerReference() + direction);
@@ -155,11 +168,11 @@ void RotateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
 
 void RotateTransformable::cancel(QMouseEvent* event) {
     // restore objects to reference positions
-    QHashIterator<int,MeshP> meshes = panel->scene()->meshes();
+    QHashIterator<int,Mesh*> meshes = panel->scene()->meshes();
     while (meshes.hasNext()) {
         meshes.next();
         int meshKey = meshes.key();
-        MeshP mesh = meshes.value();
+        Mesh* mesh = meshes.value();
 
         if (mesh->isSelected())
             mesh->setCenter(mesh->centerReference());

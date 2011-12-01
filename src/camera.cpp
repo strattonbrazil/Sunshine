@@ -12,7 +12,7 @@ Point3 origEye;
 Vector3 origUp;
 Vector3 origLeft;
 
-Camera::Camera(QString name) : Transformable(), name(name)
+Camera::Camera()// : Transformable()
 {
     resetLook();
     _center = Point3(10.0,6.0,10.0);
@@ -33,7 +33,7 @@ Vector3 Camera::lookDir() { return _rotate.rotatedVector(Vector3(0,0,_distance))
 Vector3 Camera::leftDir() { return Vector3::crossProduct(upDir(), lookDir()).normalized(); }
 */
 
-QMatrix4x4 Camera::getViewMatrix(CameraP camera, int width, int height)
+QMatrix4x4 Camera::getViewMatrix(Camera* camera, int width, int height)
 {
     QMatrix4x4 m;
     m.lookAt(camera->eye(), camera->lookat(), camera->upDir());
@@ -41,7 +41,7 @@ QMatrix4x4 Camera::getViewMatrix(CameraP camera, int width, int height)
 }
 
 /*
-QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float dx, float dy)
+QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float dx, float dy)
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
@@ -62,7 +62,7 @@ QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float dx
 }
 */
 
-QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float pixdx, float pixdy)
+QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float pixdx, float pixdy)
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
@@ -93,7 +93,7 @@ QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float pi
 }
 
 /*
-QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float offsetX, float offsetY)
+QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float offsetX, float offsetY)
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
@@ -123,7 +123,7 @@ QMatrix4x4 Camera::getProjMatrix(CameraP camera, int width, int height, float of
 void Camera::lookTransform(RtMatrix &t)
 {
     /*
-    QMatrix4x4 m = getViewMatrix(CameraP(this), -1, -1);
+    QMatrix4x4 m = getViewMatrix(Camera*(this), -1, -1);
     for (int i = 0; i < 4; i++) {
         QVector4D row = m.row(i);
         t[0][i] = row.x();

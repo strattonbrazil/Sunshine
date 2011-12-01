@@ -6,12 +6,12 @@
 namespace VertexUtil {
     class VertexHit {
     public:
-        VertexP vertex;
-        MeshP mesh;
+        Vertex* vertex;
+        Mesh* mesh;
     };
 
     //VertexHit closestVertex(PanelGL* panel, QMouseEvent* event, bool onlySelectedMeshes);
-    //VertexP closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, MeshP mesh, FaceP face);
+    //Vertex* closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, Mesh* mesh, Face* face);
     VertexHit closestVertex(PanelGL* panel, QMouseEvent* event, bool onlySelectedMeshes);
 };
 

@@ -32,7 +32,7 @@ namespace VertexUtil {
             FaceUtil::FaceHit faceHit = FaceUtil::closestFace(panel->scene(), rayOrig, rayDir, onlySelectedMeshes);
             if (faceHit.nearMesh) { // see if close to vertex
                 QMatrix4x4 objToWorld = faceHit.nearMesh->objectToWorld();
-                EdgeP edge = faceHit.nearFace->edge();
+                Edge* edge = faceHit.nearFace->edge();
                 do {
                     Vector3 vertScreen = panel->project(objToWorld.map(edge->vert()->pos()));
                     QPoint vertPoint((int)(vertScreen.x() + .5),(int)(vertScreen.y() + .5));
@@ -83,7 +83,7 @@ namespace VertexUtil {
             //std::cout << "# of triangles: " << triangles.size() << std::endl;
 
             foreach(Triangle triangle, triangles) {
-                VertexP vertices[3] = { triangle.a->vert(), triangle.b->vert(), triangle.c->vert() };
+                Vertex* vertices[3] = { triangle.a->vert(), triangle.b->vert(), triangle.c->vert() };
                 for (int i = 0; i < 3; i++) {
                     Point3 vertScreen = triangle.screenP[i];
                     QPoint vertPoint((int)(vertScreen.x() + .5),(int)(vertScreen.y() + .5));
@@ -102,7 +102,7 @@ namespace VertexUtil {
             FaceUtil::FaceHit faceHit = FaceUtil::closestFace(panel->scene(), rayOrig, rayDir, onlySelectedMeshes);
             if (faceHit.nearMesh) { // see if close to vertex
                 QMatrix4x4 objToWorld = faceHit.nearMesh->objectToWorld();
-                EdgeP edge = faceHit.nearFace->edge();
+                Edge* edge = faceHit.nearFace->edge();
                 do {
                     Vector3 vertScreen = panel->project(objToWorld.map(edge->vert()->pos()));
                     QPoint vertPoint((int)(vertScreen.x() + .5),(int)(vertScreen.y() + .5));
@@ -125,7 +125,7 @@ namespace VertexUtil {
     }
 }
 
-VertexP closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, MeshP mesh, FaceP face)
+Vertex* closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, Mesh* mesh, Face* face)
 {
-    return VertexP();
+    return 0;
 }

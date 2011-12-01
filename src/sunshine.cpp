@@ -14,6 +14,7 @@
 #include "material.h"
 #include "light.h"
 #include "modeltest.h"
+#include <PythonQt.h>
 
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
@@ -32,6 +33,8 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {
     activeMainWindow = this;
 
+    PythonQt::init(PythonQt::IgnoreSiteModule);
+
     ui->setupUi(this);
     clearScene();
 
@@ -45,29 +48,29 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     _renderWidget = 0;
     _renderSettingsWidget = new SettingsWidget();
 
-    QList<CursorToolP> cursorTools;
-    cursorTools << CursorToolP(new PointTool());
-    cursorTools << CursorToolP(new EditTool());
-    cursorTools << CursorToolP(new DrawBoxTool());
-    cursorTools << CursorToolP(new TranslateTool());
-    cursorTools << CursorToolP(new RotateTool());
-    cursorTools << CursorToolP(new PushPullTool());
+    QList<CursorTool*> cursorTools;
+    cursorTools << new PointTool();
+    cursorTools << new EditTool();
+    cursorTools << new DrawBoxTool();
+    cursorTools << new TranslateTool();
+    cursorTools << new RotateTool();
+    cursorTools << new PushPullTool();
 
     QToolButton* firstButton = 0;
     _cursorButtonGroup = new QButtonGroup();
-    foreach(CursorToolP tool, cursorTools) {
+    foreach(CursorTool* tool, cursorTools) {
         QToolButton* button = new QToolButton();
 
-        QMenu* menu = new QMenu();
-        menu->addAction("Some action");
+        //QMenu* menu = new QMenu();
+        //menu->addAction("Some action");
 
         //button->style()->styleHint()
         //button->style()
         //styleHint(QStyle::SH_ToolButton_PopupDelay, 0, parent);
         //button->setPopupMode(QToolButton::MenuButtonPopup);
-        button->setMenu(menu);
+        //button->setMenu(menu);
 
-        if (!firstButton) firstButton = button;
+        if (firstButton == 0) firstButton = button;
         _cursorButtonGroup->addButton(button);
         button->setIcon(tool->icon());
         button->setToolTip(tool->label());
@@ -84,7 +87,14 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     ui->propertyTable->setModel(_propertyEditorModel);
     ui->propertyTable->setItemDelegate(new AttributeItemDelegate());
 
-    _renderSettings = BindableP(new RenderSettings());
+    _renderSettings = new RenderSettings();
+
+
+    ui->createMenu->addAction("Point Light", this, SLOT(createPointLight()));
+    ui->createMenu->addSeparator();
+    ui->createMenu->addAction("Cube", this, SLOT(createCube()));
+    ui->createMenu->addAction("Plane", this, SLOT(createPlane()));
+
 }
 
 Sunshine::~Sunshine()
@@ -108,14 +118,14 @@ void Sunshine::changeEvent(QEvent *e)
 
 void Sunshine::clearScene()
 {
-    _scene = SceneP(new Scene());
+    _scene = new Scene();
     //activeRegister = RegisterP(new Register());
     setupDefaultMaterials();
     setupDefaultCameras();
     setupDefaultMeshes();
     setupDefaultLights();
 
-    ui->sceneHierarchyTree->setModel(_scene.get());
+    ui->sceneHierarchyTree->setModel(_scene);
     connect(ui->sceneHierarchyTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
             this, SLOT(on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &)));
 
@@ -129,37 +139,42 @@ void Sunshine::clearScene()
 
 void Sunshine::setupDefaultMaterials()
 {
-    _scene->createMaterial("defaultPhong", MaterialP(new PhongMaterial()));
-    _scene->createMaterial("otherPhong", MaterialP(new PhongMaterial()));
+    _scene->addAsset("phong", new PhongMaterial());
+    //_scene->addAsset("otherPhong", new PhongMaterial());
 }
 
 void Sunshine::setupDefaultCameras()
 {
-    _scene->createCamera("persp");
-    _scene->createCamera("side");
-    _scene->createCamera("top");
-    _scene->createCamera("front");
+    _scene->addAsset("persp", new Camera());
+    _scene->addAsset("side", new Camera());
+    _scene->addAsset("top", new Camera());
+    _scene->addAsset("front", new Camera());
 }
 
 void Sunshine::setupDefaultMeshes()
 {
-    MeshP first = Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+    Mesh* first = Mesh::buildByIndex(primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
     first->setCenter(Point3(0,2,0));
+    _scene->addAsset("cube1", first);
 
-    MeshP second = Mesh::buildByIndex(_scene, primitive::cubePrimitive(1.2f, 0.8f, 1.2f));
+    Mesh* second = Mesh::buildByIndex(primitive::cubePrimitive(1.2f, 0.8f, 1.2f));
     second->setCenter(Point3(3,0,0));
+    _scene->addAsset("cube2", second);
 
-    MeshP plane = Mesh::buildByIndex(_scene, primitive::planePrimitive(12,12));
+    Mesh* plane = Mesh::buildByIndex(primitive::planePrimitive(12,12));
+    _scene->addAsset("plane", plane);
 }
 
 void Sunshine::setupDefaultLights()
 {
-    LightP point = _scene->createLight("point", LightP(new PointLight()));
+    Light* point(new PointLight());
+    _scene->addAsset("point", point);
     point->setCenter(Point3(0,10,0));
 
-    LightP ambient = _scene->createLight("ambient", LightP(new AmbientLight()));
+    Light* ambient(new AmbientLight());
+    _scene->addAsset("ambient", ambient);
 
-    //LightP spot = _scene->createLight("spot", LightP(new SpotLight()));
+    //Light* spot = _scene->createLight("spot", Light*(new SpotLight()));
     //spot->orient(Point3(8,4,-8), Point3(0,0,0), Vector3(0,1,0));
 }
 
@@ -180,7 +195,7 @@ void Sunshine::on_renderButton_clicked()
     //std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
 
 
-    CameraP activeCamera = _scene->fetchCamera("persp");
+    Camera* activeCamera = _scene->fetchCamera("persp");
 
     RiBegin(RI_NULL);
 
@@ -191,7 +206,7 @@ void Sunshine::on_renderButton_clicked()
              1);
 
 
-    //CameraP activeCamera = Register::cameras()->next();
+    //Camera* activeCamera = Register::cameras()->next();
 
     //while (meshes.hasNext()) {
     //    meshes.next();
@@ -232,18 +247,18 @@ void Sunshine::on_renderButton_clicked()
         RiSurface("plastic", "Ks", &Ks, RI_NULL);
 
         // add meshes to scene
-        QHashIterator<int,MeshP> meshes = _scene->meshes();
+        QHashIterator<int,Mesh*> meshes = _scene->meshes();
         while (meshes.hasNext()) {
             meshes.next();
             int meshKey = meshes.key();
-            MeshP mesh = meshes.value();
+            Mesh* mesh = meshes.value();
             RiTransformBegin(); // object-to-world
             {
                 const int numTriangles = mesh->numTriangles();
-                QHashIterator<int,FaceP> i = mesh->faces();
+                QHashIterator<int,Face*> i = mesh->faces();
                 while (i.hasNext()) { // render each face
                     i.next();
-                    FaceP face = i.value();
+                    Face* face = i.value();
                     QListIterator<Triangle> j = face->buildTriangles();
                     while (j.hasNext()) { // render each triangle
                         Triangle triangle = j.next();
@@ -303,6 +318,7 @@ void Sunshine::on_renderSettingsButton_clicked()
     _propertyEditorModel->update(_renderSettings);
 
     ui->propertyTable->expandAll();
+    ui->propertyTable->resizeColumnToContents(0);
 }
 
 void Sunshine::on_importAction_triggered()
@@ -311,9 +327,9 @@ void Sunshine::on_importAction_triggered()
     QList<QString> extensions = _scene->importExtensions();
 
     foreach (QString ext, extensions) {
-        std::cout << "ext: " << ext.toStdString() << std::endl;
         extFilter += QString("*") + ext + " ";
     }
+    std::cout << extFilter << std::endl;
 
     QString fileName = QFileDialog::getOpenFileName(this, QString("Open File - ") + extFilter,
                                                     "/home",
@@ -353,7 +369,7 @@ void Sunshine::updateMode()
     //else ui->selectFrame->hide();
 }
 
-CursorToolP Sunshine::cursorTool()
+CursorTool* Sunshine::cursorTool()
 {
     QToolButton* button = qobject_cast<QToolButton*>(_cursorButtonGroup->checkedButton());
     return _cursorTools[button];
@@ -362,20 +378,20 @@ CursorToolP Sunshine::cursorTool()
 int Sunshine::workMode()
 {
     foreach(QString meshName, activeScene()->meshes()) {
-        MeshP mesh = activeScene()->mesh(meshName);
+        Mesh* mesh = activeScene()->mesh(meshName);
         if (mesh->isSelected()) {
-            QHashIterator<int,VertexP> i = mesh->vertices();
+            QHashIterator<int,Vertex*> i = mesh->vertices();
             while(i.hasNext()) {
                 i.next();
-                VertexP vertex = i.value();
+                Vertex* vertex = i.value();
                 if (vertex->isSelected())
                     return WorkMode::VERTEX;
             }
 
-            QHashIterator<int,FaceP> j = mesh->faces();
+            QHashIterator<int,Face*> j = mesh->faces();
             while(j.hasNext()) {
                 j.next();
-                FaceP face = j.value();
+                Face* face = j.value();
                 if (face->isSelected())
                     return WorkMode::FACE;
             }
@@ -395,7 +411,7 @@ bool Sunshine::selectOccluded()
     return ui->selectOccludedButton->isChecked();
 }
 
-void Sunshine::updateSceneHierarchy(SceneP scene)
+void Sunshine::updateSceneHierarchy(Scene* scene)
 {
     //ui->sceneHierarchyTree
 }
@@ -407,14 +423,16 @@ void Sunshine::updatePanels()
 }
 
 namespace SunshineUi {
-    SceneP activeScene() { return activeMainWindow->activeScene(); }
+    Scene* activeScene() { return activeMainWindow->activeScene(); }
     int workMode() { return activeMainWindow->workMode(); }
     int selectMode() { return activeMainWindow->selectMode(); }
     bool selectOccluded() { return activeMainWindow->selectOccluded(); }
-    CursorToolP cursorTool() { return activeMainWindow->cursorTool(); }
-    void updateSceneHierarchy(SceneP scene) { return activeMainWindow->updateSceneHierarchy(scene); }
+    CursorTool* cursorTool() { return activeMainWindow->cursorTool(); }
+    void updateSceneHierarchy(Scene* scene) { return activeMainWindow->updateSceneHierarchy(scene); }
     void updatePanels() { activeMainWindow->updatePanels(); }
-    BindableP renderSettings() { return activeMainWindow->renderSettings(); }
+    Bindable* renderSettings() { return activeMainWindow->renderSettings(); }
+    void showBindableAttributes(Bindable *bindable) { activeMainWindow->showBindableAttributes(bindable); }
+    void selectAsset(QString assetName) { activeMainWindow->selectAsset(assetName); }
 }
 
 void Sunshine::on_selectOccludedButton_clicked()
@@ -430,21 +448,67 @@ void Sunshine::on_cursorToolChanged(QAbstractButton* button)
 void Sunshine::on_materialSelection_changed(const QModelIndex &current, const QModelIndex &previous)
 {
     QString materialName = _scene->shaderTreeModel()->data(current.sibling(current.row(), 1), Qt::DisplayRole).toString();
-    MaterialP material = _scene->material(materialName);
+    Material* material = _scene->material(materialName);
 
-    _propertyEditorModel->update(material->constantAttributes());
+    _propertyEditorModel->update(material);
 }
 
 void Sunshine::on_sceneHierarchySelection_changed(const QModelIndex &current, const QModelIndex &previous)
 {
     // get the selection if its bindable
     QString bindableName = _scene->data(current, Qt::DisplayRole).toString();
-    BindableP bindable = _scene->light(bindableName);
+    Bindable* bindable = _scene->light(bindableName);
     if (bindable == 0) bindable = _scene->mesh(bindableName);
+    if (bindable == 0) bindable = _scene->material(bindableName);
     //if (bindable == 0) bindable = _scene->material(bindableName);
 
     // update the property editor
     if (bindable != 0) _propertyEditorModel->update(bindable);
 
     ui->propertyTable->expandAll();
+    ui->propertyTable->resizeColumnToContents(0);
+}
+
+void Sunshine::showBindableAttributes(Bindable *bindable)
+{
+    _propertyEditorModel->update(bindable);
+    ui->propertyTable->expandAll();
+    ui->propertyTable->resizeColumnToContents(0);
+}
+
+void Sunshine::selectAsset(QString assetName)
+{
+    if (ui->propertyTable->selectionModel() == 0)
+        return;
+
+    QList<QStandardItem*> items = _scene->findItems(assetName);
+    if (items.size() > 0) {
+        QModelIndex index = _scene->indexFromItem(items[0]);
+        std::cout << index.row() << std::endl;
+        ui->propertyTable->selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectCurrent);
+        std::cout << ui->propertyTable->selectionModel()->currentIndex().row() << std::endl;
+        //ui->propertyTable->selectionModel()->select(QItemSelection(index, index), QItemSelectionModel::Select);
+
+        //ui->propertyTable->setCurrentIndex(index);
+        //ui->propertyTable->selectionModel()->select(index,
+          //                                                   QItemSelectionModel::Select);
+    }
+
+}
+
+void Sunshine::createPointLight()
+{
+    _scene->addAsset("point", new PointLight());
+}
+
+void Sunshine::createCube()
+{
+    Mesh* mesh = Mesh::buildByIndex(primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
+    _scene->addAsset("cube",mesh);
+}
+
+void Sunshine::createPlane()
+{
+    Mesh* mesh = Mesh::buildByIndex(primitive::planePrimitive(8,8));
+    _scene->addAsset("plane",mesh);
 }

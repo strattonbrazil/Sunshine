@@ -2,7 +2,34 @@
 
 #include <QLabel>
 
-void setShaderUniforms(QGLShaderProgramP shader, BindableP obj, QList<Attribute> attributes);
+class Filter
+{
+public:
+    virtual float getSize() = 0;
+    virtual float getWeight(float x, float y) = 0;
+};
+
+class BoxFilter : public Filter
+{
+public:
+    float getSize() { return 1.0; }
+    float getWeight(float dx, float dy) { return 1.0f; }
+};
+
+class GaussianFilter : public Filter
+{
+    static const int SIZE = 2.0;
+public:
+    float getSize() { return SIZE; }
+    float getWeight(float dx, float dy) {
+        float es2 = -exp(-SIZE*SIZE);
+        float gx = exp(-dx * dx) + es2;
+        float gy = exp(-dy * dy) + es2;
+        return gx * gy;
+    }
+};
+
+void setShaderUniforms(QGLShaderProgram* shader, Bindable* obj, QList<Attribute> attributes);
 
 typedef struct {
     float x;
@@ -66,7 +93,7 @@ namespace RenderUtil {
     {
         checkGL("renderGL start");
 
-        CameraP camera = panel->camera();
+        Camera* camera = panel->camera();
         const int xres = SunshineUi::renderSettings()->attributeByName("Image Width")->property("value").value<int>();
         const int yres = SunshineUi::renderSettings()->attributeByName("Image Height")->property("value").value<int>();
         /*
@@ -151,6 +178,9 @@ namespace RenderUtil {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
+        const int shadowXres = 2048;
+        const int shadowYres = 2048;
+
         // Create depth renderbuffers
         glGenRenderbuffers(2, depthBufferIds);
         for (int i = 0; i < 2; i++) {
@@ -160,7 +190,7 @@ namespace RenderUtil {
             if (i == 0)
                 glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, xres, yres);
             else
-                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 1024, 1024);
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, shadowXres, shadowYres);
             glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBufferIds[i]);
         }
         glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
@@ -221,7 +251,7 @@ namespace RenderUtil {
 
 
         // draw properties to FBO textures (position, diffuse, spec, position, emissive, normal, etc.)
-        //QGLShaderProgramP meshShader = ShaderFactory::buildMeshShader(panel);
+        //QGLShaderProgram* meshShader = ShaderFactory::buildMeshShader(panel);
         glBindFramebuffer(GL_FRAMEBUFFER, fbos[0]);
 
         GLenum bufs[] = { GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_COLOR_ATTACHMENT2_EXT, GL_COLOR_ATTACHMENT3_EXT };
@@ -234,19 +264,24 @@ namespace RenderUtil {
 
         const uint NUM_LIGHT_PASSES = lights.size() - 1; // don't count dummy light
 
-        // simple box filtering
+        // simple filtering
+        GaussianFilter filter;
+
         QList<Sample> samples;
         const int SAMPLING_WIDTH = SunshineUi::renderSettings()->attributeByName("Sampling Width")->property("value").value<float>();
-        const float SAMPLING_OFFSET = 1.0f / (2*SAMPLING_WIDTH);
+        const float SAMPLING_OFFSET = filter.getSize() / SAMPLING_WIDTH;
+        const float SAMPLING_OFFSET_HALF = SAMPLING_OFFSET * 0.5f;
         for (int ix = 0; ix < SAMPLING_WIDTH; ix++) {
             for (int iy = 0; iy < SAMPLING_WIDTH; iy++) {
                 Sample sample;
-                sample.x = SAMPLING_OFFSET + ix / (float)SAMPLING_WIDTH - 0.5;
-                sample.y = SAMPLING_OFFSET + iy / (float)SAMPLING_WIDTH - 0.5;
-                sample.weight = 1.0 / (SAMPLING_WIDTH * SAMPLING_WIDTH);
+                sample.x = SAMPLING_OFFSET*ix - (float)filter.getSize()*0.5f + SAMPLING_OFFSET_HALF;
+                sample.y = SAMPLING_OFFSET*iy - (float)filter.getSize()*0.5f + SAMPLING_OFFSET_HALF;
+                std::cout << sample.x << "," << sample.y << std::endl;
+                sample.weight = filter.getWeight(sample.x, sample.y) / (SAMPLING_WIDTH * SAMPLING_WIDTH);
                 samples << sample;
             }
         }
+
 
         QList<QImage> samplingImages;
 
@@ -266,9 +301,9 @@ namespace RenderUtil {
 
             foreach(QString lightName, lights) {
                 bool zPrepass = false;
-                LightP light = SunshineUi::activeScene()->light(lightName);
+                Light* light = SunshineUi::activeScene()->light(lightName);
                 if (light == 0) { // assume it to be the dummy z-pass light
-                    light = LightP(new AmbientLight());
+                    light = new AmbientLight();
                     light->attributeByName("Intensity")->setProperty("value", 0.0f);
                     zPrepass = true;
                     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -282,17 +317,15 @@ namespace RenderUtil {
                     casting = castShadows->property("value").value<bool>();
 
                     if (casting) {
-                        const int shadowXres = 1024;
-                        const int shadowYres = 1024;
                         glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[1]); checkGL("bound depth FBO");
                         glViewport(0, 0, shadowXres, shadowYres); checkGL("set viewport");
-                        CameraP shadowCamera(new Camera("shadowCamera"));
+                        Camera* shadowCamera(new Camera());
                         //shadowCamera->setCenter(light->center());
 
                         // shadowCamera <- set direction and up vector
                         QImage depthImage(shadowXres, shadowYres, QImage::Format_ARGB32);
                         GLfloat* pixels = new GLfloat[shadowXres*shadowYres];
-                        QGLShaderProgramP distanceShader = ShaderFactory::buildDistanceShader(panel); checkGL("created distance shader");
+                        QGLShaderProgram* distanceShader = ShaderFactory::buildDistanceShader(panel); checkGL("created distance shader");
                         distanceShader->bind(); checkGL("bound distance shader");
                         distanceShader->setUniformValue("origin", light->center()); checkGL("set light center");
 
@@ -308,9 +341,9 @@ namespace RenderUtil {
                             QMatrix4x4 worldToLightM;
                             worldToLightM.translate(-light->center());
                             //QMatrix4x4 shadowCameraViewM = Camera::getViewMatrix(shadowCamera, shadowXres, shadowYres);
-                            //QMatrix4x4 shadowCameraProjViewM = Camera::getProjMatrix(shadowCamera,shadowXres,shadowYres,0,0) * shadowCameraViewM;
+                            //QMatrix4x4 shadowCamera*rojViewM = Camera::getProjMatrix(shadowCamera,shadowXres,shadowYres,0,0) * shadowCameraViewM;
                             renderMeshes(worldToLightM, light, panel, shadowCamera, vboId, distanceShader);  checkGL("renderMeshes() for shadow map");
-                            //renderMeshes(shadowCameraProjViewM, light, panel, shadowCamera, vboId, QGLShaderProgramP(0));
+                            //renderMeshes(shadowCamera*rojViewM, light, panel, shadowCamera, vboId, QGLShaderProgram*(0));
 
                             // copy into correct face
                             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, shadowXres, shadowYres, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0); checkGL("glteximage2d to depth texture");
@@ -330,6 +363,7 @@ namespace RenderUtil {
                             QString fileName = QString("/tmp/depth%1.png").arg(i);
                             depthImage.save(fileName);
                             */
+
                         }
                         delete[] pixels;
                         glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[0]);  checkGL("bound beauty FBO");
@@ -351,9 +385,9 @@ namespace RenderUtil {
                 QMatrix4x4 cameraProjViewM = Camera::getProjMatrix(camera,xres,yres,dx,dy) * cameraViewM;
                 //glEnable(GL_TEXTURE_2D);
                 if (casting)
-                    renderMeshes(cameraProjViewM, light, panel, camera, vboId, QGLShaderProgramP(0), depthMaps);
+                    renderMeshes(cameraProjViewM, light, panel, camera, vboId, 0, depthMaps);
                 else
-                    renderMeshes(cameraProjViewM, light, panel, camera, vboId, QGLShaderProgramP(0), 0);
+                    renderMeshes(cameraProjViewM, light, panel, camera, vboId, 0, 0);
                 //glDisable(GL_TEXTURE_2D);
 
                 if (zPrepass)
@@ -413,9 +447,9 @@ namespace RenderUtil {
             unsigned int b = std::min((int)(255*bF), 255);
             unsigned int a = std::min((int)(255*aF), 255);
 
-            outImage.bits()[4*i+0] = r;
+            outImage.bits()[4*i+0] = b;
             outImage.bits()[4*i+1] = g;
-            outImage.bits()[4*i+2] = b;
+            outImage.bits()[4*i+2] = r;
             outImage.bits()[4*i+3] = a;
         }
 
@@ -460,11 +494,11 @@ namespace RenderUtil {
 
     // renders each mesh in the scene
     //
-    void renderMeshes(QMatrix4x4 cameraProjViewM, LightP light, PanelGL* panel, CameraP camera, GLuint vboId, QGLShaderProgramP forceShader, GLuint* depthMaps)    {
+    void renderMeshes(QMatrix4x4 cameraProjViewM, Light* light, PanelGL* panel, Camera* camera, GLuint vboId, QGLShaderProgram* forceShader, GLuint* depthMaps)    {
         foreach(QString meshName, SunshineUi::activeScene()->meshes()) {
-            MeshP mesh = SunshineUi::activeScene()->mesh(meshName);
+            Mesh* mesh = SunshineUi::activeScene()->mesh(meshName);
             const int numTriangles = mesh->numTriangles();
-            MaterialP material = mesh->material();
+            Material* material = mesh->material();
 
             QMatrix4x4 objToWorld = mesh->objectToWorld();
             QMatrix4x4 normalToWorld = mesh->normalToWorld();
@@ -478,7 +512,7 @@ namespace RenderUtil {
 
 
             // build the material shader
-            QGLShaderProgramP shader = forceShader;
+            QGLShaderProgram* shader = forceShader;
             if (forceShader == 0) {
                 //glActiveTexture(GL_TEXTURE0);
                 shader = ShaderFactory::buildMaterialShader(light, material, panel);  checkGL("created material shader");
@@ -491,6 +525,9 @@ namespace RenderUtil {
 
                 // set uniform constants for light
                 setShaderUniforms(shader, light, light->glslFragmentConstants()); checkGL("set material shader light uniforms");
+
+                // set uniform constants for material
+                setShaderUniforms(shader, material, material->glslFragmentConstants()); checkGL("set material shader light uniforms");
 
                 if (depthMaps != 0) {
                     QString depthMapNames[] = { "depthMapP", "depthMapN" };
@@ -534,16 +571,16 @@ namespace RenderUtil {
 
     // put stuff into VBO from mesh
     //
-    void packVBO(MeshP mesh, const int numTriangles, GLint vboId, QGLShaderProgramP shader)
+    void packVBO(Mesh* mesh, const int numTriangles, GLint vboId, QGLShaderProgram* shader)
     {
         int triangleCount = 0;
         const uint blockSize = sizeof(QVector3D) * 2; // bytes of data per vertex
         GLbyte vertices[numTriangles*3*blockSize];
         //Point3 vertices[numTriangles*3];
-        QHashIterator<int,FaceP> i = mesh->faces();
+        QHashIterator<int,Face*> i = mesh->faces();
         while (i.hasNext()) {
             i.next();
-            FaceP face = i.value();
+            Face* face = i.value();
 
             QListIterator<Triangle> j = face->buildTriangles();
             while (j.hasNext()) {
@@ -603,7 +640,7 @@ namespace RenderUtil {
 
 // goes through each attribute and attemps to set it as a uniform value in the shader
 //
-void setShaderUniforms(QGLShaderProgramP shader, BindableP obj, QList<Attribute> attributes)
+void setShaderUniforms(QGLShaderProgram* shader, Bindable* obj, QList<Attribute> attributes)
 {
     foreach(Attribute attribute, attributes) {
         QString varName = attribute->property("glslFragmentConstant").toString();

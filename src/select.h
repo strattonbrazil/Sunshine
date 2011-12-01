@@ -29,6 +29,5 @@ private:
     void              processBoxSelection(PanelGL* panel, bool newSelection, bool selectValue);
     void              processLineSelection(PanelGL* panel, QMouseEvent* event);
 };
-typedef QSharedPointer<BasicSelect> BasicSelectP;
 
 #endif // BASICSELECT_H

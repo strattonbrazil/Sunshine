@@ -1,15 +1,15 @@
 <RCC>
-    <qresource prefix="/icons">
-        <file>edit_tool.png</file>
-        <file>extrude_tool.png</file>
-        <file>point_tool.png</file>
-        <file>rotate_tool.png</file>
-        <file>translate_tool.png</file>
-        <file>draw_box_tool.png</file>
-        <file>mesh_icon.png</file>
-        <file>camera_icon.png</file>
-        <file>material_icon.png</file>
-        <file>object_work_mode.png</file>
-        <file>point_light_icon.png</file>
+    <qresource prefix="/">
+        <file>icons/camera_icon.png</file>
+        <file>icons/draw_box_tool.png</file>
+        <file>icons/edit_tool.png</file>
+        <file>icons/extrude_tool.png</file>
+        <file>icons/material_icon.png</file>
+        <file>icons/mesh_icon.png</file>
+        <file>icons/object_work_mode.png</file>
+        <file>icons/point_light_icon.png</file>
+        <file>icons/point_tool.png</file>
+        <file>icons/rotate_tool.png</file>
+        <file>icons/translate_tool.png</file>
     </qresource>
 </RCC>

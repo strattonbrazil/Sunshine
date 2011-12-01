@@ -16,7 +16,7 @@ public:
     //QVariant                      operator[](const char* var) { return getValue(QString(var)); }
 private:
     AttributeEditor*              _editor;
-    BindableP                       _instance;
+    Bindable*                       _instance;
     //    QHash<QString,QtProperty*>    _vars;
 };
 

@@ -1,6 +1,7 @@
 #include "transformable.h"
 
 #include <QStringList>
+#include "sunshine.h"
 
 Transformable::Transformable()
 {
@@ -14,8 +15,9 @@ Transformable::Transformable()
     _scale = Vector3(1,1,1);
 
     QString position("{ 'var' : 'position', 'name' : 'Position', 'type' : 'point3', 'getter' : 'center', 'setter' : 'setCenter' }");
+    QString scale("{ 'var' : 'scale', 'name' : 'Scale', 'type' : 'point3', 'getter' : 'scale', 'setter' : 'setScale' }");
     QStringList atts;
-    atts << position;
+    atts << position << scale;
 
     addAttributes(atts);
 }

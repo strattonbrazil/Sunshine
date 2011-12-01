@@ -2,7 +2,6 @@
 #define WORKTOOL_H
 
 #include <QMouseEvent>
-#include <QSharedPointer>
 #include "contextmenu.h"
 #include "util.h"
 #include "panelgl.h"
@@ -21,8 +20,5 @@ public:
     virtual QList<ContextAction*> actions() = 0;
 
 };
-typedef QSharedPointer<WorkTool> WorkToolP;
-
-
 
 #endif // WORKTOOL_H

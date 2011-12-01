@@ -213,7 +213,7 @@
      <height>25</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuFile">
+   <widget class="QMenu" name="fileMenu">
     <property name="title">
      <string>File</string>
     </property>
@@ -221,7 +221,13 @@
     <addaction name="openSceneAction"/>
     <addaction name="importAction"/>
    </widget>
-   <addaction name="menuFile"/>
+   <widget class="QMenu" name="createMenu">
+    <property name="title">
+     <string>Create</string>
+    </property>
+   </widget>
+   <addaction name="fileMenu"/>
+   <addaction name="createMenu"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="toolBar">
@@ -262,6 +268,9 @@
         <font>
          <pointsize>10</pointsize>
         </font>
+       </property>
+       <property name="selectionBehavior">
+        <enum>QAbstractItemView::SelectRows</enum>
        </property>
        <property name="indentation">
         <number>0</number>

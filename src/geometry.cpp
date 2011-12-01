@@ -1,7 +1,7 @@
 #include "geometry.h"
 #include "sunshine.h"
 
-Vertex::Vertex(MeshP mesh, int key, Point3 point)
+Vertex::Vertex(Mesh* mesh, int key, Point3 point)
 {
     _mesh = mesh;
     _key = key;
@@ -9,9 +9,9 @@ Vertex::Vertex(MeshP mesh, int key, Point3 point)
     _selected = FALSE;
 }
 
-void Vertex::setEdge(EdgeP e) { _edgeKey = e->key(); }
+void Vertex::setEdge(Edge* e) { _edgeKey = e->key(); }
 
-Edge::Edge(MeshP mesh, int vertexKey, int faceKey, int edgeKey)
+Edge::Edge(Mesh* mesh, int vertexKey, int faceKey, int edgeKey)
 {
     _mesh = mesh;
     _vertexKey = vertexKey;
@@ -20,11 +20,11 @@ Edge::Edge(MeshP mesh, int vertexKey, int faceKey, int edgeKey)
     _selected = FALSE;
 }
 
-MeshP Edge::mesh() {
+Mesh* Edge::mesh() {
     return _mesh;
 }
 
-Face::Face(MeshP mesh, int faceKey)
+Face::Face(Mesh* mesh, int faceKey)
 {
     _mesh = mesh;
     _faceKey = faceKey;
@@ -37,7 +37,7 @@ QListIterator<Triangle> Face::buildTriangles()
     // this function should eventually take concavity and warping into account
     QList<Triangle> triangles;
 
-    EdgeP tmpEdge = edge()->next();
+    Edge* tmpEdge = edge()->next();
     do {
         triangles << Triangle(edge(), tmpEdge, tmpEdge->next());
         tmpEdge = tmpEdge->next();
@@ -46,53 +46,51 @@ QListIterator<Triangle> Face::buildTriangles()
     return QListIterator<Triangle>(triangles);
 }
 
-Mesh::Mesh(SceneP scene, QString name) : Transformable()
+Mesh::Mesh() : Transformable()
 {
-    _scene = scene;
-    _name = name;
     _validNormals = FALSE;
     _selected = FALSE;
+    _material = 0;
 }
 
-Mesh::Mesh(SceneP scene, QString name, QHash<int,VertexP> vertices, QHash<int,EdgeP> edges, QHash<int,FaceP> faces) : Transformable()
+Mesh::Mesh(QHash<int,Vertex*> vertices, QHash<int,Edge*> edges, QHash<int,Face*> faces) : Transformable()
 {
-    _scene = scene;
-    _name = name;
     _vertices = vertices;
     _edges = edges;
     _faces = faces;
     _validNormals = FALSE;
+    _material = 0;
 }
 
-MeshP Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
+Mesh* Mesh::buildByIndex(PrimitiveParts parts)
 {
-    MeshP emptyMesh = scene->createMesh("mesh");
-    QString meshName = emptyMesh->name();
+    Mesh* emptyMesh = new Mesh();
+    //Mesh* emptyMesh = scene->createMesh("mesh");
 
     // create vertices
     for (int vertKey = 0; vertKey < parts.points.size(); vertKey++)
-        emptyMesh->_vertices[vertKey] = VertexP(new Vertex(emptyMesh,vertKey,parts.points[vertKey]));
+        emptyMesh->_vertices[vertKey] = new Vertex(emptyMesh,vertKey,parts.points[vertKey]);
 
     // create the faces and edges
     int edgeCount = 0;
     for (int faceKey = 0; faceKey < parts.faces.size(); faceKey++) {
-        FaceP face(new Face(emptyMesh, faceKey));
+        Face* face = new Face(emptyMesh, faceKey);
         emptyMesh->_faces[faceKey] = face;
 
-        EdgeP firstEdge;
-        EdgeP lastEdge;
+        Edge* firstEdge = 0;
+        Edge* lastEdge = 0;
         QList<int> vertIndices = parts.faces[faceKey];
         for (int i = 0; i < vertIndices.size(); i++) {
-            EdgeP edge(new Edge(emptyMesh,vertIndices[i],faceKey,edgeCount++));
+            Edge* edge = new Edge(emptyMesh,vertIndices[i],faceKey,edgeCount++);
             emptyMesh->_vertices[vertIndices[i]]->setEdge(edge);
             emptyMesh->_edges[edge->key()] = edge;
 
-            if (firstEdge == NULL)
+            if (firstEdge == 0)
                 firstEdge = edge;
-            if (lastEdge != NULL) {
+            if (lastEdge != 0) {
                 //std::cout << "setting next: " << lastEdge->key() << std::endl;
                 lastEdge->setNext(edge);
-                lastEdge->next();
+                lastEdge = lastEdge->next();
                 edge->setPrev(lastEdge);
             }
             lastEdge = edge;
@@ -113,11 +111,11 @@ MeshP Mesh::buildByIndex(SceneP scene, PrimitiveParts parts)
 const int Mesh::numTriangles()
 {
     int count = 0;
-    QHashIterator<int, FaceP> i(_faces);
+    QHashIterator<int, Face*> i(_faces);
     while (i.hasNext()) {
          i.next();
-         FaceP face = i.value();
-         EdgeP edge = face->edge();
+         Face* face = i.value();
+         Edge* edge = face->edge();
          do {
              count++;
              edge = edge->next();
@@ -146,15 +144,15 @@ QString pairKey(int a, int b)
 void Mesh::computeEdgePairs()
 {
     // gather edges for each face
-    QHash<QString,EdgeP> pairs;
+    QHash<QString,Edge*> pairs;
     {
-        QHashIterator<int, FaceP> i(_faces);
+        QHashIterator<int, Face*> i(_faces);
         while (i.hasNext()) {
             i.next();
             //std::cout << "face" << std::endl;
 
-            FaceP face = i.value();
-            EdgeP edge = face->edge();
+            Face* face = i.value();
+            Edge* edge = face->edge();
 
             do {
                 pairs[pairKey(edge->vert()->key(), edge->next()->vert()->key())] = edge;
@@ -166,11 +164,11 @@ void Mesh::computeEdgePairs()
 
     // attach each edge-pair to its corresponding equal
     {
-        QHashIterator<int,FaceP> i(_faces);
+        QHashIterator<int,Face*> i(_faces);
         while (i.hasNext()) {
             i.next();
-            FaceP face = i.value();
-            EdgeP edge = face->edge();
+            Face* face = i.value();
+            Edge* edge = face->edge();
 
             do {
                 QString key = pairKey(edge->vert()->key(), edge->next()->vert()->key());
@@ -186,10 +184,10 @@ void Mesh::computeEdgePairs()
 void Mesh::validateNormals()
 {
     if (!_validNormals) {
-        QHashIterator<int,FaceP> i = faces();
+        QHashIterator<int,Face*> i = faces();
         while (i.hasNext()) {
             i.next();
-            FaceP face = i.value();
+            Face* face = i.value();
             face->calculateNormal();
 
         }
@@ -198,11 +196,16 @@ void Mesh::validateNormals()
     _validNormals = TRUE;
 }
 
-MaterialP Mesh::material()
+Material* Mesh::material()
 {
-    if (!_material)
-        _material = _scene->defaultMaterial();
+    if (_material == 0)
+        _material = SunshineUi::activeScene()->defaultMaterial();
     return _material;
+}
+
+void Mesh::setMaterial(Material* material)
+{
+    _material = material;
 }
 
 QMatrix4x4 Mesh::normalToWorld()
@@ -210,17 +213,27 @@ QMatrix4x4 Mesh::normalToWorld()
     return _rotate.matrix();
 }
 
-EdgeP Face::edge() {
+Box3D Mesh::worldBounds()
+{
+    Box3D bounds;
+    QMatrix4x4 objToWorld = objectToWorld();
+    foreach(Vertex* vertex, _vertices) {
+        bounds.includePoint(objToWorld.map(vertex->pos()));
+    }
+    return bounds;
+}
+
+Edge* Face::edge() {
     return _mesh->edge(_edgeKey);
 }
 
 void Face::calculateNormal()
 {
-    EdgeP tmpEdge = edge();
+    Edge* tmpEdge = edge();
     do {
-      EdgeP edge1 = tmpEdge;
-      EdgeP edge2 = edge1->next();
-      EdgeP edge3 = edge2->next();
+      Edge* edge1 = tmpEdge;
+      Edge* edge2 = edge1->next();
+      Edge* edge3 = edge2->next();
 
       Point3 v1 = edge1->vert()->pos();
       Point3 v2 = edge2->vert()->pos();

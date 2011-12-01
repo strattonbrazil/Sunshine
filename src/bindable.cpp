@@ -23,7 +23,7 @@ Bindable::Bindable(QObject *parent) :
 
 
 /*
-QVariant AttributeObject::getter(BindableP Bindable)
+QVariant AttributeObject::getter(Bindable* Bindable)
 {
     QString funcName = property("getter").toString();
 

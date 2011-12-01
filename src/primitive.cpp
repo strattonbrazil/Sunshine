@@ -24,7 +24,7 @@ namespace primitive {
         QList<int> f4 = QList<int>() << 7 << 4 << 0 << 3;
         QList<int> f5 = QList<int>() << 4 << 7 << 6 << 5;
 
-        struct PrimitiveParts parts;
+        PrimitiveParts parts;
         parts.points = QVector<Point3>() << p0 << p1 << p2 << p3 << p4 << p5 << p6 << p7;
         parts.faces = QVector<QList<int> >() << f0 << f1 << f2 << f3 << f4 << f5;
         return parts;
@@ -42,7 +42,7 @@ namespace primitive {
 
         QList<int> f0 = QList<int>() << 0 << 1 << 2 << 3;
 
-        struct PrimitiveParts parts;
+        PrimitiveParts parts;
         parts.points = QVector<Point3>() << p0 << p1 << p2 << p3;
         parts.faces = QVector<QList<int> >() << f0;
         return parts;

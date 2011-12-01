@@ -1,4 +1,5 @@
 #include "cursor_tools.h"
+#include <cmath>
 
 void DrawBoxTool::mousePressed(PanelGL *panel, QMouseEvent *event)
 {
@@ -18,7 +19,7 @@ void DrawBoxTool::mousePressed(PanelGL *panel, QMouseEvent *event)
             // make mesh at that location
             _pick = rayOrig + rayDir * t;
             _current = _pick;
-            _plane = Mesh::buildByIndex(panel->scene(), primitive::planePrimitive(10,10));
+            _plane = Mesh::buildByIndex(primitive::planePrimitive(10,10));
             updateWorkspacePlane();
         }
     }
@@ -44,8 +45,8 @@ void DrawBoxTool::mouseReleased(PanelGL *panel, QMouseEvent *event)
     float zDist = std::fabs(_current.z() - _pick.z());
     if (xDist < EPS || zDist < EPS) {
         std::cout << "plane too small" << std::endl;
-        panel->scene()->deleteMesh(_plane->name());
-        _plane = MeshP(0);
+        //panel->scene()->deleteMesh(_plane->name());
+        _plane = 0;
     }
 }
 
@@ -57,7 +58,7 @@ void DrawBoxTool::updateWorkspacePlane()
     float minZ = std::min(_pick.z(), _current.z());
     float maxZ = std::max(_pick.z(), _current.z());
 
-    FaceP face = _plane->face(0);
+    Face* face = _plane->face(0);
     face->edge()->vert()->setPos(Point3(maxX,0,maxZ));
     face->edge()->next()->vert()->setPos(Point3(maxX,0,minZ));
     face->edge()->next()->next()->vert()->setPos(Point3(minX,0,minZ));
