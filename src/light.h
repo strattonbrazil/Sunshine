@@ -12,12 +12,16 @@ class Light : public Transformable//, public Entity
 {
     Q_OBJECT
 public:
+    Light() { _selected = false; }
     virtual QList<Attribute> glslFragmentConstants();
     virtual QString glslFragmentBegin() = 0;
     virtual QString glslFragmentEnd() = 0;
     virtual int lightType() = 0;
     int assetType() { return AssetType::LIGHT_ASSET; }
+    bool isSelected() { return _selected; }
+    void setSelected(bool s) { _selected = s; }
 protected:
+    bool _selected;
     //EntityP _constantAttributes;
 };
 

@@ -1,5 +1,3 @@
-print('Importing MeshImporter')
-
 class MeshImporter:
     _importers = {}
     @staticmethod
@@ -8,7 +6,6 @@ class MeshImporter:
     @staticmethod
     def extensions():
         extensions = MeshImporter._importers.keys()
-        print(extensions)
         return extensions
     def extension(self):
         raise NotImplementedError()

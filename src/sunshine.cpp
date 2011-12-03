@@ -91,6 +91,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 
 
     ui->createMenu->addAction("Point Light", this, SLOT(createPointLight()));
+    ui->createMenu->addAction("Spot Light", this, SLOT(createSpotLight()));
     ui->createMenu->addSeparator();
     ui->createMenu->addAction("Cube", this, SLOT(createCube()));
     ui->createMenu->addAction("Plane", this, SLOT(createPlane()));
@@ -329,10 +330,15 @@ void Sunshine::on_importAction_triggered()
     foreach (QString ext, extensions) {
         extFilter += QString("*") + ext + " ";
     }
-    std::cout << extFilter << std::endl;
+    //std::cout << extFilter << std::endl;
+
+    QString importDir = QDir::homePath();
+    QString modelDir = importDir + "/models";
+    if (QDir(modelDir).exists())
+        importDir = modelDir;
 
     QString fileName = QFileDialog::getOpenFileName(this, QString("Open File - ") + extFilter,
-                                                    "/home",
+                                                    importDir,
                                                     QString("Meshes (") + extFilter + ")");
 
     if (fileName != "")
@@ -499,6 +505,11 @@ void Sunshine::selectAsset(QString assetName)
 void Sunshine::createPointLight()
 {
     _scene->addAsset("point", new PointLight());
+}
+
+void Sunshine::createSpotLight()
+{
+    _scene->addAsset("spot", new SpotLight());
 }
 
 void Sunshine::createCube()

@@ -32,12 +32,6 @@ class Scene : public QStandardItemModel
 public:
     //void                            deleteMesh(QString name) { _meshes.remove(name); }
     void                            clearScene();
-    QString                         addAsset(QString name, Bindable* asset);
-    //Material*                       createMaterial(QString name, Material* m);
-    //Camera*                         createCamera(QString name);
-    //Mesh*                           createMesh(QString name);
-    //Light*                          createLight(QString name, Light* light);
-    //void                            setMesh(QString name, Mesh* mesh) { _meshes[name] = mesh; }
     QList<QString>                  assetsByType(int assetType);
     QList<QString>                  meshes();// { return _meshes.keys(); }
     QList<QString>                  cameras();// { return QHashIterator<int,Camera*>(_cameras); }
@@ -50,26 +44,10 @@ public:
     Material*                       defaultMaterial() {
         return material(materials()[0]);
     }
-    //Camera*                         fetchCamera(QString name);
     ShaderTreeModel*                shaderTreeModel() { return &_shaderTreeModel; }
     QList<QString>                  importExtensions();
     void                            importFile(QString fileName);
-    /*
-    void                            evalPythonFile(QString fileName) {
-        QFile file(fileName);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-             return;
-        QString content = file.readAll();
-        file.close();
 
-        try {
-            object ignored = exec(content.toStdString().c_str(), _pyMainNamespace);
-        } catch (boost::python::error_already_set const &) {
-            QString perror = parse_python_exception();
-            std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
-        }
-    }
-    */
 
                                 Scene();
                                 QList<WorkTool*>                   _tools;
@@ -83,26 +61,29 @@ protected:
 
 private:
     QHash<QString,Bindable*>           _assets;
-    //QHash<QString,Mesh*>               _meshes;
-    //QHash<int,Camera*>                 _cameras;
-    //QHash<QString,Material*>           _materials;
-    //QHash<QString,Light*>              _lights;
-    //QSet<QString>                      _names;
-//    PythonQtObjectPtr                  _context;
-    //object                             _pyMainModule;
-    //object                             _pyMainNamespace;
     Material*                          _defaultMaterial;
     ShaderTreeModel                    _shaderTreeModel;
     PythonQtObjectPtr                  pyContext;
 
 public slots:
+    QString                            addAsset(QString name, Bindable* asset);
     void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
     void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }
 };
-//Q_DECLARE_METATYPE(QSharedPointer<Scene>);
-Q_DECLARE_METATYPE(Scene*)
+//Q_DECLARE_METATYPE(Scene*)
 
+/*
+class PythonQtWrapper_Scene : public QObject
+{
+    Q_OBJECT
+public slots:
+    Scene* new_Scene() { return new Scene(); }
+    void delete_Scene(Scene* scene) { delete scene; }
+    void addAsset(Scene* scene, QString name, Bindable* asset) {
+        scene->addAsset(name, asset);
 
-//typedef boost::shared_ptr<Scene> Scene*;
+    }
+};
+*/
 
 #endif // SCENE_H

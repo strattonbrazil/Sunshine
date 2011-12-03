@@ -11,5 +11,7 @@
         <file>icons/point_tool.png</file>
         <file>icons/rotate_tool.png</file>
         <file>icons/translate_tool.png</file>
+        <file>icons/light_icon.png</file>
+        <file>icons/spot_light_icon.png</file>
     </qresource>
 </RCC>

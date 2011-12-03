@@ -71,6 +71,7 @@ private slots:
     void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
 
     void                       createPointLight();
+    void                       createSpotLight();
     void                       createCube();
     void                       createPlane();
 private:

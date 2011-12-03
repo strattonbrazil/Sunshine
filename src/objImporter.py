@@ -1,6 +1,7 @@
 from PythonQt import *
 #from meshImporter import *
 
+#from PythonQt.core import Scene
 from PythonQt.primitives import PrimitiveParts
 from PythonQt.geometry import Mesh
 #from util import Point3,Vector3
@@ -55,7 +56,7 @@ class ObjImporter(MeshImporter):
 #        parts.setFaces(group['faces'])
 
         mesh = Mesh.buildByIndex(parts)
-        scene.addAsset(mesh)
+        scene.addAsset("mesh", mesh)
 
 MeshImporter.register(ObjImporter())
 

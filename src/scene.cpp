@@ -37,24 +37,6 @@ QList<QString> Scene::materials()
     return assetsByType(AssetType::MATERIAL_ASSET);
 }
 
-/*
-Camera* Scene::fetchCamera(QString name)
-{
-    QHashIterator<int,Camera*> cams = cameras();
-    while (cams.hasNext()) {
-        cams.next();
-        cams.key();
-        Camera* cam = cams.value();
-        if (cam->name == name)
-            return cam;
-    }
-
-    std::cerr << "Cannot find camera: " << name.toStdString() << std::endl;
-    throw KeyErrorException();
-    //return Camera*();
-}
-*/
-
 
 QList<QString> Scene::importExtensions()
 {
@@ -73,12 +55,15 @@ QList<QString> Scene::importExtensions()
 void Scene::importFile(QString fileName)
 {
     QVariant sceneV = qVariantFromValue(this);
+    //QVariant sceneV((QObject*)this);
 
     QVariantList fileArgs;
-    fileArgs << qVariantFromValue(this);
+    fileArgs << sceneV;//qVariantFromValue(this);
     fileArgs << fileName;
 
+
     pyContext.call("MeshImporter.processFile", fileArgs);
+
 
     /*
     try {
@@ -106,11 +91,11 @@ Scene::Scene()
     pyContext = PythonQt::self()->getMainModule();
 
     // do something
-    pyContext.evalScript("def multiply(a,b):\n  return a*b;\n");
-    QVariantList args;
-    args << 42 << 47;
-    QVariant result = pyContext.call("multiply", args);
-    std::cout << result.toString().toStdString() << std::endl;
+    //pyContext.evalScript("def multiply(a,b):\n  return a*b;\n");
+    //QVariantList args;
+    //args << 42 << 47;
+    //QVariant result = pyContext.call("multiply", args);
+    //std::cout << result.toString().toStdString() << std::endl;
 
     pyContext.evalFile(":/plugins/meshImporter.py");
     pyContext.evalFile(":/plugins/objImporter.py");
@@ -133,7 +118,7 @@ QString Scene::addAsset(QString name, Bindable* asset)
     else if (asset->assetType() == AssetType::CAMERA_ASSET)
         icon = QIcon(":/icons/camera_icon.png");
     else if (asset->assetType() == AssetType::LIGHT_ASSET)
-        icon = QIcon(":/icons/point_light_icon.png");
+        icon = QIcon(":/icons/light_icon.png");
 
     appendRow(new QStandardItem(icon, unique));
 
@@ -141,29 +126,6 @@ QString Scene::addAsset(QString name, Bindable* asset)
 
     return unique;
 }
-
-/*
-Material* Scene::createMaterial(QString name, Material* material)
-{
-    if (!_defaultMaterial)
-        _defaultMaterial = material;
-
-    QString unique = uniqueName(name);
-    _materials[unique] = material;
-
-    appendRow(new QStandardItem(QIcon(":/icons/material_icon.png"), unique));
-
-    QList<QStandardItem*> materialRow;
-    materialRow << new QStandardItem("");
-    materialRow << new QStandardItem(unique);
-    materialRow << new QStandardItem("-------");
-    _shaderTreeModel.appendRow(materialRow);
-
-    SunshineUi::updateSceneHierarchy(shared_from_this());
-
-    return material;
-}
-*/
 
 bool Scene::setData(const QModelIndex &index, const QVariant &value, int role)
 {
@@ -181,63 +143,7 @@ bool Scene::setData(const QModelIndex &index, const QVariant &value, int role)
     return QStandardItemModel::setData(index, value, role);
 }
 
-/*
-Camera* Scene::createCamera(QString name)
-{
-    //std::cout << "Creating camera: " << name.toStdString() << std::endl;
 
-    int key = uniqueCameraKey();
-    QString unique = uniqueName(name);
-    _cameras[key] = Camera*(new Camera(unique));
-    _names += unique;
-
-    this->appendRow(new QStandardItem(QIcon(":/icons/camera_icon.png"), unique));
-    SunshineUi::updateSceneHierarchy(shared_from_this());
-
-    return _cameras[key];
-}
-
-Mesh* Scene::createMesh(QString name)
-{
-    name = uniqueName(name);
-    _meshes[name] = Mesh*(new Mesh());
-    _names += name;
-
-    this->appendRow(new QStandardItem(QIcon(":/icons/mesh_icon.png"), name));
-    SunshineUi::updateSceneHierarchy(shared_from_this());
-
-    return _meshes[name];
-}
-
-Light* Scene::createLight(QString name, Light* light)
-{
-    name = uniqueName(name);
-    _lights[name] = light;
-    _names += name;
-
-    this->appendRow(new QStandardItem(QIcon(":/icons/point_light_icon.png"), name));
-
-    return _lights[name];
-}
-
-int Scene::uniqueCameraKey()
-{
-    int counter = 0;
-    while (_cameras.contains(counter))
-        counter++;
-    return counter;
-}
-*/
-
-/*
-int Scene::uniqueMeshKey()
-{
-    int counter = 0;
-    while (_meshes.contains(counter))
-        counter++;
-    return counter;
-}
-*/
 
 QString Scene::uniqueName(QString prefix)
 {

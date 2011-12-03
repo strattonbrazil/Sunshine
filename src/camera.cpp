@@ -20,6 +20,8 @@ Camera::Camera()// : Transformable()
     _upRot = 45;
     _distance = _center.length();
     updateLook();
+    _center = -lookDir();
+    //updateLook();
     moveType = MoveType::NOT_MOVING;
 }
 
@@ -66,7 +68,7 @@ QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float pi
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
-    float zNear = 1.0f;
+    float zNear = .1f;
     float zFar = 100.0f;
 
     float top = tan(camera->fov()*3.14159/360.0) * zNear;

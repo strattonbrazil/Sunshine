@@ -79,6 +79,8 @@ void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
                 mesh->setCenter(mesh->centerReference() + direction);
         }
     }
+    else if (axis == Axis::Screen) {
+    }
     lastP = currentP;
 }
 

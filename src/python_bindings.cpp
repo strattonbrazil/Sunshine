@@ -19,10 +19,8 @@ ExampleDecorator::ExampleDecorator()
 #include "com_trolltech_qt_gui10.h"
 
 
-
 void createPythonBindings()
 {
-    std::cout << "creating bindings" << std::endl;
     /*
     boost::python::to_python_converter<QString,QStringToPythonStr>();
 
@@ -42,7 +40,8 @@ void createPythonBindings()
 
     // try PythonQt bindings
     //PythonQt::self()->registerClass(&Mesh::staticMetaObject, "geometry");
-    PythonQt::self()->registerClass(&Scene::staticMetaObject);
+    //PythonQt::priv()->registerClass("Scene", "", "core", PythonQtCreateObject<PythonQtWrapper_Scene>);
+    //PythonQt::priv()->registerClass(&Scene::staticMetaObject, "core", PythonQtCreateObject<PythonQtWrapper_Scene>);
 
     //PythonQt::self()->addDecorators(new ExampleDecorator());
     //PythonQt::self()->registerCPPClass("PrimitiveParts");//, "", "primitives"PythonQtCreateObject<PythonQtWrapper_QAccessibleBridge>, PythonQtSetInstanceWrapperOnShell<PythonQtShell_QAccessibleBridge>, module, 0);

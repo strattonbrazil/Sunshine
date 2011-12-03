@@ -26,7 +26,7 @@ class MeshRenderer
 {
 public:
                           MeshRenderer(QString meshName);
-    void                  render(PanelGL* panel);
+    void                  render(PanelGL* panel, GLuint assetIndex=0);
     void                  renderFaces(PanelGL* panel);
     void                  renderVertices(PanelGL* panel);
     void                  loadVBOs(PanelGL* panel, Mesh* mesh);
@@ -82,7 +82,6 @@ public:
     QPoint                   centerMouse(bool mock);
     void                     setArrowCursor();
     void                     setBlankCursor();
-    void                     renderBeautyPass();
     void                     frameSelection();
 
     // for preselection
@@ -98,8 +97,8 @@ private:
     void                     init();
     void                     ravageMouse();
     void                     buildMeshGrid();
-    void                     renderWorkPass();
-    void                     renderLights();
+    void                     renderAssets();
+    void                     renderLights(GLuint &selectionCounter);
     bool                     _validShaders;
     QVector<GLubyte>         _selectionBuffer;
     GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
@@ -115,6 +114,8 @@ private:
     Sunshine*                _sunshine;
 
     GLuint                   _pointLightTexture;
+    GLuint                   _spotLightTexture;
+    QHash<GLuint,Bindable*>  _selectionAssets;
 };
 
 struct LineSegment {
