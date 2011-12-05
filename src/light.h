@@ -37,11 +37,13 @@ public:
 
 class SpotLight : public Light
 {
+    Q_OBJECT
 public:
     SpotLight();
     QString glslFragmentBegin();
     QString glslFragmentEnd();
     int lightType() { return LightType::SPOT_LIGHT; }
+    Q_INVOKABLE QVector3D spotDir() { return lookDir().normalized(); }
 };
 
 class AmbientLight : public Light

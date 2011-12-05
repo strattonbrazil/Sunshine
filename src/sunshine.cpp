@@ -159,18 +159,26 @@ void Sunshine::setupDefaultMeshes()
     _scene->addAsset("cube1", first);
 
     Mesh* second = Mesh::buildByIndex(primitive::cubePrimitive(1.2f, 0.8f, 1.2f));
-    second->setCenter(Point3(3,0,0));
+    second->setCenter(Point3(0,0,3));
     _scene->addAsset("cube2", second);
 
-    Mesh* plane = Mesh::buildByIndex(primitive::planePrimitive(12,12));
+    Mesh* plane = Mesh::buildByIndex(primitive::planePrimitive(12,24));
     _scene->addAsset("plane", plane);
 }
 
 void Sunshine::setupDefaultLights()
 {
-    Light* point(new PointLight());
-    _scene->addAsset("point", point);
-    point->setCenter(Point3(0,10,0));
+    //Light* point(new PointLight());
+    //_scene->addAsset("point", point);
+    //point->setCenter(Point3(0,6,0));
+
+    Light* spot(new SpotLight());
+    _scene->addAsset("spot", spot);
+    spot->setCenter(Point3(0,1,0));
+
+    SpotLight* ack = qobject_cast<SpotLight*>(spot);
+
+    //std::cout << ack->spotDir() << std::endl;
 
     Light* ambient(new AmbientLight());
     _scene->addAsset("ambient", ambient);
@@ -469,7 +477,25 @@ void Sunshine::on_sceneHierarchySelection_changed(const QModelIndex &current, co
     //if (bindable == 0) bindable = _scene->material(bindableName);
 
     // update the property editor
-    if (bindable != 0) _propertyEditorModel->update(bindable);
+    if (bindable != 0) {
+        _propertyEditorModel->update(bindable);
+
+        // try selecting the bindable
+        //
+        foreach(QString lightName, _scene->lights()) {
+            _scene->light(lightName)->setSelected(false);
+        }
+        foreach(QString meshName, _scene->meshes()) {
+            _scene->mesh(meshName)->setSelected(false);
+        }
+
+        Mesh* mesh = qobject_cast<Mesh*>(bindable);
+        if (mesh != 0) mesh->setSelected(true);
+        Light* light = qobject_cast<Light*>(bindable);
+        if (light != 0) light->setSelected(true);
+
+        updatePanels();
+    }
 
     ui->propertyTable->expandAll();
     ui->propertyTable->resizeColumnToContents(0);

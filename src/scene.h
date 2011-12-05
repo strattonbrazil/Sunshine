@@ -44,6 +44,7 @@ public:
     Material*                       defaultMaterial() {
         return material(materials()[0]);
     }
+    QString                         assetName(Bindable* bindable) { return _assets.key(bindable); }
     ShaderTreeModel*                shaderTreeModel() { return &_shaderTreeModel; }
     QList<QString>                  importExtensions();
     void                            importFile(QString fileName);
@@ -67,10 +68,11 @@ private:
 
 public slots:
     QString                            addAsset(QString name, Bindable* asset);
+    void                               addMesh(QString name, Mesh* mesh) { addAsset(name, (Bindable*)mesh); }
     void                               pythonStdOut(const QString &s) { std::cout << s.toStdString() << std::flush; }
     void                               pythonStdErr(const QString &s) { std::cout << s.toStdString() << std::flush; }
 };
-//Q_DECLARE_METATYPE(Scene*)
+Q_DECLARE_METATYPE(Scene*)
 
 /*
 class PythonQtWrapper_Scene : public QObject

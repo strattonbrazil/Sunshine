@@ -127,9 +127,10 @@ SpotLight::SpotLight()
     QString intensity("{ 'var' : 'uniformLightIntensity', 'name' : 'Intensity', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 1.0, 'glslFragmentConstant' : true }");
     QString coneAngle("{ 'var' : 'coneAngle', 'name' : 'Cone Angle', 'type' : 'float', 'min' : 1.0, 'max' : 150.0, 'value' : 60.0, 'glslFragmentConstant' : true }");
     QString castShadows("{ 'var' : 'castShadows', 'name' : 'Casts Shadows', 'type' : 'bool', 'value' : true }");
+    QString spotDir("{ 'var' : 'spotDir', 'name' : 'Spot Direction', 'type' : 'vector3', 'getter' : 'spotDir', 'glslFragmentConstant' : true }");
 
     QStringList atts;
-    atts << color << intensity << coneAngle << castShadows;
+    atts << color << intensity << coneAngle << castShadows << spotDir;
 
     addAttributes(atts);
 
@@ -141,11 +142,15 @@ QString SpotLight::glslFragmentBegin()
 {
     QString lightFragCode;
     lightFragCode += "  vec3 lightDir = normalize(lightPos - worldPos);\n";
+    lightFragCode += "  float spotEffect = dot(spotDir, -lightDir);\n";
     Attribute castShadows = attributeByName("Casts Shadows");
     if (castShadows && castShadows->property("value").isValid()) {
-        bool casting = castShadows->property("value").value<bool>();
-        if (casting)
-            lightFragCode += "  float lightIntensity = uniformLightIntensity;\n";
+        //bool casting = castShadows->property("value").value<bool>();
+        //if (casting)
+        lightFragCode += "  float lightIntensity = 0.0;\n";
+        lightFragCode += "  if (spotEffect > cos(radians(coneAngle*0.5))) {\n";
+        lightFragCode += "    lightIntensity = 1.0;\n";
+        lightFragCode += "  }\n";
     }
     return lightFragCode;
 }

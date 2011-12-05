@@ -65,7 +65,7 @@ public:
     QGLShaderProgram*        getFlatShader() { return _flatShader; }
     QGLShaderProgram*        getMeshShader() { return _meshShader; }
     QGLShaderProgram*        getVertexShader() { return _vertexShader; }
-    Camera*                  camera() const { return _camera; }
+    Transformable*           camera() const { return _camera; }
     void                     enterEvent(QEvent *);
     void                     mousePressEvent(QMouseEvent* event);
     void                     mouseDoubleClickEvent(QMouseEvent *);
@@ -99,11 +99,13 @@ private:
     void                     buildMeshGrid();
     void                     renderAssets();
     void                     renderLights(GLuint &selectionCounter);
+    void                     renderHUD(QPainter &painter);
     bool                     _validShaders;
     QVector<GLubyte>         _selectionBuffer;
     GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
     bool                     _validSelectionBuffer;
-    Camera*                  _camera;
+    Transformable*           _camera;
+    QGLShaderProgram*        _textureShader;
     QGLShaderProgram*        _flatShader;
     QGLShaderProgram*        _meshShader;
     QGLShaderProgram*        _vertexShader;
@@ -116,6 +118,7 @@ private:
     GLuint                   _pointLightTexture;
     GLuint                   _spotLightTexture;
     QHash<GLuint,Bindable*>  _selectionAssets;
+    CameraScratch            _cameraScratch;
 };
 
 struct LineSegment {

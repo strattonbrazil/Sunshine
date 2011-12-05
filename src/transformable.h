@@ -17,7 +17,7 @@ public:
     Point3             eye() { return _center; }
     Vector3            upDir() { return rotate().rotatedVector(Vector3(0,1,0)); }
     Point3             lookat() { return _center + lookDir(); }
-    Vector3            lookDir() { return rotate().rotatedVector(Vector3(0,0,_distance)); }
+    QVector3D          lookDir() { return rotate().rotatedVector(Vector3(0,0,_distance)); }
     Vector3            leftDir() { return Vector3::crossProduct(upDir(), lookDir()).normalized(); }
     void               resetLook();
     void               updateLook();

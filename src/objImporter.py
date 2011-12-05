@@ -56,7 +56,8 @@ class ObjImporter(MeshImporter):
 #        parts.setFaces(group['faces'])
 
         mesh = Mesh.buildByIndex(parts)
-        scene.addAsset("mesh", mesh)
+        scene.addMesh('mesh', mesh)
+#        scene.addAsset("mesh", mesh)
 
 MeshImporter.register(ObjImporter())
 

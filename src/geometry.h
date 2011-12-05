@@ -6,7 +6,6 @@
 //#include <CGAL/Polyhedron_3.h>
 #include <QHash>
 #include <QString>
-#include <QSharedPointer>
 #include <boost/shared_ptr.hpp>
 //#include <CGAL/basic.h>
 #include "primitive.h"

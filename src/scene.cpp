@@ -37,6 +37,10 @@ QList<QString> Scene::materials()
     return assetsByType(AssetType::MATERIAL_ASSET);
 }
 
+QList<QString> Scene::cameras()
+{
+    return assetsByType(AssetType::CAMERA_ASSET);
+}
 
 QList<QString> Scene::importExtensions()
 {
@@ -54,7 +58,8 @@ QList<QString> Scene::importExtensions()
 
 void Scene::importFile(QString fileName)
 {
-    QVariant sceneV = qVariantFromValue(this);
+    std::cout << static_cast<QObject*>(this) << std::endl;
+    QVariant sceneV = qVariantFromValue(static_cast<QObject*>(this));
     //QVariant sceneV((QObject*)this);
 
     QVariantList fileArgs;

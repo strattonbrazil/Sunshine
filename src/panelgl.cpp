@@ -52,7 +52,8 @@ void PanelGL::init()
     setMouseTracking(true);
     _validShaders = false;
     _validSelectionBuffer = FALSE;
-    _fbo, _beautyTexture, _indexTexture, _depthTexture, _pointLightTexture, _spotLightTexture = 0;
+    _fbo = 0, _beautyTexture = 0, _indexTexture = 0, _depthTexture = 0, _pointLightTexture = 0, _spotLightTexture = 0;
+
     //_basicSelect = BasicSelect*(new BasicSelect());
 
     if (mainGrid == 0) {
@@ -111,10 +112,15 @@ void PanelGL::initializeGL()
 
 void PanelGL::paintGL()
 {   
+    QPainter painter;
+    painter.begin(this);
+    painter.beginNativePainting();
+
     if (!_validShaders) {
         _flatShader = ShaderFactory::buildFlatShader(this);
         _meshShader = ShaderFactory::buildMeshShader(this);
         _vertexShader = ShaderFactory::buildVertexShader(this);
+        _textureShader = ShaderFactory::buildShader(this, ":/glsl/texture_shader.vert", ":/glsl/texture_shader.frag");
         _validShaders = true;
     }
 
@@ -176,6 +182,12 @@ void PanelGL::paintGL()
     GLubyte b = _selectionBuffer[(p.x()+width()*p.y())*4+2];
     GLubyte a = _selectionBuffer[(p.x()+width()*p.y())*4+3];
     //std::cout << "(" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")" << std::endl;
+
+    //renderHUD();
+
+    painter.endNativePainting();
+    renderHUD(painter);
+    painter.end();
 }
 
 void PanelGL::renderAssets()
@@ -230,7 +242,19 @@ void PanelGL::renderLights(GLuint &selectionCounter)
     if (_spotLightTexture == 0)
         _spotLightTexture = bindTexture(QImage(":/icons/spot_light_icon.png"));
 
-    const float ICON_OFFSET = 8;
+
+
+    const float ICON_OFFSET = 12;
+
+    glEnable(GL_DEPTH_TEST);
+
+    QGLShaderProgram* textureShader = _textureShader;
+    QMatrix4x4 ortho;
+    ortho.ortho(0, width(), 0, height(), -1, 0);
+    textureShader->bind();
+    textureShader->setUniformValue("objToWorld", QMatrix4x4());
+    textureShader->setUniformValue("cameraPV", ortho);
+    textureShader->setUniformValue("colorMap", 0);
 
     foreach(QString lightName, _scene->lights()) {
         Light* light = _scene->light(lightName);
@@ -244,12 +268,6 @@ void PanelGL::renderLights(GLuint &selectionCounter)
             glColor4f(1,1,1,1);
 
             Point3 screen = project(light->center());
-
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, width(), 0, height(), -1, 1);
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
 
             glBegin(GL_QUADS);
             {
@@ -279,12 +297,6 @@ void PanelGL::renderLights(GLuint &selectionCounter)
 
             Point3 screen = project(light->center());
 
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, width(), 0, height(), -1, 1);
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-
             glBegin(GL_QUADS);
             {
                 glTexCoord2f(0, 0);
@@ -305,7 +317,6 @@ void PanelGL::renderLights(GLuint &selectionCounter)
             QVector3D lookDir = light->lookDir().normalized();
             glBegin(GL_LINES);
             {
-                std::cout << lookDir << std::endl;
                 Point3 lightStart = project(light->center() + lookDir);
                 Point3 lightEnd = project(light->center() + lookDir + lookDir*10.0f);
                 glVertex3f(lightStart.x(), lightStart.y(), lightStart.z());
@@ -314,11 +325,26 @@ void PanelGL::renderLights(GLuint &selectionCounter)
             glEnd();
         }
     }
+
+    textureShader->release();
+    glDisable(GL_DEPTH_TEST);
+}
+
+void PanelGL::renderHUD(QPainter &painter)
+{
+    QString assetName = _scene->assetName(_camera);
+
+    int nameWidth = painter.fontMetrics().width(assetName) * 0.5;
+    int nameHeight = painter.fontMetrics().height();
+    int descent = painter.fontMetrics().descent();
+
+    painter.setPen(QColor(135,37,255));
+    painter.drawText(width()*.5-nameWidth, height()-descent-4, assetName);
 }
 
 void PanelGL::paintBackground()
 {
-    Camera* camera = _camera;
+    Transformable* camera = _camera;
     //QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width(), height());
     //QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width(), height());
     //QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
@@ -440,7 +466,7 @@ void LineRenderer::render(PanelGL* panel)
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIds[1]);
 
-    Camera* camera = panel->camera();
+    Transformable* camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
@@ -563,7 +589,7 @@ void MeshRenderer::renderFaces(PanelGL *panel)
     mesh->validateNormals();
     const int numTriangles = mesh->numTriangles();
 
-    Camera* camera = panel->camera();
+    Transformable* camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
@@ -673,7 +699,7 @@ void MeshRenderer::renderVertices(PanelGL *panel)
 
     glBindBuffer(GL_ARRAY_BUFFER, _vboIds[1]);
 
-    Camera* camera = panel->camera();
+    Transformable* camera = panel->camera();
     QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera,panel->width(),panel->height());
     QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
@@ -829,7 +855,7 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
     if (mouseMode == MouseMode::FREE && altDown) {
         mouseMode = MouseMode::CAMERA;
         activeMouseButton = event->button();
-        _camera->mousePressed(event);
+        Camera::mousePressed(_camera, _cameraScratch, event);
     }
     else if (mouseMode == MouseMode::FREE && event->button() & Qt::LeftButton) {
         mouseMode = MouseMode::TOOL;
@@ -866,7 +892,7 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
     if (mouseMode == MouseMode::CAMERA && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
-        _camera->mouseReleased(event);
+        Camera::mouseReleased(_camera, _cameraScratch, event);
     }
     else if (mouseMode == MouseMode::TOOL && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
@@ -935,7 +961,7 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
 void PanelGL::mouseDragEvent(QMouseEvent* event)
 {
     if (mouseMode == MouseMode::CAMERA) {
-        _camera->mouseDragged(event);
+        Camera::mouseDragged(_camera, _cameraScratch, event);
 
     }
     else if (mouseMode == MouseMode::TOOL) {
@@ -1023,8 +1049,13 @@ void PanelGL::showContextMenu(QMouseEvent *event)
         hasLightSelected = hasLightSelected || _scene->light(lightName)->isSelected();
     }
 
+    QMenu* lookThrough = popup.addMenu("Look through");
     if (hasLightSelected) {
-        popup.addAction("Look through Selected");
+        lookThrough->addAction("Selected");
+        lookThrough->addSeparator();
+    }
+    foreach(QString cameraName, _scene->cameras()) {
+        lookThrough->addAction(cameraName);
     }
 
     // add menu options specific to the selected cursor tool
@@ -1075,8 +1106,17 @@ void PanelGL::showContextMenu(QMouseEvent *event)
     //
     QAction* action = popup.exec(event->globalPos());
     if (action != 0) {
-        if (action->text() == "Look through Selected") {
-
+        if (action->parent() == lookThrough) {
+            if (action->text() == "Selected") {
+                foreach(QString lightName, _scene->lights()) {
+                    Light* light = _scene->light(lightName);
+                    if (light->isSelected())
+                        _camera = light;
+                }
+            } else {
+                _camera = _scene->camera(action->text());
+            }
+            update();
         }
         else if (action->text() == "Material Attributes") {
             foreach(QString meshName, _scene->meshes()) {

@@ -46,8 +46,7 @@ public slots:
     Mesh* new_Mesh() { return new Mesh(); }
     void delete_Mesh(Mesh* obj) { delete obj; }
     Mesh* static_Mesh_buildByIndex(PrimitiveParts* parts) {
-        std::cout << "building mesh" << std::endl;
-        return 0;
+        return Mesh::buildByIndex(*parts);
     }
 };
 

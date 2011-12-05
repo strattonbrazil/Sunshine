@@ -86,7 +86,9 @@ SOURCES += src/camera.cpp \
     src/cursor_tools/translate_tool.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc \
-    src/textures.qrc
+    src/textures.qrc \
+    src/glsl.qrc
+
 
 
 

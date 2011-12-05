@@ -61,6 +61,33 @@
 "  }\n" \
 "}\n"
 
+QGLShaderProgram* ShaderFactory::buildShader(QObject *parent, QString vertFile, QString fragFile)
+{
+    QFile vertF(vertFile);
+    QFile fragF(fragFile);
+    vertF.open(QIODevice::ReadOnly);
+    fragF.open(QIODevice::ReadOnly);
+    QString vertSource = QTextStream(&vertF).readAll();
+    QString fragSource = QTextStream(&fragF).readAll();
+
+    QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
+    vertShader->compileSourceCode(vertSource);
+
+    QGLShader* fragShader = new QGLShader(QGLShader::Fragment);
+    fragShader->compileSourceCode(fragSource);
+
+    QGLShaderProgram* program = new QGLShaderProgram(parent);
+    program->addShader(vertShader);
+    program->addShader(fragShader);
+
+    program->link();
+
+    //cout << program->log() << endl;
+    //cout << QString("Log end--") << endl;
+
+    return program;
+}
+
 QGLShaderProgram* ShaderFactory::buildFlatShader(QObject *parent)
 {
     QString vertSource("in vec3 vertex;\n" \
@@ -306,6 +333,7 @@ QGLShaderProgram* ShaderFactory::buildMaterialShader(Light* light, Material* mat
     typeToGL["color"] = "vec3";
     typeToGL["float"] = "float";
     typeToGL["point3"] = "vec3";
+    typeToGL["vector3"] = "vec3";
     typeToGL["samplerCubeShadow"] = "samplerCubeShadow";
     typeToGL["sampler2DShadow"] = "sampler2DShadow";
     typeToGL["mat4"] = "mat4";

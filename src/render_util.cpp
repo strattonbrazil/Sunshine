@@ -93,7 +93,7 @@ namespace RenderUtil {
     {
         checkGL("renderGL start");
 
-        Camera* camera = panel->camera();
+        Transformable* camera = panel->camera();
         const int xres = SunshineUi::renderSettings()->attributeByName("Image Width")->property("value").value<int>();
         const int yres = SunshineUi::renderSettings()->attributeByName("Image Height")->property("value").value<int>();
         /*
@@ -494,7 +494,7 @@ namespace RenderUtil {
 
     // renders each mesh in the scene
     //
-    void renderMeshes(QMatrix4x4 cameraProjViewM, Light* light, PanelGL* panel, Camera* camera, GLuint vboId, QGLShaderProgram* forceShader, GLuint* depthMaps)    {
+    void renderMeshes(QMatrix4x4 cameraProjViewM, Light* light, PanelGL* panel, Transformable* camera, GLuint vboId, QGLShaderProgram* forceShader, GLuint* depthMaps)    {
         foreach(QString meshName, SunshineUi::activeScene()->meshes()) {
             Mesh* mesh = SunshineUi::activeScene()->mesh(meshName);
             const int numTriangles = mesh->numTriangles();
@@ -661,6 +661,15 @@ void setShaderUniforms(QGLShaderProgram* shader, Bindable* obj, QList<Attribute>
             else
                 p = attribute->property("value").value<QVector3D>();
             shader->setUniformValue(varName.toStdString().c_str(), p);
+        }
+        else if (attribute->type() == "vector3") {
+            QVector3D v;// = getBoundValue<QVector3D>(obj, attribute);
+
+            if (attribute->property("getter").isValid())
+                v = getBoundValue<QVector3D>(obj, attribute);
+            else
+                v = attribute->property("value").value<QVector3D>();
+            shader->setUniformValue(varName.toStdString().c_str(), v);
         }
         else if (attribute->type() == "float") {
             float f;

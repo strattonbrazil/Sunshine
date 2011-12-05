@@ -3,14 +3,10 @@
 //#include <iostream>
 //using namespace std;
 
-namespace MoveType {
-    enum { ROTATING, PANNING, TRUCKING, NOT_MOVING };
-}
+
 
 // used by panning
-Point3 origEye;
-Vector3 origUp;
-Vector3 origLeft;
+
 
 Camera::Camera()// : Transformable()
 {
@@ -22,7 +18,7 @@ Camera::Camera()// : Transformable()
     updateLook();
     _center = -lookDir();
     //updateLook();
-    moveType = MoveType::NOT_MOVING;
+    //moveType = MoveType::NOT_MOVING;
 }
 
 /*
@@ -35,7 +31,7 @@ Vector3 Camera::lookDir() { return _rotate.rotatedVector(Vector3(0,0,_distance))
 Vector3 Camera::leftDir() { return Vector3::crossProduct(upDir(), lookDir()).normalized(); }
 */
 
-QMatrix4x4 Camera::getViewMatrix(Camera* camera, int width, int height)
+QMatrix4x4 Camera::getViewMatrix(Transformable* camera, int width, int height)
 {
     QMatrix4x4 m;
     m.lookAt(camera->eye(), camera->lookat(), camera->upDir());
@@ -64,7 +60,7 @@ QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float dx
 }
 */
 
-QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float pixdx, float pixdy)
+QMatrix4x4 Camera::getProjMatrix(Transformable* camera, int width, int height, float pixdx, float pixdy)
 {
     // taken from gluPerspective docs
     float aspect = (float)width / (float)height;
@@ -93,6 +89,7 @@ QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float pi
     //m.perspective(camera->fov(), aspect, zNear, zFar);
     return m;
 }
+
 
 /*
 QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float offsetX, float offsetY)
@@ -195,63 +192,63 @@ void Camera::flipYZ(RtMatrix m)
     }
 }
 
-void Camera::mousePressed(QMouseEvent *event)
+void Camera::mousePressed(Transformable* camera, CameraScratch &scratch, QMouseEvent *event)
 {
-    pickX = event->pos().x();
-    pickY = event->pos().y();
+    scratch.pickX = event->pos().x();
+    scratch.pickY = event->pos().y();
 
     if (event->button() == Qt::LeftButton) {
-        moveType = MoveType::ROTATING;
+        scratch.moveType = MoveType::ROTATING;
     }
     else if (event->button() == Qt::MidButton) {
-        moveType = MoveType::PANNING;
+        scratch.moveType = MoveType::PANNING;
 
-        origEye = eye();
+        scratch.origEye = camera->eye();
         //Vector3 f = (lookat() - eye()).normalized();
         //Vector3 s = Vector3::crossProduct(f, upDir());
-        origUp = upDir();
+        scratch.origUp = camera->upDir();
         //origUp = Vector3::crossProduct(s, f);
-        origLeft = leftDir();
+        scratch.origLeft = camera->leftDir();
     } else if (event->button() == Qt::RightButton) {
-        moveType = MoveType::TRUCKING;
+        scratch.moveType = MoveType::TRUCKING;
     } else {
-        moveType = MoveType::NOT_MOVING;
+        scratch.moveType = MoveType::NOT_MOVING;
     }
 }
 
-void Camera::mouseReleased(QMouseEvent *event)
+void Camera::mouseReleased(Transformable* camera, CameraScratch &scratch, QMouseEvent *event)
 {
-    moveType = MoveType::NOT_MOVING;
+    scratch.moveType = MoveType::NOT_MOVING;
 }
 
-void Camera::mouseDragged(QMouseEvent *event)
+void Camera::mouseDragged(Transformable* camera, CameraScratch &scratch, QMouseEvent *event)
 {
-    int xDiff = pickX - event->pos().x();
-    int yDiff = pickY - event->pos().y();
+    int xDiff = scratch.pickX - event->pos().x();
+    int yDiff = scratch.pickY - event->pos().y();
 
-    if (moveType == MoveType::ROTATING) {
-        Vector3 origLook = eye() + lookDir();
-        setYRot(yRot() + xDiff * 0.5f);
-        setUpRot(upRot() + yDiff * -0.5f);
+    if (scratch.moveType == MoveType::ROTATING) {
+        Vector3 origLook = camera->eye() + camera->lookDir();
+        camera->setYRot(camera->yRot() + xDiff * 0.5f);
+        camera->setUpRot(camera->upRot() + yDiff * -0.5f);
 
         // move eye to look at original focal point (Maya style)
-        Vector3 lookAway = lookDir() * -1;
-        setCenter(origLook + lookAway);
+        Vector3 lookAway = camera->lookDir() * -1;
+        camera->setCenter(origLook + lookAway);
     }
-    else if (moveType == MoveType::PANNING) {
+    else if (scratch.moveType == MoveType::PANNING) {
         float panScale = 0.05f;
 
-        Vector3 mUp = origUp * -1.0f * yDiff * panScale;
-        Vector3 mLeft = origLeft * -1.0f * xDiff * panScale;
+        Vector3 mUp = scratch.origUp * -1.0f * yDiff * panScale;
+        Vector3 mLeft = scratch.origLeft * -1.0f * xDiff * panScale;
 
-        setCenter(eye() + mUp + mLeft);
-    } else if (moveType == MoveType::TRUCKING) {
-        Point3 at = lookat();
-        Vector3 l = lookDir() * -0.01f * yDiff;
+        camera->setCenter(camera->eye() + mUp + mLeft);
+    } else if (scratch.moveType == MoveType::TRUCKING) {
+        Point3 at = camera->lookat();
+        Vector3 l = camera->lookDir() * -0.01f * yDiff;
 
-        setCenter(l + center());
+        camera->setCenter(l + camera->center());
     }
 
-    pickX = event->pos().x();
-    pickY = event->pos().y();
+    scratch.pickX = event->pos().x();
+    scratch.pickY = event->pos().y();
 }

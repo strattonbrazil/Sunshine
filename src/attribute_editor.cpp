@@ -29,7 +29,7 @@ void AttributeEditor::update(Bindable* instance)
         if (attribute->property("getter").isValid()) {
             //std::cout << attribute->type().toStdString() << std::endl;
             QString value = "?";
-            if (attribute->type() == "point3") {
+            if (attribute->type() == "point3" || attribute->type() == "vector3") {
                 QVector3D p = getBoundValue<QVector3D>(_instance, attribute);
                 value = QString("(%1, %2, %3)").arg(p.x()).arg(p.y()).arg(p.z());
 

@@ -130,7 +130,7 @@ void BasicSelect::postDrawOverlay(PanelGL *panel)
     const int height = panel->height();
 
     if (selectMode() == SelectMode::BOX) {
-        Camera* camera = panel->camera();
+        Transformable* camera = panel->camera();
         QMatrix4x4 cameraViewM = Camera::getViewMatrix(camera, width, height);
         QMatrix4x4 cameraProjM = Camera::getProjMatrix(camera, width, height);
         QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
