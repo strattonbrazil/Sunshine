@@ -13,5 +13,11 @@
         <file>icons/translate_tool.png</file>
         <file>icons/light_icon.png</file>
         <file>icons/spot_light_icon.png</file>
+        <file>icons/edge_mode.png</file>
+        <file>icons/face_mode.png</file>
+        <file>icons/vertex_mode.png</file>
+        <file>icons/object_mode.png</file>
+        <file>icons/checker_node.png</file>
+        <file>icons/file_node.png</file>
     </qresource>
 </RCC>

@@ -23,5 +23,3 @@ WorkModeAction::WorkModeAction(QObject* parent) : QWidgetAction(parent)
     setDefaultWidget(widget);
 }
 
-
-

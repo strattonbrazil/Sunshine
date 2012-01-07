@@ -69,3 +69,5 @@ void Bindable::addAttributes(QStringList attributes) {
 }
 
 
+
+

@@ -10,9 +10,10 @@
 //#include "sunshineui.h"
 #include "worktool.h"
 #include <QToolButton>
+#include "shader_tree.h"
 
 namespace Ui {
-        class Sunshine;
+    class Sunshine;
 }
 
 //namespace GeometryMode { enum { OBJECT, VERTEX, EDGE, FACE }; };
@@ -25,8 +26,6 @@ namespace SunshineUi {
     Scene* activeScene();
     CursorTool* cursorTool();
     int workMode();
-    int selectMode();
-    bool selectOccluded();
     void updateSceneHierarchy(Scene* scene);
     void updatePanels();
     Bindable* renderSettings();
@@ -58,7 +57,7 @@ public:
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
-    void                       on_renderButton_clicked();
+    void                       on_renderRequest();
     void                       on_renderSettingsButton_clicked();
     void                       on_importAction_triggered();
     void                       on_layoutModeButton_released();
@@ -69,11 +68,13 @@ private slots:
     void                       on_cursorToolChanged(QAbstractButton*);
     void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
     void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
+    void                       showShaderGraph();
 
     void                       createPointLight();
     void                       createSpotLight();
     void                       createCube();
     void                       createPlane();
+
 private:
     QList<PanelGL*>                   _panels;
     QButtonGroup*                     _cursorButtonGroup;
@@ -85,6 +86,7 @@ private:
     SettingsWidget*                   _renderSettingsWidget;
     AttributeEditor*                  _propertyEditorModel;
     Bindable*                         _renderSettings;
+    ShaderTreeWindow*                 _shaderTreeWindow;
 };
 
 #endif // SUNSHINE_H

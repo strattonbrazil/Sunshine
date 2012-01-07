@@ -60,7 +60,7 @@ bool TranslateTransformable::init(PanelGL* inPanel, QString command, int button)
     return TRUE;
 }
 
-void TranslateTransformable::mouseMoved(QMouseEvent* event, int dx, int dy)
+void TranslateTransformable::mouseMoved(PanelGL* panel, QMouseEvent* event, int dx, int dy)
 {
     float scale = 0.01f;
     currentP = event->pos();

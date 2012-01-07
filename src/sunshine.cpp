@@ -35,7 +35,12 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 
     PythonQt::init(PythonQt::IgnoreSiteModule);
 
+
+
     ui->setupUi(this);
+
+    _shaderTreeWindow = new ShaderTreeWindow();
+
     clearScene();
 
     PanelGL* panel = new PanelGL(_scene, this);
@@ -45,12 +50,18 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
+    connect(ui->renderAction, SIGNAL(triggered()),this,SLOT(on_renderRequest()));
+    connect(ui->renderSettingsAction, SIGNAL(triggered()),this,SLOT(on_renderSettingsButton_clicked()));
+
+
+
+    connect(ui->shaderGraphAction, SIGNAL(triggered()),this,SLOT(showShaderGraph()));
+
     _renderWidget = 0;
     _renderSettingsWidget = new SettingsWidget();
 
     QList<CursorTool*> cursorTools;
     cursorTools << new PointTool();
-    cursorTools << new EditTool();
     cursorTools << new DrawBoxTool();
     cursorTools << new TranslateTool();
     cursorTools << new RotateTool();
@@ -82,6 +93,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     firstButton->setChecked(TRUE);
     connect(_cursorButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),
             this, SLOT(on_cursorToolChanged(QAbstractButton*)));
+    on_cursorToolChanged(firstButton);
 
     _propertyEditorModel = new AttributeEditor();
     ui->propertyTable->setModel(_propertyEditorModel);
@@ -101,6 +113,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 Sunshine::~Sunshine()
 {
     delete ui;
+    delete _shaderTreeWindow;
     if (_renderSettingsWidget) delete _renderSettingsWidget;
 }
 
@@ -126,21 +139,32 @@ void Sunshine::clearScene()
     setupDefaultMeshes();
     setupDefaultLights();
 
-    ui->sceneHierarchyTree->setModel(_scene);
+    ui->sceneHierarchyTree->setModel(_scene->hierarchyModel());
     connect(ui->sceneHierarchyTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
             this, SLOT(on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &)));
 
-    ShaderTreeModel* m = new ShaderTreeModel();
-    ui->shaderTree->setModel(_scene->shaderTreeModel());
-    ui->shaderTree->setColumnWidth(0, 25);
-    connect(ui->shaderTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
-            this, SLOT(on_materialSelection_changed(const QModelIndex &, const QModelIndex &)));
+    _shaderTreeWindow->setMaterialModel(_scene->shaderTreeModel());
+
+    //ui->shaderTree->setModel(_scene->shaderTreeModel());
+    //ui->shaderTree->setColumnWidth(0, 25);
+
+    //connect(ui->shaderTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+     //       this, SLOT(on_materialSelection_changed(const QModelIndex &, const QModelIndex &)));
+
+
+    ui->shaderTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->shaderTree,
+            SIGNAL(customContextMenuRequested(const QPoint &)),
+            _scene->shaderTreeModel(),
+            SLOT(contextMenu(const QPoint &)));
     //std::cout << ui->sceneHierarchyTree << std::endl;
 }
 
 void Sunshine::setupDefaultMaterials()
 {
-    _scene->addAsset("phong", new PhongMaterial());
+    for (int i = 0; i < 5; i++)
+        _scene->addAsset("phong", new PhongNode());
+    //_scene->addAsset("phong", new PhongMaterial());
     //_scene->addAsset("otherPhong", new PhongMaterial());
 }
 
@@ -187,7 +211,7 @@ void Sunshine::setupDefaultLights()
     //spot->orient(Point3(8,4,-8), Point3(0,0,0), Vector3(0,1,0));
 }
 
-void Sunshine::on_renderButton_clicked()
+void Sunshine::on_renderRequest()
 {
 
     RenderUtil::renderGL(_panels[0]);
@@ -389,42 +413,6 @@ CursorTool* Sunshine::cursorTool()
     return _cursorTools[button];
 }
 
-int Sunshine::workMode()
-{
-    foreach(QString meshName, activeScene()->meshes()) {
-        Mesh* mesh = activeScene()->mesh(meshName);
-        if (mesh->isSelected()) {
-            QHashIterator<int,Vertex*> i = mesh->vertices();
-            while(i.hasNext()) {
-                i.next();
-                Vertex* vertex = i.value();
-                if (vertex->isSelected())
-                    return WorkMode::VERTEX;
-            }
-
-            QHashIterator<int,Face*> j = mesh->faces();
-            while(j.hasNext()) {
-                j.next();
-                Face* face = j.value();
-                if (face->isSelected())
-                    return WorkMode::FACE;
-            }
-        }
-    }
-    return WorkMode::OBJECT;
-}
-
-int Sunshine::selectMode()
-{
-    if (ui->lineSelectButton->isChecked()) return SelectMode::LINE;
-    else if (ui->boxSelectButton->isChecked()) return SelectMode::BOX;
-}
-
-bool Sunshine::selectOccluded()
-{
-    return ui->selectOccludedButton->isChecked();
-}
-
 void Sunshine::updateSceneHierarchy(Scene* scene)
 {
     //ui->sceneHierarchyTree
@@ -438,9 +426,7 @@ void Sunshine::updatePanels()
 
 namespace SunshineUi {
     Scene* activeScene() { return activeMainWindow->activeScene(); }
-    int workMode() { return activeMainWindow->workMode(); }
-    int selectMode() { return activeMainWindow->selectMode(); }
-    bool selectOccluded() { return activeMainWindow->selectOccluded(); }
+    int workMode() { return activeMainWindow->cursorTool()->workMode(); }
     CursorTool* cursorTool() { return activeMainWindow->cursorTool(); }
     void updateSceneHierarchy(Scene* scene) { return activeMainWindow->updateSceneHierarchy(scene); }
     void updatePanels() { activeMainWindow->updatePanels(); }
@@ -456,6 +442,13 @@ void Sunshine::on_selectOccludedButton_clicked()
 
 void Sunshine::on_cursorToolChanged(QAbstractButton* button)
 {
+    // clear out the frame/layout
+    QLayoutItem* child;
+    while ((child = ui->cursorToolsLayout->takeAt(0)) != 0) {}
+
+    if (cursorTool()->toolbar() != 0)
+        ui->cursorToolsLayout->addWidget(cursorTool()->toolbar());
+
     this->updatePanels();
 }
 
@@ -465,12 +458,14 @@ void Sunshine::on_materialSelection_changed(const QModelIndex &current, const QM
     Material* material = _scene->material(materialName);
 
     _propertyEditorModel->update(material);
+    ui->propertyTable->expandAll();
+    ui->propertyTable->resizeColumnToContents(0);
 }
 
 void Sunshine::on_sceneHierarchySelection_changed(const QModelIndex &current, const QModelIndex &previous)
 {
     // get the selection if its bindable
-    QString bindableName = _scene->data(current, Qt::DisplayRole).toString();
+    QString bindableName = _scene->hierarchyModel()->data(current, Qt::DisplayRole).toString();
     Bindable* bindable = _scene->light(bindableName);
     if (bindable == 0) bindable = _scene->mesh(bindableName);
     if (bindable == 0) bindable = _scene->material(bindableName);
@@ -513,6 +508,7 @@ void Sunshine::selectAsset(QString assetName)
     if (ui->propertyTable->selectionModel() == 0)
         return;
 
+    /*
     QList<QStandardItem*> items = _scene->findItems(assetName);
     if (items.size() > 0) {
         QModelIndex index = _scene->indexFromItem(items[0]);
@@ -525,6 +521,7 @@ void Sunshine::selectAsset(QString assetName)
         //ui->propertyTable->selectionModel()->select(index,
           //                                                   QItemSelectionModel::Select);
     }
+    */
 
 }
 
@@ -548,4 +545,9 @@ void Sunshine::createPlane()
 {
     Mesh* mesh = Mesh::buildByIndex(primitive::planePrimitive(8,8));
     _scene->addAsset("plane",mesh);
+}
+
+void Sunshine::showShaderGraph()
+{
+    _shaderTreeWindow->show();
 }

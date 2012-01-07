@@ -5,6 +5,7 @@
 #include <QStandardItemModel>
 #include "attribute_editor.h"
 
+/*
 class Material : public Bindable
 {
     Q_OBJECT
@@ -23,6 +24,56 @@ protected:
     //Bindable* constantAttributes;
     //Bindable* _vertexAttributes;
 };
+*/
+
+class Shader;
+
+class ShaderConnection
+{
+public:
+    Shader* fromNode;
+    QString fromAttribute;
+    Shader* toNode;
+    QString toAttribute;
+};
+
+inline bool operator==(const ShaderConnection &c1, const ShaderConnection &c2)
+{
+    return c1.fromNode == c2.fromNode &&
+            c1.fromAttribute == c2.fromAttribute &&
+            c1.toNode == c2.toNode &&
+            c1.toAttribute == c2.toAttribute;
+}
+
+inline uint qHash(const ShaderConnection &key)
+{
+    return qHash(key.fromNode) + qHash(key.toNode);
+}
+
+class Shader : public Bindable
+{
+    Q_OBJECT
+public:
+    Shader() : zOrder(-1) {}
+    Shader* buildByType(QString type);
+    virtual QList<Attribute> inputs() = 0;
+    virtual QList<Attribute> outputs() = 0;
+    QPoint position() { return workspacePos; }
+    QList<ShaderConnection> nodeLinks;
+    QPoint workspacePos;
+    QSize nodeSize;
+    int zOrder;
+};
+
+class Material : public Shader
+{
+    Q_OBJECT
+public:
+    static Material* buildByType(QString type);
+    int assetType() { return AssetType::MATERIAL_ASSET; }
+};
+
+
 
 class ShaderTreeModel : public QStandardItemModel
 {
@@ -30,26 +81,28 @@ class ShaderTreeModel : public QStandardItemModel
 public:
     ShaderTreeModel();
     Qt::ItemFlags flags(const QModelIndex &index) const;
-
-    //ShaderTreeModel(QObject* parent) : QStardardItemModel(parent) {}
-    /*
-    ShaderTreeModel() : QStardardItemModel() {}
-    QModelIndex index(int row, int column, const QModelIndex &parent) const;
-    QModelIndex parent(const QModelIndex &index) const;
-    int rowCount(const QModelIndex &parent) const;
-    int columnCount(const QModelIndex &parent) const;
-    QVariant data(const QModelIndex &index, int role) const;
-    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-    */
+    void addMaterial(QString name, Material* material);
+public slots:
+    void contextMenu(const QPoint &p);
 };
 
+class PhongNode : public Material
+{
+public:
+    PhongNode();
+    QList<Attribute> inputs();// { return _inputs; }
+    QList<Attribute> outputs() { return QList<Attribute>(); }
+private:
+    QList<Attribute> _inputs;
+};
 
-
+/*
 class PhongMaterial : public Material
 {
 public:
     PhongMaterial();
     QString glslFragmentCode();
 };
+*/
 
 #endif // MATERIAL_H

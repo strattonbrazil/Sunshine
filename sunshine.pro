@@ -49,9 +49,14 @@ HEADERS += src/camera.h \
     src/transformable.h \
     src/bindable.h \
     src/com_trolltech_qt_gui10.h \
-    src/menu_tools.h
+    src/menu_tools.h \
+    src/shader_tree.h \
+    src/node_widget.h
 FORMS += src/sunshine.ui \
-    src/renderwidget.ui
+    src/renderwidget.ui \
+    src/shader_tree_window.ui \
+    src/node_widget.ui \
+    src/shader_relationships_window.ui
 SOURCES += src/camera.cpp \
            src/face_util.cpp \
            src/geometry.cpp \
@@ -83,25 +88,12 @@ SOURCES += src/camera.cpp \
     src/bindable.cpp \
     src/com_trolltech_qt_gui10.cpp \
     src/cursor_tools/point_tool.cpp \
-    src/cursor_tools/translate_tool.cpp
+    src/cursor_tools/translate_tool.cpp \
+    src/work_tools/split_polygon.cpp \
+    src/shader_tree.cpp \
+    src/node_widget.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc \
     src/textures.qrc \
     src/glsl.qrc
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

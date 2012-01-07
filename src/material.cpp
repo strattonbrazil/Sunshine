@@ -1,24 +1,28 @@
 #include "material.h"
 #include "sunshine.h"
 
+/*
 QList<QString> Material::materialTypes() {
     QList<QString> materialTypes;
     materialTypes << "Phong";
     return materialTypes;
 }
+*/
 
 Material* Material::buildByType(QString type) {
-    if (type == "Phong")
-        return new PhongMaterial();
-    else
-        return 0;
+
 }
 
 ShaderTreeModel::ShaderTreeModel()
 {
-    QStringList headers;
-    headers << "" << "Material" << "Component";
-    setHorizontalHeaderLabels(headers);
+    //QStringList headers;
+    //headers << "" << "Material" << "Component";
+    //setHorizontalHeaderLabels(headers);
+}
+
+void ShaderTreeModel::contextMenu(const QPoint &p)
+{
+
 }
 
 Qt::ItemFlags ShaderTreeModel::flags(const QModelIndex &index) const
@@ -34,6 +38,17 @@ Qt::ItemFlags ShaderTreeModel::flags(const QModelIndex &index) const
     return defaultFlags;
 }
 
+void ShaderTreeModel::addMaterial(QString name, Material* material)
+{
+    QList<QStandardItem*> items;
+    //items << new QStandardItem("");
+    items << new QStandardItem(name);
+    //items << new QStandardItem("-");
+
+    this->appendRow(items);
+}
+
+/*
 QList<Attribute> Material::glslFragmentConstants()
 {
     QList<Attribute> constantAttributes;
@@ -44,7 +59,40 @@ QList<Attribute> Material::glslFragmentConstants()
 
     return constantAttributes;
 }
+*/
 
+Shader* Shader::buildByType(QString type)
+{
+    if (type == "Phong")
+        return new PhongNode();
+    else
+        return 0;
+}
+
+PhongNode::PhongNode()
+{
+    QStringList atts;
+    atts << "{ 'var' : 'diffuseColor', 'name' : 'Diffuse Color', 'type' : 'color', 'value' : '#ff00af', 'glslFragmentConstant' : true, 'shaderType' : 'input'  }";
+    atts << "{ 'var' : 'diffuse', 'name' : 'Diffuse', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 1.0, 'shaderType' : 'input' }";
+    atts << "{ 'var' : 'specular', 'name' : 'Specular Power', 'type' : 'float', 'min' : 2.5, 'max' : 1000.0, 'value' : 5.0, 'shaderType' : 'input' }";
+
+    addAttributes(atts);
+}
+
+QList<Attribute> PhongNode::inputs()
+{
+    QList<Attribute> inputs;
+    for (int i = 0; i < attributeCount(); i++) {
+        Attribute attr = this->at(i);
+        if (attr->property("shaderType").isValid()) {
+            if (attr->property("shaderType").toString() == "input")
+                inputs.append(attr);
+        }
+    }
+    return inputs;
+}
+
+/*
 PhongMaterial::PhongMaterial()
 {
     QString diffuseColor("{ 'var' : 'diffuseColor', 'name' : 'Diffuse Color', 'type' : 'color', 'value' : '#ff00af', 'glslFragmentConstant' : true  }");
@@ -66,3 +114,4 @@ QString PhongMaterial::glslFragmentCode()
 {
     return PHONGMATERIAL_GLSL_FRAGMENT_CODE;
 }
+*/

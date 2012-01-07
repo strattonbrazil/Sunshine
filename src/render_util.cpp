@@ -29,6 +29,15 @@ public:
     }
 };
 
+class RenderContext
+{
+    RenderContext() {
+        textureUnit = 0;
+    }
+private:
+    GLuint textureUnit;
+};
+
 void setShaderUniforms(QGLShaderProgram* shader, Bindable* obj, QList<Attribute> attributes);
 
 typedef struct {
@@ -527,7 +536,7 @@ namespace RenderUtil {
                 setShaderUniforms(shader, light, light->glslFragmentConstants()); checkGL("set material shader light uniforms");
 
                 // set uniform constants for material
-                setShaderUniforms(shader, material, material->glslFragmentConstants()); checkGL("set material shader light uniforms");
+                //setShaderUniforms(shader, material, material->glslFragmentConstants()); checkGL("set material shader light uniforms");
 
                 if (depthMaps != 0) {
                     QString depthMapNames[] = { "depthMapP", "depthMapN" };

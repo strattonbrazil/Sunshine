@@ -26,7 +26,13 @@
 class WorkTool;
 class ContextAction;
 
-class Scene : public QStandardItemModel
+class SceneHierarchyModel : public QStandardItemModel
+{
+    Q_OBJECT
+
+};
+
+class Scene : public QObject
 {
     Q_OBJECT
 public:
@@ -42,19 +48,21 @@ public:
     Light*                          light(QString name) { if (_assets.contains(name)) return qobject_cast<Light*>(_assets[name]); else return 0; }
     Camera*                         camera(QString name) { if (_assets.contains(name)) return qobject_cast<Camera*>(_assets[name]); else return 0; }
     Material*                       defaultMaterial() {
-        return material(materials()[0]);
+        return 0;
+        //return material(materials()[0]);
     }
     QString                         assetName(Bindable* bindable) { return _assets.key(bindable); }
-    ShaderTreeModel*                shaderTreeModel() { return &_shaderTreeModel; }
     QList<QString>                  importExtensions();
     void                            importFile(QString fileName);
 
 
+    bool                            hasMeshSelected();
                                 Scene();
                                 QList<WorkTool*>                   _tools;
     bool                            setData(const QModelIndex &index, const QVariant &value, int role);
 
-
+    QAbstractItemModel*             hierarchyModel() { return &_hierarchyModel; }
+    QAbstractItemModel*             shaderTreeModel() { return &_shaderTreeModel; }
 protected:
     int                                uniqueCameraKey(); // TODO: replace these functions with one unique-key finder
     //int                                uniqueMeshKey();
@@ -63,9 +71,9 @@ protected:
 private:
     QHash<QString,Bindable*>           _assets;
     Material*                          _defaultMaterial;
-    ShaderTreeModel                    _shaderTreeModel;
     PythonQtObjectPtr                  pyContext;
-
+    ShaderTreeModel                    _shaderTreeModel;
+    SceneHierarchyModel                _hierarchyModel;
 public slots:
     QString                            addAsset(QString name, Bindable* asset);
     void                               addMesh(QString name, Mesh* mesh) { addAsset(name, (Bindable*)mesh); }

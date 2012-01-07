@@ -1,0 +1,19 @@
+core - change render pass to output selection indices
+core - update selection to use selection indices
+maintenance - move GLSL code to resource files
+lighting - get spot lights working
+lighting - add lights to shader list
+shading - add textures to shader list
+ui - draw spot light and spot-light cone
+shadows - switch point lights to cube maps
+shadows - add penumbra shadows
+ui - fix picking of near-clipped geometry
+ui - fix edge-render of near-clipped geometry
+ui - rename scene objects and try objects in giant list?  key'd wrong?  
+core - create objects by template?
+ui - viewport selection should select in scene hierarchy (and vice versa)
+core - fix scaling order
+ui - add orthographic camera and orthographic viewport, orthographic hotkeys
+ui - make lights selectable and transformable
+maint - clean up shader uniforms
+shadows - make shadows toggleable

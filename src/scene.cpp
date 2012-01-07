@@ -81,6 +81,16 @@ void Scene::importFile(QString fileName)
     */
 }
 
+bool Scene::hasMeshSelected()
+{
+    foreach(QString meshName, meshes()) {
+        Mesh* mesh = this->mesh(meshName);
+        if (mesh->isSelected())
+            return true;
+    }
+    return false;
+}
+
 Scene::Scene()
 {
     //Py_Initialize();
@@ -105,9 +115,8 @@ Scene::Scene()
     pyContext.evalFile(":/plugins/meshImporter.py");
     pyContext.evalFile(":/plugins/objImporter.py");
 
-
-
     _tools << new TranslateTransformable();
+    _tools << new SplitPolygon();
 }
 
 QString Scene::addAsset(QString name, Bindable* asset)
@@ -115,17 +124,25 @@ QString Scene::addAsset(QString name, Bindable* asset)
     QString unique = uniqueName(name);
     _assets[unique] = asset;
 
-    QIcon icon;
-    if (asset->assetType() == AssetType::MESH_ASSET)
-        icon = QIcon(":/icons/mesh_icon.png");
-    else if (asset->assetType() == AssetType::MATERIAL_ASSET)
-        icon = QIcon(":/icons/material_icon.png");
-    else if (asset->assetType() == AssetType::CAMERA_ASSET)
-        icon = QIcon(":/icons/camera_icon.png");
-    else if (asset->assetType() == AssetType::LIGHT_ASSET)
-        icon = QIcon(":/icons/light_icon.png");
+    if (asset->assetType() == AssetType::MESH_ASSET) {
+        QIcon icon = QIcon(":/icons/mesh_icon.png");
+        _hierarchyModel.appendRow(new QStandardItem(icon, unique));
+    }
+    else if (asset->assetType() == AssetType::MATERIAL_ASSET) {
+        QIcon icon = QIcon(":/icons/material_icon.png");
+        _shaderTreeModel.addMaterial(unique, qobject_cast<Material*>(asset));
+        //_shaderTreeModel.appendRow(new QStandardItem(icon, unique));
+    }
+    else if (asset->assetType() == AssetType::CAMERA_ASSET) {
+        QIcon icon = QIcon(":/icons/camera_icon.png");
+        _hierarchyModel.appendRow(new QStandardItem(icon, unique));
+    }
+    else if (asset->assetType() == AssetType::LIGHT_ASSET) {
+        QIcon icon = QIcon(":/icons/light_icon.png");
+        _hierarchyModel.appendRow(new QStandardItem(icon, unique));
+    }
 
-    appendRow(new QStandardItem(icon, unique));
+
 
     SunshineUi::selectAsset(unique);
 
@@ -145,7 +162,7 @@ bool Scene::setData(const QModelIndex &index, const QVariant &value, int role)
     */
     return true;
 
-    return QStandardItemModel::setData(index, value, role);
+    //return QStandardItemModel::setData(index, value, role);
 }
 
 

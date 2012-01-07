@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <QGLPixelBuffer>
 #include <QTime>
+#include <QLayout>
 #include "cursor_tools.h"
 
 namespace MouseMode {
@@ -157,6 +158,7 @@ void PanelGL::paintGL()
     glDisable(GL_TEXTURE_2D);
 
     // copy selection indexes to CPU array
+    /*
     if (!SunshineUi::selectOccluded() && !_validSelectionBuffer) {
         _selectionBuffer.resize(width()*height()*4);
 
@@ -181,6 +183,7 @@ void PanelGL::paintGL()
     GLubyte g = _selectionBuffer[(p.x()+width()*p.y())*4+1];
     GLubyte b = _selectionBuffer[(p.x()+width()*p.y())*4+2];
     GLubyte a = _selectionBuffer[(p.x()+width()*p.y())*4+3];
+    */
     //std::cout << "(" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")" << std::endl;
 
     //renderHUD();
@@ -229,7 +232,10 @@ void PanelGL::renderAssets()
 
     glDrawBuffers(1, bufs);
 
-    cursorTool->postDrawOverlay(this);
+    if (_workTool == 0)
+        cursorTool->postDrawOverlay(this);
+    else
+        _workTool->postDrawOverlay(this);
 
     renderLights(selectionCounter);
 
@@ -255,6 +261,10 @@ void PanelGL::renderLights(GLuint &selectionCounter)
     textureShader->setUniformValue("objToWorld", QMatrix4x4());
     textureShader->setUniformValue("cameraPV", ortho);
     textureShader->setUniformValue("colorMap", 0);
+
+    GLfloat fSizes[2];
+    glGetFloatv(GL_ALIASED_POINT_SIZE_RANGE, fSizes);
+    //std::cout << fSizes[0] << " " << fSizes[1] << std::endl;
 
     foreach(QString lightName, _scene->lights()) {
         Light* light = _scene->light(lightName);
@@ -332,14 +342,33 @@ void PanelGL::renderLights(GLuint &selectionCounter)
 
 void PanelGL::renderHUD(QPainter &painter)
 {
-    QString assetName = _scene->assetName(_camera);
-
-    int nameWidth = painter.fontMetrics().width(assetName) * 0.5;
-    int nameHeight = painter.fontMetrics().height();
-    int descent = painter.fontMetrics().descent();
-
     painter.setPen(QColor(135,37,255));
-    painter.drawText(width()*.5-nameWidth, height()-descent-4, assetName);
+
+    // camera name
+    {
+        QString assetName = _scene->assetName(_camera);
+
+        int nameWidth = painter.fontMetrics().width(assetName) * 0.5;
+        int nameHeight = painter.fontMetrics().height();
+        int descent = painter.fontMetrics().descent();
+
+        painter.drawText(width()*.5-nameWidth, height()-descent-4, assetName);
+    }
+
+    // work tool or mode
+    {
+        QString toolName;
+        if (_workTool != 0)
+            toolName = _workTool->displayName();
+        if (toolName != "") {
+            int nameWidth = painter.fontMetrics().width(toolName);
+            int nameHeight = painter.fontMetrics().height();
+            int descent = painter.fontMetrics().descent();
+
+            painter.drawText(width()-nameWidth - 4, height()-descent-4, toolName);
+        }
+    }
+
 }
 
 void PanelGL::paintBackground()
@@ -623,16 +652,7 @@ void MeshRenderer::renderFaces(PanelGL *panel)
     }
 
     if (drawSettings & DrawSettings::USE_OBJECT_COLOR) {
-        QVector4D singleColor;
-        if (mesh->isSelected() && mesh != panel->_hoverMesh)
-            singleColor = UNSELECTED_COLOR;
-        else if (mesh->isSelected() && mesh == panel->_hoverMesh)
-            singleColor = SELECTED_HOVER_COLOR;
-        else if (mesh == panel->_hoverMesh && DrawSettings::HIGHLIGHT_OBJECTS & drawSettings)
-            singleColor = UNSELECTED_HOVER_COLOR;
-        else
-            singleColor = UNSELECTED_COLOR;
-
+        QVector4D singleColor = UNSELECTED_COLOR;
         meshShader->setUniformValue("singleColor", singleColor.x(),
                                                    singleColor.y(),
                                                    singleColor.z(),
@@ -648,7 +668,6 @@ void MeshRenderer::renderFaces(PanelGL *panel)
         meshShader->setUniformValue("isSingleColor", 0.0f);
         meshShader->setUniformValue("stipple", 1.0f);
     }
-
 
     int offset = 0;
 
@@ -858,13 +877,18 @@ void PanelGL::mousePressEvent(QMouseEvent* event)
         Camera::mousePressed(_camera, _cameraScratch, event);
     }
     else if (mouseMode == MouseMode::FREE && event->button() & Qt::LeftButton) {
-        mouseMode = MouseMode::TOOL;
-        activeMouseButton = event->button();
-        //basicSelect = BasicSelect.instance
-        //basic_select.mousePressed(self,event)
-        //_basicSelect->mousePressed(this, event);
-        CursorTool* cursorTool = SunshineUi::cursorTool();
-        cursorTool->mousePressed(this, event);
+        if (_workTool != 0) {
+            mouseMode = MouseMode::TOOL;
+            activeMouseButton = event->button();
+            _workTool->mousePressed(this, event);
+        }
+        else {
+            mouseMode = MouseMode::TOOL;
+            activeMouseButton = event->button();
+            CursorTool* cursorTool = SunshineUi::cursorTool();
+            cursorTool->mousePressed(this, event);
+        }
+
     }
 }
 
@@ -894,20 +918,25 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
         activeMouseButton = -1;
         Camera::mouseReleased(_camera, _cameraScratch, event);
     }
-    else if (mouseMode == MouseMode::TOOL && event->button() == activeMouseButton) {
+    else if (mouseMode == MouseMode::TOOL && _workTool == 0 && event->button() == activeMouseButton) {
         mouseMode = MouseMode::FREE;
         activeMouseButton = -1;
 
         cursorTool->mouseReleased(this, event);
     }
-    else if (_workTool != 0 && event->button() & Qt::LeftButton) {
-        _workTool->finish(event);
-        _workTool = 0;
-        mouseMode = MouseMode::FREE;
-    }
-    else if (_workTool != 0 && event->button() & Qt::RightButton) {
-        _workTool->cancel(event);
-        _workTool = 0;
+    else if (_workTool != 0) {
+        if (_workTool->ravageMouse()) {
+            if (_workTool != 0 && event->button() & Qt::LeftButton) {
+                _workTool->finish(event);
+                _workTool = 0;
+            }
+            else if (_workTool != 0 && event->button() & Qt::RightButton) {
+                _workTool->cancel(event);
+                _workTool = 0;
+            }
+        } else {
+            _workTool->mouseReleased(this, event);
+        }
         mouseMode = MouseMode::FREE;
     }
     else if (mouseMode == MouseMode::FREE && event->button() == Qt::RightButton && cursorTool->canMouseCancel(this)) {
@@ -925,7 +954,16 @@ void PanelGL::mouseReleaseEvent(QMouseEvent* event)
 
 void PanelGL::mouseMoveEvent(QMouseEvent* event)
 {
-    if (mouseMode == MouseMode::FREE) {
+
+    if (_workTool != 0 || mouseMode == MouseMode::TOOL) {
+        mouseDragEvent(event);
+
+        //_workTool->mouseMoved(event);
+
+
+        update();
+    }
+    else if (mouseMode == MouseMode::FREE) {
         // calculate preselection
         Point3 rayOrig = camera()->eye();
         Vector3 rayDir = computeRayDirection(event->pos());
@@ -944,15 +982,6 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
 
         update();
     }
-    else if (mouseMode == MouseMode::TOOL) {
-        mouseDragEvent(event);
-
-        //_workTool->mouseMoved(event);
-
-
-        update();
-    }
-
     else {
         mouseDragEvent(event);
     }
@@ -964,13 +993,14 @@ void PanelGL::mouseDragEvent(QMouseEvent* event)
         Camera::mouseDragged(_camera, _cameraScratch, event);
 
     }
-    else if (mouseMode == MouseMode::TOOL) {
+    else if (mouseMode == MouseMode::TOOL || _workTool != 0) {
         if (_workTool != 0) {
             // move mouse back to center
                 QPoint mouseDiff = QCursor::pos() - centerMouse(TRUE);
                 if (mouseDiff != QPoint(0,0)) {
-                    _workTool->mouseMoved(event, mouseDiff.x(), mouseDiff.y());
-                    centerMouse(FALSE);
+                    _workTool->mouseMoved(this, event, mouseDiff.x(), mouseDiff.y());
+                    if (_workTool->ravageMouse())
+                        centerMouse(FALSE);
                 }
 
          //   _workTool->mouseMoved(event, 2, 0);
@@ -989,8 +1019,45 @@ void PanelGL::keyReleaseEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_F)
         frameSelection();
+    else if (event->key() == Qt::Key_Escape) {
+        if (_workTool != 0) {
+            _workTool->cancel(0);
+            _workTool = 0;
+            if (mouseMode == MouseMode::FREE)
+                std::cout << "free" << std::endl;
+        }
+        else if (SunshineUi::workMode() == WorkMode::OBJECT) {
+            foreach(QString meshName, scene()->meshes()) {
+                this->scene()->mesh(meshName)->setSelected(false);
+            }
+        }
+        else if (SunshineUi::workMode() == WorkMode::VERTEX) {
+            foreach(QString meshName, scene()->meshes()) {
+                Mesh* mesh = scene()->mesh(meshName);
+                QHashIterator<int,Vertex*> vertices = mesh->vertices();
+                while (vertices.hasNext()) {
+                    int key = vertices.key();
+                    Vertex* vertex = vertices.value();
+                    vertex->setSelected(false);
+                }
+            }
+        }
+        else if (SunshineUi::workMode() == WorkMode::FACE) {
+            foreach(QString meshName, scene()->meshes()) {
+                Mesh* mesh = scene()->mesh(meshName);
+                QHashIterator<int,Face*> faces = mesh->faces();
+                while (faces.hasNext()) {
+                    int key = faces.key();
+                    Face* face = faces.value();
+                    face->setSelected(false);
+                }
+            }
+        }
+    }
     else
         QGLWidget::keyReleaseEvent(event);
+
+    SunshineUi::updatePanels();
 }
 
 Point3 PanelGL::project(Point3 p)
@@ -1073,6 +1140,8 @@ void PanelGL::showContextMenu(QMouseEvent *event)
         }
     }
 
+    popup.addSeparator();
+
     foreach(ContextAction* action, actions) {
         action->setParent(&popup);
         connect(action, SIGNAL(triggered()), action, SLOT(itemTriggered()));
@@ -1087,13 +1156,16 @@ void PanelGL::showContextMenu(QMouseEvent *event)
     // add general UI actions
     //
     if (hasMeshSelected) {
+        popup.addSeparator();
         popup.addAction("Material Attributes");
         popup.addSeparator();
         QMenu* newMat = popup.addMenu("Assign New Material");
+        /*
         foreach(QString materialType, Material::materialTypes()) {
             QAction* action = newMat->addAction(materialType);
             action->setToolTip("Assign New Material: ");
         }
+        */
 
         QMenu* existing = popup.addMenu("Assign Existing Material");
         foreach(QString materialName, _scene->materials()) {
@@ -1150,8 +1222,9 @@ void PanelGL::initWorkTool(WorkTool* tool, QString command, int button)
 {
     if (tool->init(this, command, button)) {
         if (tool->wantsMouse()) {
-            mouseMode = MouseMode::TOOL;
-            ravageMouse();
+            //mouseMode = MouseMode::TOOL;
+            if (tool->ravageMouse())
+                ravageMouse();
             _workTool = tool;
         }
     }

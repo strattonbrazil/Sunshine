@@ -364,12 +364,14 @@ QGLShaderProgram* ShaderFactory::buildMaterialShader(Light* light, Material* mat
     fragSource += "#define zShadowFar 100.0\n";
 
     //for (int i = 0; i < material->constantAttributes()->attributeCount(); i++) {
+    /*
     foreach(Attribute attribute, material->glslFragmentConstants()) {
         //Attribute attribute = material->constantAttributes()->at(i);
         QString type = typeToGL[attribute->property("type").toString()];
         QString var = attribute->property("var").toString();
         fragSource += QString("uniform %1 %2;\n").arg(type).arg(var);
     }
+    */
     foreach(Attribute attribute, light->glslFragmentConstants()) {
         QString type = typeToGL[attribute->property("type").toString()];
         QString varName = attribute->property("glslFragmentConstant").toString();
@@ -383,7 +385,7 @@ QGLShaderProgram* ShaderFactory::buildMaterialShader(Light* light, Material* mat
     fragSource += "void main() {\n";
     fragSource += "  vec3 normal = normalize(fragNormal);\n";
     fragSource += light->glslFragmentBegin();
-    fragSource += material->glslFragmentCode(); //"  gl_FragColor = vec4(normal,1);\n";
+    //fragSource += material->glslFragmentCode(); //"  gl_FragColor = vec4(normal,1);\n";
     fragSource += light->glslFragmentEnd();
     fragSource += "}\n";
 

@@ -9,8 +9,9 @@
 #include "util.h"
 #include "select.h"
 
-class CursorTool
+class CursorTool : public QObject
 {
+    Q_OBJECT
 public:
     virtual bool isViewable() { return TRUE; } // on sidebar
     virtual QIcon icon() = 0;
@@ -28,43 +29,23 @@ public:
     virtual void preDrawOverlay(PanelGL* panel) {}
     virtual void postDrawOverlay(PanelGL* panel) {}
     virtual void updateMenu(QMenu* menu) {}
+    virtual int workMode() { return WorkMode::OBJECT; }
+    virtual QToolBar* toolbar() { return 0; }
     virtual int drawSettings(PanelGL* panel, Mesh* mesh) {
-        int workMode = SunshineUi::workMode();
-        if (workMode == WorkMode::OBJECT) {
-            if (mesh->isSelected() && panel->_hoverMesh == mesh) { // any mode
-                if (panel->_hoverVert != 0) return DrawSettings::DRAW_VERTICES | DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::CULL_BORING_VERTICES  | DrawSettings::HIGHLIGHT_VERTICES;
-                else if (panel->_hoverFace != 0) return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::HIGHLIGHT_FACES;
-            }
-
-            // if there's a mesh selected, see if hovering over anything
-            bool someMeshSelected = FALSE;
-            foreach(QString meshName, panel->scene()->meshes()) {
-                Mesh* m = panel->scene()->mesh(meshName);
-                /*
-                if (mesh->isSelected() && panel->_hoverMesh == mesh) {
-                    if (panel->_hoverVert != 0) return DrawSettings::DRAW_VERTICES | DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::CULL_BORING_VERTICES  | DrawSettings::HIGHLIGHT_VERTICES;
-                    else if (panel->_hoverFace != 0) return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::HIGHLIGHT_FACES;
-                }
-                */
-                someMeshSelected |= m->isSelected();
-            }
-
-            // no components highlighted
-            if (mesh->isSelected() || !someMeshSelected)
-                return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::USE_OBJECT_COLOR | DrawSettings::HIGHLIGHT_OBJECTS;
-            else
+        int mode = workMode();
+        if (mode == WorkMode::OBJECT) {
+            if (mesh->isSelected())
                 return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::USE_OBJECT_COLOR | DrawSettings::STIPPLE_FACES;
+            else
+                return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::USE_OBJECT_COLOR;
         }
 
-        // unselected meshes
-        if (!(mesh->isSelected()))
-            return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::USE_OBJECT_COLOR | DrawSettings::STIPPLE_FACES;;
-
-        if (workMode == WorkMode::VERTEX && mesh->isSelected())
-            return DrawSettings::DRAW_VERTICES | DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::HIGHLIGHT_VERTICES;
-        else if (workMode == WorkMode::EDGE && mesh->isSelected())
+        if (mode == WorkMode::VERTEX && mesh->isSelected()) {
+            return DrawSettings::DRAW_VERTICES | DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::HIGHLIGHT_VERTICES | DrawSettings::USE_OBJECT_COLOR;
+        }
+        else if (mode == WorkMode::EDGE && mesh->isSelected())
             return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES;
-        else if (workMode == WorkMode::FACE && mesh->isSelected())
+        else if (mode == WorkMode::FACE && mesh->isSelected())
             return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::HIGHLIGHT_FACES;
         else { // default to just drawing the object
             return DrawSettings::DRAW_EDGES | DrawSettings::DRAW_FACES | DrawSettings::USE_OBJECT_COLOR;
@@ -88,7 +69,10 @@ public:
 
 class PointTool : public CursorTool
 {
+    Q_OBJECT
 public:
+    PointTool();
+    ~PointTool();
     QIcon icon() { return QIcon(":/icons/point_tool.png"); }
     QString label() { return "Cursor"; }
 
@@ -101,6 +85,16 @@ public:
         //menu->addAction(new WorkModeAction(menu));
         //menu->addAction(QIcon(":/icons/object_work_mode.png"), "other");
     }
+    QToolBar* toolbar() { return _toolbar; }
+    int workMode();
+public slots:
+    void on_workModeChanged(QAbstractButton*);
+private:
+    QToolBar* _toolbar;
+    QToolButton* objectModeButton;
+    QToolButton* vertexModeButton;
+    QToolButton* edgeModeButton;
+    QToolButton* faceModeButton;
 };
 
 class EditTool : public CursorTool
