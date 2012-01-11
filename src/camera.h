@@ -4,7 +4,7 @@
 #include <QMatrix4x4>
 #include "transformable.h"
 #include <QMouseEvent>
-#include <aqsis/ri/ri.h>
+//#include <aqsis/ri/ri.h>
 
 typedef struct myRotatePair {
     QVector4D rot1;
@@ -38,8 +38,8 @@ public:
     static QMatrix4x4            getProjMatrix(Transformable* camera, int width, int height, float pixdx=0, float pixdy=0);
     static QMatrix4x4            getOrthoMatrix(float left, float right, float bottom, float top, float near=-1, float far=1);
 
-    void                         lookTransform(RtMatrix &t);
-    void                         flipYZ(RtMatrix m);
+    //void                         lookTransform(RtMatrix &t);
+    //void                         flipYZ(RtMatrix m);
     RotatePair                   aim(Vector3 dir);
 
     static void                  mousePressed(Transformable* camera, CameraScratch &scratch, QMouseEvent* event);

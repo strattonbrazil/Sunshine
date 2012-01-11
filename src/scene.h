@@ -71,7 +71,7 @@ protected:
 private:
     QHash<QString,Bindable*>           _assets;
     Material*                          _defaultMaterial;
-    PythonQtObjectPtr                  pyContext;
+    //    PythonQtObjectPtr                  pyContext;
     ShaderTreeModel                    _shaderTreeModel;
     SceneHierarchyModel                _hierarchyModel;
 public slots:

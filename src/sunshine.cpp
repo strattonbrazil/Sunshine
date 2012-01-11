@@ -14,7 +14,7 @@
 #include "material.h"
 #include "light.h"
 #include "modeltest.h"
-#include <PythonQt.h>
+//#include <PythonQt.h>
 
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
@@ -33,7 +33,7 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {
     activeMainWindow = this;
 
-    PythonQt::init(PythonQt::IgnoreSiteModule);
+    //    PythonQt::init(PythonQt::IgnoreSiteModule);
 
 
 

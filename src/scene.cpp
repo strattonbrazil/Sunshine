@@ -4,7 +4,7 @@
 #include <QStringList>
 #include <QDir>
 #include <QStandardItem>
-#include <PythonQt.h>
+//#include <PythonQt.h>
 
 #include "sunshine.h"
 #include "exceptions.h"
@@ -45,6 +45,7 @@ QList<QString> Scene::cameras()
 QList<QString> Scene::importExtensions()
 {
     QList<QString> extensions;
+    /*
     QVariant result = pyContext.call("MeshImporter.extensions");
     if (!result.isValid())
         std::cerr << "Scene::importExtensions() - invalid return value";
@@ -52,6 +53,7 @@ QList<QString> Scene::importExtensions()
     foreach(QVariant ext, exts) {
         extensions << ext.toString();
     }
+    */
 
     return extensions;
 }
@@ -67,7 +69,7 @@ void Scene::importFile(QString fileName)
     fileArgs << fileName;
 
 
-    pyContext.call("MeshImporter.processFile", fileArgs);
+    //pyContext.call("MeshImporter.processFile", fileArgs);
 
 
     /*
@@ -98,12 +100,12 @@ Scene::Scene()
     //_pyMainModule = import("__main__");
     //_pyMainNamespace = _pyMainModule.attr("__dict__");
 
-    createPythonBindings();
+  //    createPythonBindings();
 
     //evalPythonFile(":/plugins/meshImporter.py");
     //evalPythonFile(":/plugins/objImporter.py");
 
-    pyContext = PythonQt::self()->getMainModule();
+  //    pyContext = PythonQt::self()->getMainModule();
 
     // do something
     //pyContext.evalScript("def multiply(a,b):\n  return a*b;\n");
@@ -112,8 +114,8 @@ Scene::Scene()
     //QVariant result = pyContext.call("multiply", args);
     //std::cout << result.toString().toStdString() << std::endl;
 
-    pyContext.evalFile(":/plugins/meshImporter.py");
-    pyContext.evalFile(":/plugins/objImporter.py");
+  //    pyContext.evalFile(":/plugins/meshImporter.py");
+  //    pyContext.evalFile(":/plugins/objImporter.py");
 
     _tools << new TranslateTransformable();
     _tools << new SplitPolygon();

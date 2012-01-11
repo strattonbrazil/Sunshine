@@ -1,6 +1,7 @@
 #ifndef PYTHON_BINDINGS_H
 #define PYTHON_BINDINGS_H
 
+/*
 #include <PythonQt.h>
 
 void createPythonBindings();
@@ -50,4 +51,5 @@ public slots:
     }
 };
 
+*/
 #endif // PYTHON_BINDINGS_H

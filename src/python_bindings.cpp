@@ -1,7 +1,7 @@
 #include "python_bindings.h"
 #include "exceptions.h"
 
-#include <PythonQt.h>
+//#include <PythonQt.h>
 
 
 #include <primitive.h>
@@ -15,8 +15,6 @@ ExampleDecorator::ExampleDecorator()
     std::cout << "right here" << std::endl;
 }
 */
-
-#include "com_trolltech_qt_gui10.h"
 
 
 void createPythonBindings()
@@ -47,6 +45,7 @@ void createPythonBindings()
     //PythonQt::self()->registerCPPClass("PrimitiveParts");//, "", "primitives"PythonQtCreateObject<PythonQtWrapper_QAccessibleBridge>, PythonQtSetInstanceWrapperOnShell<PythonQtShell_QAccessibleBridge>, module, 0);
 
     //PythonQt::self()->registerClass(&PrimitiveParts::staticMetaObject, "primitives");
+  /*
     PythonQt::priv()->registerCPPClass("PrimitiveParts", "", "primitives", PythonQtCreateObject<PythonQtWrapper_PrimitiveParts>);
     PythonQt::priv()->registerCPPClass("Mesh", "", "geometry", PythonQtCreateObject<PythonQtWrapper_Mesh>);
     PythonQt::priv()->registerCPPClass("QVector3D", "", "QtGui", PythonQtCreateObject<PythonQtWrapper_QVector3D>, 0, 0, PythonQt::Type_Divide|PythonQt::Type_InplaceDivide|PythonQt::Type_NonZero|PythonQt::Type_InplaceSubtract|PythonQt::Type_InplaceAdd|PythonQt::Type_RichCompare|PythonQt::Type_Subtract|PythonQt::Type_InplaceMultiply|PythonQt::Type_Multiply|PythonQt::Type_Add);
@@ -56,6 +55,7 @@ void createPythonBindings()
     //PythonQt::registerClass(Mesh::metaObject());
 
     //QSceneFromPythonScene();
+    */
 }
 
 

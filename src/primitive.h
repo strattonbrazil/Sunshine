@@ -2,8 +2,8 @@
 #define PRIMITIVE_H
 
 #include "util.h"
-#include <PythonQt.h>
-#include <PythonQtCppWrapperFactory.h>
+//#include <PythonQt.h>
+//#include <PythonQtCppWrapperFactory.h>
 
 class PrimitiveParts {
 public:

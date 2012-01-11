@@ -46,9 +46,9 @@ public:
     void                       setupDefaultLights();
     Scene*                     activeScene() { return _scene; }
     CursorTool*                cursorTool();
-    int                        workMode();
-    int                        selectMode();
-    bool                       selectOccluded();
+    //    int                        workMode();
+    //    int                        selectMode();
+    //    bool                       selectOccluded();
     void                       updateSceneHierarchy(Scene* scene);
     void                       updatePanels();
     Bindable*                  renderSettings() { return _renderSettings; }
