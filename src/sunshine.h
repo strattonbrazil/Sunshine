@@ -10,7 +10,6 @@
 //#include "sunshineui.h"
 #include "worktool.h"
 #include <QToolButton>
-#include "shader_tree.h"
 
 namespace Ui {
     class Sunshine;
@@ -31,6 +30,8 @@ namespace SunshineUi {
     Bindable* renderSettings();
     void showBindableAttributes(Bindable* bindable);
     void selectAsset(QString assetName);
+    QModelIndex selectedMaterialIndex();
+    void expandMaterialIndex(QModelIndex index, bool expand);
 };
 
 
@@ -54,6 +55,8 @@ public:
     Bindable*                  renderSettings() { return _renderSettings; }
     void                       showBindableAttributes(Bindable* bindable);
     void                       selectAsset(QString assetName);
+    QModelIndex                selectedMaterialIndex();
+    void                       expandMaterialIndex(QModelIndex index, bool expand);
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
@@ -69,6 +72,7 @@ private slots:
     void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
     void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
     void                       showShaderGraph();
+    void                       shaderTreeContextMenu(const QPoint &p);
 
     void                       createPointLight();
     void                       createSpotLight();
@@ -86,7 +90,6 @@ private:
     SettingsWidget*                   _renderSettingsWidget;
     AttributeEditor*                  _propertyEditorModel;
     Bindable*                         _renderSettings;
-    ShaderTreeWindow*                 _shaderTreeWindow;
 };
 
 #endif // SUNSHINE_H

@@ -19,6 +19,8 @@ class Scene;
 
 #include "scene.h"
 
+QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine);
+
 class Mesh : public Transformable
 {
     Q_OBJECT

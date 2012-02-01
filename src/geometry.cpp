@@ -1,6 +1,36 @@
 #include "geometry.h"
 #include "sunshine.h"
 
+QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine)
+{
+    std::cout << "building mesh by index" << std::endl;
+
+    //MeshPointer meshPointer = qscriptvalue_cast<MeshPointer>(context->thisObject());
+    //if (!meshPointer)
+      //  return context->throwError(QScriptContext::TypeError, "this object is not a Mesh");
+
+    PrimitivePartsPointer ppPointer = qscriptvalue_cast<PrimitivePartsPointer>(context->argument(0));
+    Mesh* mesh = Mesh::buildByIndex(*ppPointer);
+
+    return engine->newQObject(mesh);
+
+    // set faces here
+    /*
+    QScriptValue faces = context->argument(0);
+    const int numFaces = faces.property("length").toInteger();
+    ppPointer->faces.resize(numFaces);
+    for (int i = 0; i < numFaces; i++) {
+        QVariantList faceList = faces.property(i).toVariant().toList();
+        for (int j = 0; j < faceList.size(); j++) {
+            ppPointer->faces[i].append(faceList[j].toInt());
+        }
+    }
+    */
+
+    return QScriptValue();
+}
+
+
 Vertex::Vertex(Mesh* mesh, int key, Point3 point)
 {
     _mesh = mesh;

@@ -7,6 +7,7 @@
 #include "material.h"
 #include <QFileInfo>
 #include <QStandardItemModel>
+#include <QScriptValue>
 
 /*
 #include <boost/python.hpp>
@@ -53,11 +54,13 @@ public:
     }
     QString                         assetName(Bindable* bindable) { return _assets.key(bindable); }
     QList<QString>                  importExtensions();
+    QStringList                     materialTypes();
     void                            importFile(QString fileName);
 
-
+    Material*                       buildMaterial(QString matType);
     bool                            hasMeshSelected();
                                 Scene();
+    void                        initScriptEngine();
                                 QList<WorkTool*>                   _tools;
     bool                            setData(const QModelIndex &index, const QVariant &value, int role);
 
@@ -69,11 +72,12 @@ protected:
     QString                            uniqueName(QString prefix);
 
 private:
+    QScriptValue                       processFile(QScriptEngine &engine, QString filePath);
     QHash<QString,Bindable*>           _assets;
     Material*                          _defaultMaterial;
-    PythonQtObjectPtr                  pyContext;
     ShaderTreeModel                    _shaderTreeModel;
     SceneHierarchyModel                _hierarchyModel;
+    QScriptEngine                      _engine;
 public slots:
     QString                            addAsset(QString name, Bindable* asset);
     void                               addMesh(QString name, Mesh* mesh) { addAsset(name, (Bindable*)mesh); }

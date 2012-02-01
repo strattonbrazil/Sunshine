@@ -9,10 +9,9 @@ INCLUDEPATH += . src
 QMAKE_CXXFLAGS += $$system(python-config --cflags)
 QMAKE_LIBS += $$system(python-config --libs)
 QT += opengl script
-LIBS += -lGLEW
-LIBS += -laqsis_core
+LIBS += -lGLEW -lGLU
+#LIBS += -laqsis_core
 LIBS += -lboost_python
-LIBS += -lPythonQt
 #LIBS += -lCGAL
 #LIBS += -lCGAL_Core
 #LIBS += -lCGAL_PDB
@@ -48,10 +47,7 @@ HEADERS += src/camera.h \
     src/light.h \
     src/transformable.h \
     src/bindable.h \
-    src/com_trolltech_qt_gui10.h \
-    src/menu_tools.h \
-    src/shader_tree.h \
-    src/node_widget.h
+    src/menu_tools.h
 FORMS += src/sunshine.ui \
     src/renderwidget.ui \
     src/shader_tree_window.ui \
@@ -86,14 +82,15 @@ SOURCES += src/camera.cpp \
     src/light.cpp \
     src/transformable.cpp \
     src/bindable.cpp \
-    src/com_trolltech_qt_gui10.cpp \
     src/cursor_tools/point_tool.cpp \
     src/cursor_tools/translate_tool.cpp \
-    src/work_tools/split_polygon.cpp \
-    src/shader_tree.cpp \
-    src/node_widget.cpp
+    src/work_tools/split_polygon.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc \
     src/textures.qrc \
     src/glsl.qrc
+
+
+
+
 

@@ -4,13 +4,15 @@
 #include <QStringList>
 #include <QDir>
 #include <QStandardItem>
-#include <PythonQt.h>
 
 #include "sunshine.h"
 #include "exceptions.h"
 
 #include "python_bindings.h"
 #include "object_tools.h"
+
+#include <QScriptEngine>
+#include <QProcess>
 
 QList<QString> Scene::assetsByType(int assetType)
 {
@@ -45,6 +47,10 @@ QList<QString> Scene::cameras()
 QList<QString> Scene::importExtensions()
 {
     QList<QString> extensions;
+    extensions.append("obj");
+    return extensions;
+  /*
+    QList<QString> extensions;
     QVariant result = pyContext.call("MeshImporter.extensions");
     if (!result.isValid())
         std::cerr << "Scene::importExtensions() - invalid return value";
@@ -54,11 +60,85 @@ QList<QString> Scene::importExtensions()
     }
 
     return extensions;
+  */
+}
+
+bool loadFile(QString fileName, QScriptEngine *engine)
+{
+    // avoid loading files more than once
+    static QSet<QString> loadedFiles;
+    QFileInfo fileInfo(fileName);
+    QString absoluteFileName = fileInfo.absoluteFilePath();
+    QString absolutePath = fileInfo.absolutePath();
+    QString canonicalFileName = fileInfo.canonicalFilePath();
+    if (loadedFiles.contains(canonicalFileName)) {
+        return true;
+    }
+    loadedFiles.insert(canonicalFileName);
+    QString path = fileInfo.path();
+
+    // load the file
+    QFile file(fileName);
+    if (file.open(QFile::ReadOnly)) {
+        QTextStream stream(&file);
+        QString contents = stream.readAll();
+        file.close();
+
+        int endlineIndex = contents.indexOf('\n');
+        QString line = contents.left(endlineIndex);
+        int lineNumber = 1;
+
+        // strip off #!/usr/bin/env qscript line
+        if (line.startsWith("#!")) {
+            contents.remove(0, endlineIndex+1);
+            ++lineNumber;
+        }
+
+        // set qt.script.absoluteFilePath
+        QScriptValue script = engine->globalObject().property("qs").property("script");
+        QScriptValue oldFilePathValue = script.property("absoluteFilePath");
+        QScriptValue oldPathValue = script.property("absolutePath");
+        script.setProperty("absoluteFilePath", engine->toScriptValue(absoluteFileName));
+        script.setProperty("absolutePath", engine->toScriptValue(absolutePath));
+
+        QScriptValue r = engine->evaluate(contents, fileName, lineNumber);
+        if (engine->hasUncaughtException()) {
+            QStringList backtrace = engine->uncaughtExceptionBacktrace();
+            qDebug() << QString("    %1\n%2\n\n").arg(r.toString()).arg(backtrace.join("\n"));
+            return true;
+        }
+        script.setProperty("absoluteFilePath", oldFilePathValue); // if we come from includeScript(), or whereever
+        script.setProperty("absolutePath", oldPathValue); // if we come from includeScript(), or whereever
+    } else {
+        return false;
+    }
+    return true;
+}
+
+QScriptValue includeScript(QScriptContext *context, QScriptEngine *engine)
+{
+    QString currentFileName = engine->globalObject().property("qs").property("script").property("absoluteFilePath").toString();
+    QFileInfo currentFileInfo(currentFileName);
+    QString path = currentFileInfo.path();
+    QString importFile = context->argument(0).toString();
+    QFileInfo importInfo(importFile);
+    if (importInfo.isRelative()) {
+        importFile =  path + "/" + importInfo.filePath();
+    }
+    if (!loadFile(importFile, engine)) {
+        return context->throwError(QString("Failed to resolve include: %1").arg(importFile));
+    }
+    return engine->toScriptValue(true);
+}
+
+QScriptValue importExtension(QScriptContext *context, QScriptEngine *engine)
+{
+    return engine->importExtension(context->argument(0).toString());
 }
 
 void Scene::importFile(QString fileName)
 {
-    std::cout << static_cast<QObject*>(this) << std::endl;
+    //std::cout << static_cast<QObject*>(this) << std::endl;
     QVariant sceneV = qVariantFromValue(static_cast<QObject*>(this));
     //QVariant sceneV((QObject*)this);
 
@@ -66,8 +146,20 @@ void Scene::importFile(QString fileName)
     fileArgs << sceneV;//qVariantFromValue(this);
     fileArgs << fileName;
 
+    //QScriptEngine engine;
 
-    pyContext.call("MeshImporter.processFile", fileArgs);
+
+
+    QScriptValue importFunc = _engine.evaluate("processFile");
+    QScriptValueList args;
+    QScriptValue sceneVar = _engine.newQObject(this);
+    args << sceneVar << fileName;
+    QScriptValue importResult = importFunc.call(QScriptValue(), args);
+    if (_engine.hasUncaughtException()) {
+        int line = _engine.uncaughtExceptionLineNumber();
+        qDebug() << "uncaught exception at line " << line << ":" << importResult.toString();
+    }
+    //    pyContext.call("MeshImporter.processFile", fileArgs);
 
 
     /*
@@ -79,6 +171,55 @@ void Scene::importFile(QString fileName)
         std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
     }
     */
+}
+
+QStringList Scene::materialTypes()
+{
+    QStringList typeNames;
+    QScriptValue typeNamesVal = _engine.evaluate("materialTypes.keys();");
+
+    const int numTypes = typeNamesVal.property("length").toInteger();
+
+    for (int i = 0; i < numTypes; i++) {
+        QString matType = qScriptValueToValue<QString>(typeNamesVal.property(i));
+        typeNames.append(matType);
+    }
+
+
+    return typeNames;
+}
+
+Material* Scene::buildMaterial(QString matType) {
+    QScriptValue materialDef = _engine.evaluate("materialTypes[\"" + matType + "\"];");
+
+    QStringList inputs;
+    QScriptValue materialInputs = materialDef.property("inputs");
+    const int numInputs = materialInputs.property("length").toInteger();
+    for (int i = 0; i < numInputs; i++) {
+        inputs << materialInputs.property(i).toString();
+    }
+
+    return new ScriptMaterial(inputs);
+}
+
+QScriptValue Scene::processFile(QScriptEngine &engine, QString filePath)
+{
+    //QString meshImporterPath = ":/qs/mesh_importer.qs";
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        std::cerr << "Error opening file: " << filePath << std::endl;
+        return QScriptValue();
+    }
+    QTextStream stream(&file);
+    QString contents = stream.readAll();
+    file.close();
+    //std::cout << contents << std::endl;
+    QScriptValue result = engine.evaluate(contents, filePath);
+    if (engine.hasUncaughtException()) {
+        int line = engine.uncaughtExceptionLineNumber();
+        qDebug() << "uncaught exception at line " << line << ":" << result.toString();
+    }
+    return result;
 }
 
 bool Scene::hasMeshSelected()
@@ -100,10 +241,10 @@ Scene::Scene()
 
     createPythonBindings();
 
+    initScriptEngine();
+
     //evalPythonFile(":/plugins/meshImporter.py");
     //evalPythonFile(":/plugins/objImporter.py");
-
-    pyContext = PythonQt::self()->getMainModule();
 
     // do something
     //pyContext.evalScript("def multiply(a,b):\n  return a*b;\n");
@@ -112,11 +253,85 @@ Scene::Scene()
     //QVariant result = pyContext.call("multiply", args);
     //std::cout << result.toString().toStdString() << std::endl;
 
-    pyContext.evalFile(":/plugins/meshImporter.py");
-    pyContext.evalFile(":/plugins/objImporter.py");
-
     _tools << new TranslateTransformable();
     _tools << new SplitPolygon();
+}
+
+void Scene::initScriptEngine()
+{
+    QScriptValue global = _engine.globalObject();
+    // add the qt object
+    global.setProperty("qs", _engine.newObject());
+    // add a 'script' object
+    QScriptValue script = _engine.newObject();
+    global.property("qs").setProperty("script", script);
+    // add a 'system' object
+    QScriptValue system = _engine.newObject();
+    global.property("qs").setProperty("system", system);
+
+    // add os information to qt.system.os
+#ifdef Q_OS_WIN32
+    QScriptValue osName = _engine.toScriptValue(QString("windows"));
+#elif defined(Q_OS_LINUX)
+    QScriptValue osName = _engine.toScriptValue(QString("linux"));
+#elif defined(Q_OS_MAC)
+    QScriptValue osName = _engine.toScriptValue(QString("mac"));
+#elif defined(Q_OS_UNIX)
+    QScriptValue osName = _engine.toScriptValue(QString("unix"));
+#endif
+    system.setProperty("os", osName);
+
+    // add environment variables to qt.system.env
+    QMap<QString,QVariant> envMap;
+    QStringList envList = QProcess::systemEnvironment();
+    foreach (const QString &entry, envList) {
+        QStringList keyVal = entry.split('=');
+        if (keyVal.size() == 1)
+            envMap.insert(keyVal.at(0), QString());
+        else
+            envMap.insert(keyVal.at(0), keyVal.at(1));
+    }
+    system.setProperty("env", _engine.toScriptValue(envMap));
+
+    // add the include functionality to qt.script.include
+    script.setProperty("include", _engine.newFunction(includeScript));
+    // add the importExtension functionality to qt.script.importExtension
+    script.setProperty("importExtension", _engine.newFunction(importExtension));
+
+    QScriptValue ppProto = _engine.newObject();
+    ppProto.setProperty("setVertices", _engine.newFunction(PrimitiveParts_setVertices));
+    ppProto.setProperty("setFaces", _engine.newFunction(PrimitiveParts_setFaces));
+    QScriptValue primitivePartsCtor = _engine.newFunction(constructPrimitiveParts, ppProto);
+    _engine.globalObject().setProperty("PrimitiveParts", primitivePartsCtor);
+
+
+    //QScriptValue meshProto = _engine.newObject();
+    //ppProto.setProperty("setVertices", _engine.newFunction(PrimitiveParts_setVertices));
+    //ppProto.setProperty("setFaces", _engine.newFunction(PrimitiveParts_setFaces));
+    //QScriptValue meshCtor = _engine.newFunction(constructMesh, meshProto);
+    //_engine.globalObject().setProperty("Mesh", meshCtor);
+
+    // TODO: attach this to the Mesh QtScript prototype
+    //
+    QScriptValue meshFactoryFunc = _engine.newFunction(Mesh_buildByIndex);
+    _engine.globalObject().setProperty("buildByIndex", meshFactoryFunc);
+
+
+    //_engine.globalObject().setProperty("PrimitiveParts", _engine.newFunction(PrimitiveParts_ctor));
+    /*
+    QScriptValue ppObject = _engine.newObject();
+    ppObject.globalObject().setProperty("QPoint", _engine.newFunction(QPoint_ctor));
+    ppObject.setProperty("PrimitiveParts", _engine.newFunction(getSetPrimitiveParts), QScriptValue::PropertyGetter | QScriptValue::PropertySetter);
+    //ppObject.setProperty("PrimitiveParts", _engine.newFunction(setFoo), QScriptValue::PropertySetter);
+    */
+
+    //_engine.importExtension("qt.core");
+    // setup model importing
+    //
+    processFile(_engine, ":/qs/mesh_importer.qs");
+    processFile(_engine, ":/qs/obj_importer.qs");
+
+    processFile(_engine, ":/qs/material_interface.qs");
 }
 
 QString Scene::addAsset(QString name, Bindable* asset)

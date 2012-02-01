@@ -3,4 +3,9 @@
         <file>objImporter.py</file>
         <file>meshImporter.py</file>
     </qresource>
+    <qresource prefix="/qs">
+        <file>mesh_importer.qs</file>
+        <file>obj_importer.qs</file>
+        <file>material_interface.qs</file>
+    </qresource>
 </RCC>

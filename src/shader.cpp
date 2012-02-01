@@ -385,10 +385,11 @@ QGLShaderProgram* ShaderFactory::buildMaterialShader(Light* light, Material* mat
     fragSource += "void main() {\n";
     fragSource += "  vec3 normal = normalize(fragNormal);\n";
     fragSource += light->glslFragmentBegin();
-    //fragSource += material->glslFragmentCode(); //"  gl_FragColor = vec4(normal,1);\n";
+    fragSource += material->glslFragmentCode();//  material->glslFragmentCode(); //"  gl_FragColor = vec4(normal,1);\n";
     fragSource += light->glslFragmentEnd();
     fragSource += "}\n";
 
+    //std::cout << fragSource << std::endl;
 
     QGLShader* vertShader = new QGLShader(QGLShader::Vertex);
     vertShader->compileSourceCode(vertSource);
@@ -406,8 +407,8 @@ QGLShaderProgram* ShaderFactory::buildMaterialShader(Light* light, Material* mat
     //std::cout << "-- vert source -----" << std::endl;
     //std::cout << vertSource.toStdString() << std::endl;
 
-    std::cout << "\n-- frag source -----" << std::endl;
-    std::cout << fragSource.toStdString() << std::endl;
+    //std::cout << "\n-- frag source -----" << std::endl;
+    //std::cout << fragSource.toStdString() << std::endl;
 
 
     //cout << program->log() << endl;

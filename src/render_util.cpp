@@ -105,6 +105,8 @@ namespace RenderUtil {
         Transformable* camera = panel->camera();
         const int xres = SunshineUi::renderSettings()->attributeByName("Image Width")->property("value").value<int>();
         const int yres = SunshineUi::renderSettings()->attributeByName("Image Height")->property("value").value<int>();
+
+        std::cout << xres << "x" << yres << std::endl;
         /*
         QGLWidget widget()
         QGLContext context(panel->format());
@@ -174,6 +176,9 @@ namespace RenderUtil {
         */
 
         // depth map setup
+        const int shadowXres = 2048;
+        const int shadowYres = 2048;
+
         glGenTextures(2, depthMaps);
         for (int i = 0; i < 2; i++) {
             glBindTexture(GL_TEXTURE_2D, depthMaps[i]);
@@ -187,10 +192,11 @@ namespace RenderUtil {
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
-        const int shadowXres = 2048;
-        const int shadowYres = 2048;
+        //const int shadowXres = 2048;
+        //const int shadowYres = 2048;
 
         // Create depth renderbuffers
+        //
         glGenRenderbuffers(2, depthBufferIds);
         for (int i = 0; i < 2; i++) {
             glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[i]);
@@ -206,17 +212,19 @@ namespace RenderUtil {
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
         // Create color renderbuffers (just for first FBO)
+        //
         glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[0]);
         glGenRenderbuffers(NUM_COLOR_ATTACHMENTS, colorBufferIds);
         for (int i = 0; i < NUM_COLOR_ATTACHMENTS; i++) {
             glBindRenderbuffer(GL_RENDERBUFFER, colorBufferIds[i]);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, xres, yres);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_RENDERBUFFER, colorBufferIds[i]);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F_ARB, xres, yres); checkGL("valid storage format");
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, GL_RENDERBUFFER, colorBufferIds[i]); checkGL("attaching render buffer to FBO");
         }
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
 
         checkGL("build general resources");
+
 
 
         /*
@@ -232,25 +240,27 @@ namespace RenderUtil {
         glBindTexture( GL_TEXTURE_2D, 0);
         */
 
+        // check status of both FBOs
+        //
         for (int i = 0; i < 2; i++) {
             glBindFramebufferEXT(GL_FRAMEBUFFER, fbos[i]);
             switch (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)) {
             case GL_FRAMEBUFFER_COMPLETE_EXT:
                 break;
             case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << std::endl;
+                std::cerr << "fbo " << i << ": GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT" << std::endl;
                 break;
             case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
-                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT" << std::endl;
+                std::cerr << "fbo " << i << ": GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT" << std::endl;
                 break;
             case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
-                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT" << std::endl;
+                std::cerr << "fbo " << i << ": GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT" << std::endl;
                 break;
             case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
-                std::cerr << i << "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT" << std::endl;
+                std::cerr << "fbo " << i << ": GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT" << std::endl;
                 break;
             case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-                std::cerr << i << "GL_FRAMEBUFFER_UNSUPPORTED_EXT" << std::endl;
+                std::cerr << "fbo " << i << ": GL_FRAMEBUFFER_UNSUPPORTED_EXT" << std::endl;
                 break;
             }
         }
@@ -489,7 +499,7 @@ namespace RenderUtil {
 
         // release OpenGL resources
         //
-        glDeleteFramebuffersEXT(2, fbos);
+        glDeleteFramebuffersEXT(2, fbos); checkGL("removing framebuffers");
         glDeleteRenderbuffers(2, depthBufferIds);
         glDeleteRenderbuffers(NUM_COLOR_ATTACHMENTS, colorBufferIds);
         glDeleteBuffers(1, &vboId);
@@ -555,7 +565,6 @@ namespace RenderUtil {
                 shader->setUniformValue("objToLight", cameraProjViewM * objToWorld);
 
             //shader->setUniformValue("objToLight", objToWorld);
-
 
             // pack mesh data (vertices, normals, etc.) into VBO
             packVBO(mesh, numTriangles, vboId, shader); checkGL("packed VBO");
@@ -644,7 +653,6 @@ namespace RenderUtil {
         glBindBuffer(GL_ARRAY_BUFFER, 0);  checkGL("packVBO: released array buffer");
 
     }
-
 }
 
 // goes through each attribute and attemps to set it as a uniform value in the shader

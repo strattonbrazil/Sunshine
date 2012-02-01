@@ -14,7 +14,6 @@
 #include "material.h"
 #include "light.h"
 #include "modeltest.h"
-#include <PythonQt.h>
 
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
@@ -33,13 +32,10 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 {
     activeMainWindow = this;
 
-    PythonQt::init(PythonQt::IgnoreSiteModule);
-
-
 
     ui->setupUi(this);
 
-    _shaderTreeWindow = new ShaderTreeWindow();
+    //_shaderTreeWindow = new ShaderTreeWindow();
 
     clearScene();
 
@@ -113,7 +109,6 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 Sunshine::~Sunshine()
 {
     delete ui;
-    delete _shaderTreeWindow;
     if (_renderSettingsWidget) delete _renderSettingsWidget;
 }
 
@@ -130,6 +125,20 @@ void Sunshine::changeEvent(QEvent *e)
     }
 }
 
+class ContextMenuFilter : public QObject
+{
+public:
+    bool eventFilter( QObject *o, QEvent *e ) {
+        if (e->type() == QEvent::MouseButtonPress) {
+            std::cout << "here" << std::endl;
+            QMouseEvent* event = dynamic_cast<QMouseEvent*>(e);
+            if (event->button() == Qt::RightButton)
+                return TRUE;
+        }
+        return FALSE;
+    }
+};
+
 void Sunshine::clearScene()
 {
     _scene = new Scene();
@@ -143,20 +152,20 @@ void Sunshine::clearScene()
     connect(ui->sceneHierarchyTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
             this, SLOT(on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &)));
 
-    _shaderTreeWindow->setMaterialModel(_scene->shaderTreeModel());
+    //_shaderTreeWindow->setMaterialModel(_scene->shaderTreeModel());
 
-    //ui->shaderTree->setModel(_scene->shaderTreeModel());
+    ui->shaderTree->setModel(_scene->shaderTreeModel());
     //ui->shaderTree->setColumnWidth(0, 25);
 
-    //connect(ui->shaderTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
-     //       this, SLOT(on_materialSelection_changed(const QModelIndex &, const QModelIndex &)));
+    connect(ui->shaderTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+            this, SLOT(on_materialSelection_changed(const QModelIndex &, const QModelIndex &)));
 
-
+    ui->shaderTree->installEventFilter(new ContextMenuFilter());
     ui->shaderTree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->shaderTree,
             SIGNAL(customContextMenuRequested(const QPoint &)),
-            _scene->shaderTreeModel(),
-            SLOT(contextMenu(const QPoint &)));
+            this, //_scene->shaderTreeModel(),
+            SLOT(shaderTreeContextMenu(const QPoint &)));
     //std::cout << ui->sceneHierarchyTree << std::endl;
 }
 
@@ -365,7 +374,7 @@ void Sunshine::on_importAction_triggered()
     //std::cout << extFilter << std::endl;
 
     QString importDir = QDir::homePath();
-    QString modelDir = importDir + "/models";
+    QString modelDir = importDir + "/Models";
     if (QDir(modelDir).exists())
         importDir = modelDir;
 
@@ -433,6 +442,8 @@ namespace SunshineUi {
     Bindable* renderSettings() { return activeMainWindow->renderSettings(); }
     void showBindableAttributes(Bindable *bindable) { activeMainWindow->showBindableAttributes(bindable); }
     void selectAsset(QString assetName) { activeMainWindow->selectAsset(assetName); }
+    QModelIndex selectedMaterialIndex() { return activeMainWindow->selectedMaterialIndex(); }
+    void expandMaterialIndex(QModelIndex index, bool expand) { activeMainWindow->expandMaterialIndex(index, expand); }
 }
 
 void Sunshine::on_selectOccludedButton_clicked()
@@ -454,8 +465,10 @@ void Sunshine::on_cursorToolChanged(QAbstractButton* button)
 
 void Sunshine::on_materialSelection_changed(const QModelIndex &current, const QModelIndex &previous)
 {
-    QString materialName = _scene->shaderTreeModel()->data(current.sibling(current.row(), 1), Qt::DisplayRole).toString();
+    QString materialName = _scene->shaderTreeModel()->data(current.sibling(current.row(), ShaderTreeModel::NAME_COLUMN), Qt::DisplayRole).toString();
     Material* material = _scene->material(materialName);
+
+
 
     _propertyEditorModel->update(material);
     ui->propertyTable->expandAll();
@@ -495,6 +508,32 @@ void Sunshine::on_sceneHierarchySelection_changed(const QModelIndex &current, co
     ui->propertyTable->expandAll();
     ui->propertyTable->resizeColumnToContents(0);
 }
+
+void Sunshine::shaderTreeContextMenu(const QPoint &p)
+{
+    QMenu *menu = new QMenu();
+    if (this->ui->shaderTree->selectionModel()->selectedRows().size() > 0) {
+        QStringList materialTypes = _scene->materialTypes();
+        foreach(QString matType, materialTypes) {
+            menu->addAction("Add \"" + matType + "\" node", this, SLOT(on_newMaterialNode()));
+        }
+
+        //menu->addAction(tr("Test Item"));
+    }
+    //menu->addAction(tr("Test Item"));//, this, SLOT(test_slot()));
+    if (menu->actions().size() > 0) {
+        QAction* action = menu->exec(ui->shaderTree->mapToGlobal(p));
+        if (action != 0) {
+            if (action->text().startsWith("Add")) {
+                QString matType = action->text().split("\"")[1];
+
+                Material* material = _scene->buildMaterial(matType);
+                _scene->addAsset(matType.toLower(), material);
+            }
+        }
+    }
+}
+
 
 void Sunshine::showBindableAttributes(Bindable *bindable)
 {
@@ -549,5 +588,21 @@ void Sunshine::createPlane()
 
 void Sunshine::showShaderGraph()
 {
-    _shaderTreeWindow->show();
+    //_shaderTreeWindow->show();
+}
+
+QModelIndex Sunshine::selectedMaterialIndex()
+{
+    if (ui->shaderTree->selectionModel() == 0)
+        return QModelIndex();
+
+    foreach(QModelIndex index, ui->shaderTree->selectionModel()->selection().indexes()) {
+        return index;
+    }
+    return QModelIndex();
+}
+
+void Sunshine::expandMaterialIndex(QModelIndex index, bool expand)
+{
+    ui->shaderTree->setExpanded(index, expand);
 }
