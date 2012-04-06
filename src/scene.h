@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QStandardItemModel>
 #include <QScriptValue>
+#include <QScriptEngine>
 
 /*
 #include <boost/python.hpp>
@@ -59,6 +60,7 @@ public:
 
     Material*                       buildMaterial(QString matType);
     bool                            hasMeshSelected();
+    bool                            hasVertexSelected();
                                 Scene();
     void                        initScriptEngine();
                                 QList<WorkTool*>                   _tools;
@@ -72,7 +74,7 @@ protected:
     QString                            uniqueName(QString prefix);
 
 private:
-    QScriptValue                       processFile(QScriptEngine &engine, QString filePath);
+    //QScriptValue                       processFile(QScriptEngine &engine, QString filePath);
     QHash<QString,Bindable*>           _assets;
     Material*                          _defaultMaterial;
     ShaderTreeModel                    _shaderTreeModel;

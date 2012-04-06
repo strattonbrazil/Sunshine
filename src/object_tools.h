@@ -21,6 +21,25 @@ private:
     PanelGL* panel;
 };
 
+class ScaleTransformable : public WorkTool
+{
+public:
+    bool isViewable(PanelGL* panel);
+    QList<ContextAction*> actions();
+    bool init(PanelGL* panel, QString command, int button);
+    bool wantsMouse() { return TRUE; }
+    void mouseMoved(PanelGL* panel, QMouseEvent* event, int dx, int dy);
+    void finish(QMouseEvent* event) {}
+    void cancel(QMouseEvent* event);
+private:
+    Vector3 scaleVector;
+    int axis;
+    QPoint lastP;
+    QPoint currentP;
+    int xDiff;
+    PanelGL* panel;
+};
+
 class SplitPolygon : public WorkTool
 {
     Q_OBJECT

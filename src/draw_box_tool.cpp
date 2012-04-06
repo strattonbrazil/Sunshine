@@ -19,7 +19,7 @@ void DrawBoxTool::mousePressed(PanelGL *panel, QMouseEvent *event)
             // make mesh at that location
             _pick = rayOrig + rayDir * t;
             _current = _pick;
-            _plane = Mesh::buildByIndex(primitive::planePrimitive(10,10));
+            _plane = Mesh::buildByIndex(primitive::planePrimitive(10,10,1,1));
             updateWorkspacePlane();
         }
     }

@@ -57,11 +57,15 @@ public:
         float theta1 =*/
         _rotate = r; resetLook();
     }
+    void               setFOV(float fov) { this->_fov = fov; }
     Q_INVOKABLE QVector3D            scale() { return _scale; }
     Q_INVOKABLE void               setScale(QVector3D s) { _scale = s; }
 
     Point3             centerReference() { return _centerReference; }
     void               setCenterReference(Point3 c) { _centerReference = c; }
+
+    Vector3            scaleReference() { return _scaleReference; }
+    void               setScaleReference(Vector3 s) { _scaleReference = s; }
 
     QMatrix4x4         objectToWorld();
 
@@ -75,6 +79,7 @@ protected:
     int           _rotateOrder;
 
     Point3        _centerReference;
+    Vector3       _scaleReference;
 
     // specific to camera controls (look through selected)
     Quat4         _startRotate;

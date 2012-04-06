@@ -1,16 +1,76 @@
 #include "material.h"
 #include "sunshine.h"
 
-/*
-QList<QString> Material::materialTypes() {
-    QList<QString> materialTypes;
-    materialTypes << "Phong";
-    return materialTypes;
+#include <QProcess>
+
+QHash<QString,AqsisMaterialInfo> Material::_aqsisMaterials;
+QStringList Material::_materialTypes;
+
+void Material::registerAqsisShader(QString path)
+{
+    QStringList args;
+    args << path;
+
+    QProcess aqsltell;
+    aqsltell.start("aqsltell", args);
+    aqsltell.waitForFinished();
+    QByteArray data = aqsltell.readAllStandardOutput();
+    QString output(data);
+
+    QStringList lines = output.split("\n");
+
+    QRegExp parameterP("\"([a-zA-Z]+)\" \"([a-zA-Z ]+)\"");
+
+    QHash<QString,QString> typeToJson;
+    typeToJson["parameter uniform float"] = "float";
+    typeToJson["parameter uniform color"] = "color";
+
+    bool validSurface = false;
+    QStringList atts;
+    foreach(QString line, lines) {
+        if (line.startsWith("surface"))
+            validSurface = true;
+        if (parameterP.indexIn(line) != -1) {
+            QString paramName = parameterP.cap(1);
+            QString paramType = parameterP.cap(2);
+
+            if (typeToJson.contains(paramType)) {
+                QString att = QString("{ 'var' : '%1', 'name' : '%1', 'type' : '%2' }").arg(paramName, typeToJson[paramType]);
+                atts << att;
+            }
+            else
+                std::cerr << "Unsupported type: " << paramType << " on " << paramName << std::endl;
+        }
+
+        //tokens = line.split("\n")
+    }
+
+    if (validSurface) {
+        AqsisMaterialInfo info;
+        info.path = path;
+        info.atts = atts;
+        QString shaderName = QFileInfo(path).baseName();
+        _aqsisMaterials[shaderName] = info;
+
+        _materialTypes.append(shaderName);
+    }
+
+
+    //return validSurface;
+    //std::cout << output << std::endl;
 }
-*/
 
 Material* Material::buildByType(QString type) {
+    if (_aqsisMaterials.contains(type)) {
+        return new AqsisMaterial(_aqsisMaterials[type]);
+    }
+    return 0;
+}
 
+AqsisMaterial::AqsisMaterial(AqsisMaterialInfo info)
+{
+    _info = info;
+    addAttributes(info.atts);
 }
 
 #define PHONGMATERIAL_GLSL_FRAGMENT_CODE \

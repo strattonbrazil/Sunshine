@@ -13,6 +13,8 @@
 //#include "select.h"
 #include "sunshine.h"
 
+#include <QGLFramebufferObject>
+
 class Mesh;
 class Triangle;
 class PanelGL;
@@ -102,7 +104,7 @@ private:
     void                     renderHUD(QPainter &painter);
     bool                     _validShaders;
     QVector<GLubyte>         _selectionBuffer;
-    GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
+    //GLuint                   _fbo, _beautyTexture, _indexTexture, _depthTexture;
     bool                     _validSelectionBuffer;
     Transformable*           _camera;
     QGLShaderProgram*        _textureShader;
@@ -119,6 +121,7 @@ private:
     GLuint                   _spotLightTexture;
     QHash<GLuint,Bindable*>  _selectionAssets;
     CameraScratch            _cameraScratch;
+    QSharedPointer<QGLFramebufferObject>   _fbo;
 };
 
 struct LineSegment {

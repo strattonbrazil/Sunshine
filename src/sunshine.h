@@ -60,17 +60,19 @@ public:
 protected:
     void                       changeEvent(QEvent *e);
 private slots:
-    void                       on_renderRequest();
-    void                       on_renderSettingsButton_clicked();
+    void                       renderRequest();
+    void                       renderSettingsButton_clicked();
     void                       on_importAction_triggered();
-    void                       on_layoutModeButton_released();
-    void                       on_modelModeButton_released();
-    void                       on_lineSelectButton_released();
-    void                       on_boxSelectButton_clicked();
-    void                       on_selectOccludedButton_clicked();
-    void                       on_cursorToolChanged(QAbstractButton*);
+    void                       layoutModeButton_released();
+    void                       modelModeButton_released();
+    void                       lineSelectButton_released();
+    void                       boxSelectButton_clicked();
+    void                       selectOccludedButton_clicked();
+    void                       cursorToolChanged(QAbstractButton*);
     void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
     void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
+    void                       growRequest();
+
     void                       showShaderGraph();
     void                       shaderTreeContextMenu(const QPoint &p);
 
@@ -78,6 +80,8 @@ private slots:
     void                       createSpotLight();
     void                       createCube();
     void                       createPlane();
+    void                       createSphere();
+    void                       createMaterial();
 
 private:
     QList<PanelGL*>                   _panels;

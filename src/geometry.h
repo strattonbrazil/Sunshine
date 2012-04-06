@@ -19,7 +19,7 @@ class Scene;
 
 #include "scene.h"
 
-QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine);
+//QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine);
 
 class Mesh : public Transformable
 {
@@ -92,6 +92,7 @@ public:
     Vertex*               vert() { return mesh()->vert(_vertexKey); }
     Vector3               normal() { return _normal; }
     void                  setNormal(Vector3 n) { _normal = n; }
+    Vector3               flatNormal();
 private:
     Mesh*                 _mesh;
     int                   _vertexKey;

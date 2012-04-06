@@ -1,6 +1,7 @@
 #include "geometry.h"
 #include "sunshine.h"
 
+#if 0
 QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine)
 {
     std::cout << "building mesh by index" << std::endl;
@@ -29,6 +30,7 @@ QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine)
 
     return QScriptValue();
 }
+#endif
 
 
 Vertex::Vertex(Mesh* mesh, int key, Point3 point)
@@ -48,6 +50,15 @@ Edge::Edge(Mesh* mesh, int vertexKey, int faceKey, int edgeKey)
     _faceKey = faceKey;
     _edgeKey = edgeKey;
     _selected = FALSE;
+}
+
+Vector3 Edge::flatNormal()
+{
+    Vector3 a = next()->vert()->pos() - vert()->pos();
+    a.normalize();
+    Vector3 b = vert()->pos() - prev()->vert()->pos();
+    b.normalize();
+    return Vector3::crossProduct(b, a);
 }
 
 Mesh* Edge::mesh() {
@@ -107,14 +118,17 @@ Mesh* Mesh::buildByIndex(PrimitiveParts parts)
         Face* face = new Face(emptyMesh, faceKey);
         emptyMesh->_faces[faceKey] = face;
 
-        Edge* firstEdge = 0;
-        Edge* lastEdge = 0;
+        //Edge* firstEdge = 0;
+        //Edge* lastEdge = 0;
         QList<int> vertIndices = parts.faces[faceKey];
+        QList<Edge*> edges;
         for (int i = 0; i < vertIndices.size(); i++) {
             Edge* edge = new Edge(emptyMesh,vertIndices[i],faceKey,edgeCount++);
             emptyMesh->_vertices[vertIndices[i]]->setEdge(edge);
             emptyMesh->_edges[edge->key()] = edge;
+            edges.append(edge);
 
+            /*
             if (firstEdge == 0)
                 firstEdge = edge;
             if (lastEdge != 0) {
@@ -124,16 +138,57 @@ Mesh* Mesh::buildByIndex(PrimitiveParts parts)
                 edge->setPrev(lastEdge);
             }
             lastEdge = edge;
+            */
             //std::cout << edgeCount << std::endl;
         }
-        lastEdge->setNext(firstEdge);
-        firstEdge->setPrev(lastEdge);
+        //lastEdge->setNext(firstEdge);
+        //firstEdge->setPrev(lastEdge);
+
+        for (int i = 0; i < edges.length(); i++) {
+            if (i == 0)
+                edges[i]->setPrev(edges[edges.length()-1]);
+            else
+                edges[i]->setPrev(edges[i-1]);
+            if (i == edges.length()-1)
+                edges[i]->setNext(edges[0]);
+            else
+                edges[i]->setNext(edges[i+1]);
+        }
 
         // add any edge to the face
-        face->setEdge(firstEdge);
+        face->setEdge(edges[0]);
     }
 
     emptyMesh->computeEdgePairs();
+
+    QHashIterator<int,Face*> faces = emptyMesh->faces();
+    while(faces.hasNext()) {
+        faces.next();
+        Face* face = faces.value();
+        Edge* edge = face->edge();
+        do {
+            if (edge == edge->next())
+                std::cerr << "invalid edge: edge = edge->next" << std::endl;
+            if (edge == edge->prev())
+                std::cerr << "invalid edge: edge = edge->prev" << std::endl;
+
+            if (edge == edge->next()->next())
+                std::cerr << "invalid edge: edge = edge->next->next" << std::endl;
+
+            if (edge == edge->prev()->prev())
+                std::cerr << "invalid edge: edge = edge->prev->prev" << std::endl;
+
+            edge = edge->next();
+        } while (edge != face->edge());
+
+        edge = face->edge();
+        do {
+            if (edge->pair() != 0 && edge->pair()->pair() != edge)
+                std::cerr << "invalid edge: pair != pair" << std::endl;
+
+            edge = edge->next();
+        } while (edge != face->edge());
+    }
 
     return emptyMesh;
 }
@@ -201,9 +256,9 @@ void Mesh::computeEdgePairs()
             Edge* edge = face->edge();
 
             do {
-                QString key = pairKey(edge->vert()->key(), edge->next()->vert()->key());
-                if (pairs.contains(key))
-                    edge->setPair(pairs[key]);
+                QString pKey = pairKey(edge->next()->vert()->key(), edge->vert()->key());
+                if (pairs.contains(pKey))
+                    edge->setPair(pairs[pKey]);
 
                 edge = edge->next();
             } while (edge != face->edge());

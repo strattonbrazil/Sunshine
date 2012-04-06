@@ -10,11 +10,7 @@ QList<ContextAction*> TranslateTransformable::actions()
     QList <ContextAction*> actions;
 
     Scene* scene = SunshineUi::activeScene();
-    bool hasMeshSelected = false;
-    foreach(QString meshName, scene->meshes()) {
-        hasMeshSelected = hasMeshSelected | scene->mesh(meshName)->isSelected();
-    }
-    if (!hasMeshSelected)
+    if (!scene->hasMeshSelected())
         return actions;
 
 
@@ -91,6 +87,101 @@ void TranslateTransformable::cancel(QMouseEvent* event) {
 
         if (mesh->isSelected())
             mesh->setCenter(mesh->centerReference());
+    }
+}
+
+bool ScaleTransformable::isViewable(PanelGL* panel)
+{
+    return SunshineUi::workMode() == WorkMode::OBJECT;
+}
+
+QList<ContextAction*> ScaleTransformable::actions()
+{
+    QList <ContextAction*> actions;
+
+    Scene* scene = SunshineUi::activeScene();
+    if (!scene->hasMeshSelected())
+        return actions;
+
+
+    if (SunshineUi::workMode() == WorkMode::OBJECT) {
+        actions << new ContextAction(".Scale.", 0, this);
+    }
+
+    return actions;
+}
+
+bool ScaleTransformable::init(PanelGL* inPanel, QString command, int button) {
+    ContextMenu popup;
+    popup.addAction("Uniform");
+    popup.addAction("X");
+    popup.addAction("Y");
+    popup.addAction("Z");
+    QAction* action = popup.exec(QCursor::pos());
+    if (!action)
+        return FALSE;
+
+    if (action->text() == "Uniform")
+        axis = Axis::NoAxis;
+    else if (action->text() == "X")
+        axis = Axis::GlobalX;
+    else if (action->text() == "Y")
+        axis = Axis::GlobalY;
+    else if (action->text() == "Z")
+        axis = Axis::GlobalZ;
+
+    panel = inPanel;
+    xDiff = 0;
+
+    // save off object positions
+    foreach(QString meshName, panel->scene()->meshes()) {
+        Mesh* mesh = panel->scene()->mesh(meshName);
+
+        if (mesh->isSelected())
+            mesh->setScaleReference(mesh->scale());
+    }
+
+    //lastP = panel->centerMouse();
+    //delete action;
+    return TRUE;
+}
+
+void ScaleTransformable::mouseMoved(PanelGL* panel, QMouseEvent* event, int dx, int dy)
+{
+    currentP = event->pos();
+    xDiff += dx;
+    float scale = 1.0f + xDiff*0.01f;
+    if (axis == Axis::GlobalX || axis == Axis::GlobalY || axis == Axis::GlobalZ || axis == Axis::NoAxis) {
+        Vector3 scaleVector;
+        if (axis == Axis::GlobalX)
+            scaleVector = Vector3(scale,1,1);
+        else if (axis == Axis::GlobalY)
+            scaleVector = Vector3(1,scale,1);
+        else if (axis == Axis::GlobalZ)
+            scaleVector = Vector3(1,1,scale);
+        else if (axis == Axis::NoAxis)
+            scaleVector = Vector3(scale,scale,scale);
+
+        foreach(QString meshName, panel->scene()->meshes()) {
+            Mesh* mesh = panel->scene()->mesh(meshName);
+
+            if (mesh->isSelected())
+                mesh->setScale(Vector3(mesh->scaleReference().x() * scaleVector.x(),
+                                       mesh->scaleReference().y() * scaleVector.y(),
+                                       mesh->scaleReference().z() * scaleVector.z()));
+
+        }
+    }
+    lastP = currentP;
+}
+
+void ScaleTransformable::cancel(QMouseEvent* event) {
+    // restore objects to reference positions
+    foreach(QString meshName, panel->scene()->meshes()) {
+        Mesh* mesh = panel->scene()->mesh(meshName);
+
+        if (mesh->isSelected())
+            mesh->setScale(mesh->scaleReference());
     }
 }
 

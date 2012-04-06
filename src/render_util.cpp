@@ -1,6 +1,8 @@
 #include "render_util.h"
 
 #include <QLabel>
+#include <aqsis/aqsis.h>
+#include <QDir>
 
 class Filter
 {
@@ -98,6 +100,206 @@ static QVector3D faceTargetUp[6] = {
 */
 
 namespace RenderUtil {
+    void renderScene(Scene* scene, Camera* camera)
+    {
+        // Camera type & position
+        float fov = camera->fov();
+        //float fov = 45;
+
+        RiProjection("perspective", "fov", &fov, RI_NULL);
+
+        // flip coordinate system across YZ
+        RtMatrix flipYZ;
+        camera->flipYZ(flipYZ);
+        RiTransform(flipYZ);
+
+        //    RiLightSource("pointlight", "intensity", &intensity, RI_NULL);
+
+        // use calculation from gluLookAt
+        Vector3 f = camera->lookDir();
+        Vector3 up = camera->upDir();
+
+        float roll = 0.0f;
+        RiRotate(-roll, 0, 0, 1);
+
+        RotatePair pair = camera->aim(camera->lookDir());
+        RiRotate(pair.rot1.x(), pair.rot1.y(), pair.rot1.z(), pair.rot1.w());
+        RiRotate(pair.rot2.x(), pair.rot2.y(), pair.rot2.z(), pair.rot2.w());
+
+//        QMatrix4x4 M(s[ 0 ], s[ 1 ], s[ 2 ], 0,
+  //                   u[ 0 ], u[ 1 ], u[ 2 ], 0,
+    //                -f[ 0 ], -f [ 1 ], -f[ 2 ], 0,
+      //               0, 0, 0, 1);
+
+
+        RiTranslate(-camera->eye().x(),
+                    -camera->eye().y(),
+                    -camera->eye().z());
+
+
+        RiWorldBegin();
+        {
+            // setup lights
+            foreach(QString lightName, scene->lights())
+            {
+                Light* light = scene->light(lightName);
+                light->prepare(scene);
+            }
+
+            // add meshes to scene
+            foreach(QString meshName, scene->meshes())
+            {
+                Mesh* mesh = scene->mesh(meshName);
+
+                // setup basic material
+                float intensity = 1.0f;
+                float Ks = 1.0f;
+
+                AqsisMaterial* aqsisMat = qobject_cast<AqsisMaterial*>(mesh->material());
+                if (aqsisMat) {
+                    QString matName = scene->assetName(aqsisMat);
+                    const int MAX_SHADER_NAME_LENGTH = 1000;
+                    char shaderName[MAX_SHADER_NAME_LENGTH];
+                    strncpy(shaderName, QFileInfo(aqsisMat->path()).baseName().toStdString().c_str(), MAX_SHADER_NAME_LENGTH);
+                    std::cout << "using aqsis mat: " << matName << " (" << aqsisMat->path() << ")" << std::endl;
+
+                    QVector<RtToken> tokens;
+                    QVector<RtPointer> params;
+
+                    QList<Attribute> atts = aqsisMat->attributes();
+
+                    const int numParams = tokens.size();
+                    RiSurfaceV(shaderName, numParams, tokens.data(), params.data());
+                }
+                else // default to something
+                    RiSurface("plastic", "Ks", &Ks, RI_NULL);
+
+                RiAttributeBegin();
+                RiTransformBegin(); // object-to-world
+                {
+                    QMatrix4x4 objToWorld = mesh->objectToWorld();
+                    objToWorld = objToWorld.transposed();
+                    qreal* data = objToWorld.data();
+
+                    RtMatrix transform = {
+                        data[0], data[4], data[8], data[12],
+                        data[1], data[5], data[9], data[13],
+                        data[2], data[6], data[10], data[14],
+                        data[3], data[7], data[11], data[15]
+                    };
+                    RiConcatTransform(transform);
+
+                    const int numTriangles = mesh->numTriangles();
+                    QHashIterator<int,Face*> i = mesh->faces();
+                    while (i.hasNext()) { // render each face
+                        i.next();
+                        Face* face = i.value();
+                        QListIterator<Triangle> j = face->buildTriangles();
+                        while (j.hasNext()) { // render each triangle
+                            Triangle triangle = j.next();
+                            RtPoint points[3] = { { triangle.a->vert()->pos().x(),
+                                                    triangle.a->vert()->pos().y(),
+                                                    triangle.a->vert()->pos().z() },
+                                                  { triangle.b->vert()->pos().x(),
+                                                    triangle.b->vert()->pos().y(),
+                                                    triangle.b->vert()->pos().z() },
+                                                  { triangle.c->vert()->pos().x(),
+                                                    triangle.c->vert()->pos().y(),
+                                                    triangle.c->vert()->pos().z() } };
+                            RtPoint normals[3] = { { triangle.a->normal().x(),
+                                                     triangle.a->normal().y(),
+                                                     triangle.a->normal().z() },
+                                                   { triangle.b->normal().x(),
+                                                     triangle.b->normal().y(),
+                                                     triangle.b->normal().z() },
+                                                   { triangle.c->normal().x(),
+                                                     triangle.c->normal().y(),
+                                                     triangle.c->normal().z() } };
+                            RiPolygon(3, "P", (RtPointer)points, "N", (RtPointer)normals, RI_NULL );
+                        }
+                    }
+
+                }
+                RiTransformEnd();
+                RiAttributeEnd();
+            }
+
+            // Geometry
+            /*
+            for (int j = 0; j < 20; ++j) {
+                const int ringNum = 5;
+                for(int i = 0; i < ringNum; ++i) {
+                    RiTransformBegin();
+                    RiRotate(i*360/ringNum, 0, 0, 1);
+                    RiTranslate(1, 0, 0);
+                    RiSphere(0.2f, -0.2f, 0.2f, 360, RI_NULL);
+                    RiTransformEnd();
+                }
+                RiRotate(10, 0, 0, 1);
+                RiScale(0.8f, 0.8f, 0.8f);
+                RiTranslate(0, 0, 0.3);
+            }
+            */
+        }
+        RiWorldEnd();
+    }
+
+    void renderAqsis(Scene* scene, const int XRES, const int YRES)
+    {
+
+        QHash<QString,QString> envPaths;
+
+        envPaths["AQSIS_SHADER_PATH"] = "shaders";
+        envPaths["AQSIS_ARCHIVE_PATH"] = "archives";
+        envPaths["AQSIS_TEXTURE_PATH"] = "textures";
+        envPaths["AQSIS_DISPLAY_PATH"] = "displays";
+        envPaths["AQSIS_PROCEDURAL_PATH"] = "procedurals";
+
+        QString tmpPath = QDir::tempPath() + "/sunshine";
+        foreach(QString envVar, envPaths.keys())
+        {
+            QString envPath = tmpPath + "/" + envPaths[envVar] + ":@";
+            if (QDir(tmpPath).mkpath(envPaths[envVar]))
+                std::cout << "Created path: " << envPath << std::endl;
+            setenv(envVar.toStdString().c_str(), envPath.toStdString().c_str(), true);
+        }
+
+        char* fileName = "/tmp/test.tif";
+
+        Camera* activeCamera = scene->camera("persp");
+
+        // render shadow passes
+        foreach(QString lightName, scene->lights())
+        {
+            Light* light = scene->light(lightName);
+            light->prepass(scene);
+        }
+
+        RiBegin(RI_NULL);
+
+        float shadowBias = 0.1f;
+        RiOption("shadow", "bias", (RtPointer)&shadowBias, RI_NULL);
+
+        // Output image
+        RiDisplay(fileName, "framebuffer", "rgba", RI_NULL);
+        RiFormat(XRES, YRES, 1);
+
+        renderScene(scene, activeCamera);
+
+        RiEnd();
+
+        /*
+        QLabel* label = new QLabel();
+        label->setStyleSheet("QLabel { background-color : #444444; }");
+        label->setPixmap(QPixmap::fromImage(QImage(fileName)));
+        label->show();
+
+        label->move(200, 400);
+        */
+
+       //_renderWidget->open(QString(fileName));
+    }
+
     void renderGL(PanelGL* panel)
     {
         checkGL("renderGL start");

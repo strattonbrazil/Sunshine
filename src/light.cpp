@@ -1,4 +1,8 @@
 #include "light.h"
+#include <aqsis/aqsis.h>
+#include <aqsis/ri/ri.h>
+#include <sunshine.h>
+#include "render_util.h"
 
 QList<Attribute> Light::glslFragmentConstants()
 {
@@ -121,16 +125,27 @@ QString PointLight::glslFragmentEnd()
     return lightFragCode;
 }
 
+void PointLight::prepare(Scene* scene)
+{
+
+}
+
+void PointLight::prepass(Scene* scene)
+{
+
+}
+
 SpotLight::SpotLight()
 {
     QString color("{ 'var' : 'lightColor', 'name' : 'Color', 'type' : 'color', 'value' : '#ffffff', 'glslFragmentConstant' : true }");
-    QString intensity("{ 'var' : 'uniformLightIntensity', 'name' : 'Intensity', 'type' : 'float', 'min' : 0.0, 'max' : 1.0, 'value' : 1.0, 'glslFragmentConstant' : true }");
+    QString intensity("{ 'var' : 'uniformLightIntensity', 'name' : 'Intensity', 'type' : 'float', 'min' : 0.0, 'max' : 1000.0, 'value' : 10.0, 'glslFragmentConstant' : true }");
     QString coneAngle("{ 'var' : 'coneAngle', 'name' : 'Cone Angle', 'type' : 'float', 'min' : 1.0, 'max' : 150.0, 'value' : 60.0, 'glslFragmentConstant' : true }");
     QString castShadows("{ 'var' : 'castShadows', 'name' : 'Casts Shadows', 'type' : 'bool', 'value' : true }");
-    QString spotDir("{ 'var' : 'spotDir', 'name' : 'Spot Direction', 'type' : 'vector3', 'getter' : 'spotDir', 'glslFragmentConstant' : true }");
+    //QString shadowBias("{ 'var' : 'shadowBias', 'name' : 'Shadow Bias', 'type' : 'float', 'min' : -100.0, 'max' : 100.0, 'value' : 0.1 }");
+    //QString spotDir("{ 'var' : 'spotDir', 'name' : 'Spot Direction', 'type' : 'vector3', 'getter' : 'spotDir', 'glslFragmentConstant' : true }");
 
     QStringList atts;
-    atts << color << intensity << coneAngle << castShadows << spotDir;
+    atts << color << intensity << coneAngle << castShadows;// << shadowBias;// << spotDir;
 
     addAttributes(atts);
 
@@ -171,6 +186,97 @@ QString SpotLight::glslFragmentEnd()
     return lightFragCode;
 }
 
+void SpotLight::prepare(Scene* scene)
+{
+    /*
+    Attribute castShadows = attributeByName("Casts Shadows");
+    if (castShadows && castShadows->property("value").isValid()) {
+
+    }
+    */
+    //Attribute position = ;
+    //position.property("value").toFloat();
+    QVector3D position = getBoundValue<QVector3D>(this, attributeByName("Position"));
+    QVector3D lookat = position + lookDir();
+    float coneAngle = PI * attributeByName("Cone Angle")->property("value").value<float>() / 180.0f;
+    RtFloat intensity = attributeByName("Intensity")->property("value").value<float>();
+    RtPoint from = { position.x(), position.y(), position.z() };
+    RtPoint to = { lookat.x(), lookat.y(), lookat.z() };
+    QColor color = attributeByName("Color")->property("value").value<QColor>();
+    RtColor c = { color.redF(), color.greenF(), color.blueF() };
+
+    bool castsShadow = attributeByName("Casts Shadows")->property("value").value<bool>();
+
+    std::cout << "casts shadow: " << castsShadow << std::endl;
+
+    if (castsShadow)
+    {
+        QString shadowPath = QString(getenv("AQSIS_TEXTURE_PATH")).split(":")[0] + "/" + scene->assetName(this) + ".shd";
+        char cShadowPath[1000];
+
+        strcpy(cShadowPath, shadowPath.toStdString().c_str());
+
+        char *shadowPaths[]= { cShadowPath, RI_NULL };
+    //    float shadowBias = attributeByName("Shadow Bias")->property("value").value<float>();
+
+//RiOption("shadow", "bias", (RtPointer)&shadowBias, RI_NULL);
+
+        std::cout << "shadow path: " << cShadowPath << std::endl;
+  //      std::cout << "shadow bias: " << shadowBias << std::endl;
+        RiDeclare("shadowname", "uniform string");
+        RiLightSource("shadowspot", "from", from, "to", to, "intensity", &intensity, "coneangle", &coneAngle, "lightcolor", &c, "shadowname", shadowPaths, RI_NULL);
+    }
+    else
+        RiLightSource("spotlight", "from", from, "to", to, "intensity", &intensity, "coneangle", &coneAngle, "lightcolor", &c, RI_NULL);
+
+    //LightSource "shadowspot" 1 "intensity" 50 "from" [1 5 0] "to" [0 0 0]
+    //                              "shadowname" ["spot1.tx"]
+
+}
+
+void SpotLight::prepass(Scene* scene)
+{
+
+    // render shadow map
+    bool castsShadow = attributeByName("Casts Shadows")->property("value").value<bool>();
+    if (castsShadow) {
+        QString shadowPath = QString(getenv("AQSIS_TEXTURE_PATH")).split(":")[0];
+
+        //Scene* scene = SunshineUi::activeScene();
+        QString picFile = shadowPath + "/" + scene->assetName(this) + ".z";
+        QString texFile = shadowPath + "/" + scene->assetName(this) + ".shd";
+        char picName[1000];
+        char texName[1000];
+        strcpy(picName, picFile.toStdString().c_str());
+        strcpy(texName, texFile.toStdString().c_str());
+
+        std::cout << "writing shadow map: " << picFile << std::endl;
+
+        RiBegin(RI_NULL);
+        RiDisplay(picName, "zfile", "z", RI_NULL);
+        RiFormat(512, 512, 1);
+
+        float coneAngle = attributeByName("Cone Angle")->property("value").value<float>();
+
+        Camera camera;
+        camera.setCenter(this->center());
+        camera.setRotate(this->rotate());
+        camera.setScale(this->scale());
+        camera.setFOV(coneAngle*2);
+
+        RenderUtil::renderScene(scene, &camera);
+
+        RiMakeShadow(picName, texName, RI_NULL);
+
+        RiEnd();
+
+
+
+        std::cout << "converting " << picName << " to " << texName << std::endl;
+        //
+    }
+}
+
 AmbientLight::AmbientLight()
 {
     QString color("{ 'var' : 'lightColor', 'name' : 'Color', 'type' : 'color', 'value' : '#eeeeff', 'glslFragmentConstant' : true }");
@@ -195,4 +301,21 @@ QString AmbientLight::glslFragmentBegin()
 QString AmbientLight::glslFragmentEnd()
 {
     return "// there;\n";
+}
+
+void AmbientLight::prepare(Scene* scene)
+{
+    RtFloat intensity = attributeByName("Intensity")->property("value").value<float>();
+    QColor color = attributeByName("Color")->property("value").value<QColor>();
+            //getBoundValue<QVector3D>(this, attributeByName("Color"));
+
+    RtColor c = { color.redF(), color.greenF(), color.blueF() };
+    std::cout << color.redF() << " " << color.greenF() << " " << color.blueF() << std::endl;
+
+    RiLightSource("ambientlight", "intensity", &intensity, "lightcolor", &c, RI_NULL);
+}
+
+void AmbientLight::prepass(Scene* scene)
+{
+
 }

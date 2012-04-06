@@ -53,7 +53,8 @@ void PanelGL::init()
     setMouseTracking(true);
     _validShaders = false;
     _validSelectionBuffer = FALSE;
-    _fbo = 0, _beautyTexture = 0, _indexTexture = 0, _depthTexture = 0, _pointLightTexture = 0, _spotLightTexture = 0;
+    //_fbo = 0, _beautyTexture = 0, _indexTexture = 0, _depthTexture = 0,
+    _pointLightTexture = 0, _spotLightTexture = 0;
 
     //_basicSelect = BasicSelect*(new BasicSelect());
 
@@ -101,14 +102,17 @@ void PanelGL::initializeGL()
 {
     if (!glewInitialized) {
         GLenum err = glewInit();
+
         if (GLEW_OK != err)
         {
             /* Problem: glewInit failed, something is seriously wrong. */
             std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
         }
+        else {
+            //std::cout << "Glew initialized" << std::endl;
+
+        }
     }
-
-
 }
 
 void PanelGL::paintGL()
@@ -125,14 +129,19 @@ void PanelGL::paintGL()
         _validShaders = true;
     }
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+    //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fbo);
+
+    _fbo->bind();
+
     glViewport( 0, 0, width(), height());
+    //glClearColor(1,0,0,1);
+    //glClear(GL_COLOR_BUFFER_BIT);
+
     renderAssets();
+    _fbo->release();
 
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
-
-    //renderBeautyPass();
+    //glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -141,7 +150,8 @@ void PanelGL::paintGL()
     glLoadIdentity();
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, _beautyTexture);
+    //glBindTexture(GL_TEXTURE_2D, _beautyTexture);
+    glBindTexture(GL_TEXTURE_2D, _fbo->texture());
     glColor4f(1,1,1,1);
     glBegin(GL_QUADS);
     {
@@ -205,6 +215,8 @@ void PanelGL::renderAssets()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+#if 1
     glDrawBuffers(1, bufs);
 
     paintBackground();
@@ -238,7 +250,10 @@ void PanelGL::renderAssets()
         _workTool->postDrawOverlay(this);
 
     renderLights(selectionCounter);
+#endif
 
+
+glDrawBuffer(GL_BACK);
 }
 
 void PanelGL::renderLights(GLuint &selectionCounter)
@@ -255,11 +270,14 @@ void PanelGL::renderLights(GLuint &selectionCounter)
     glEnable(GL_DEPTH_TEST);
 
     QGLShaderProgram* textureShader = _textureShader;
-    QMatrix4x4 ortho;
-    ortho.ortho(0, width(), 0, height(), -1, 0);
+    //QMatrix4x4 ortho;
+    //ortho.ortho(0, width(), 0, height(), -1, 0);
+    QMatrix4x4 cameraProjM = Camera::getProjMatrix(_camera, width(), height());
+    QMatrix4x4 cameraViewM = Camera::getViewMatrix(_camera, width(), height());
+    QMatrix4x4 cameraProjViewM = cameraProjM * cameraViewM;
     textureShader->bind();
     textureShader->setUniformValue("objToWorld", QMatrix4x4());
-    textureShader->setUniformValue("cameraPV", ortho);
+    textureShader->setUniformValue("cameraPV", cameraProjViewM);
     textureShader->setUniformValue("colorMap", 0);
 
     GLfloat fSizes[2];
@@ -269,6 +287,7 @@ void PanelGL::renderLights(GLuint &selectionCounter)
     foreach(QString lightName, _scene->lights()) {
         Light* light = _scene->light(lightName);
         if (light->lightType() == LightType::POINT_LIGHT) {
+            /*
             glBindTexture(GL_TEXTURE_2D, _pointLightTexture);
 
             glEnable(GL_BLEND);
@@ -277,24 +296,33 @@ void PanelGL::renderLights(GLuint &selectionCounter)
             glEnable(GL_TEXTURE_2D);
             glColor4f(1,1,1,1);
 
-            Point3 screen = project(light->center());
+            //Point3 screen = project(light->center());
+            Vector3 left = _camera->leftDir();
+            Vector3 up = _camera->upDir();
+
+            Vector3 a = left - up + light->center();
+            Vector3 b = -left - up + light->center();
+            Vector3 c = -left + up + light->center();
+            Vector3 d = left + up + light->center();
 
             glBegin(GL_QUADS);
             {
                 glTexCoord2f(0, 0);
-                glVertex3f(screen.x()-ICON_OFFSET, screen.y()-ICON_OFFSET, screen.z());
+                glVertex3f(a.x(), a.y(), a.z());
                 glTexCoord2f(1, 0);
-                glVertex3f(screen.x()+ICON_OFFSET, screen.y()-ICON_OFFSET, screen.z());
+                glVertex3f(b.x(), b.y(), b.z());
                 glTexCoord2f(1, 1);
-                glVertex3f(screen.x()+ICON_OFFSET, screen.y()+ICON_OFFSET, screen.z());
+                glVertex3f(c.x(), c.y(), c.z());
                 glTexCoord2f(0, 1);
-                glVertex3f(screen.x()-ICON_OFFSET, screen.y()+ICON_OFFSET, screen.z());
+                glVertex3f(d.x(), d.y(), d.z());
             }
             glEnd();
+
 
             glDisable(GL_TEXTURE_2D);
 
             glDisable(GL_BLEND);
+            */
         }
         else if (light->lightType() == LightType::SPOT_LIGHT) {
             glBindTexture(GL_TEXTURE_2D, _spotLightTexture);
@@ -305,38 +333,109 @@ void PanelGL::renderLights(GLuint &selectionCounter)
             glEnable(GL_TEXTURE_2D);
             glColor4f(1,1,1,1);
 
-            Point3 screen = project(light->center());
+            //Point3 screen = project(light->center());
+            Vector3 left = 0.5f * _camera->leftDir();
+            Vector3 up = 0.5f * _camera->upDir();
+
+            Vector3 a = left - up + light->center();
+            Vector3 b = -left - up + light->center();
+            Vector3 c = -left + up + light->center();
+            Vector3 d = left + up + light->center();
 
             glBegin(GL_QUADS);
             {
                 glTexCoord2f(0, 0);
-                glVertex3f(screen.x()-ICON_OFFSET, screen.y()-ICON_OFFSET, screen.z());
+                glVertex3f(a.x(), a.y(), a.z());
                 glTexCoord2f(1, 0);
-                glVertex3f(screen.x()+ICON_OFFSET, screen.y()-ICON_OFFSET, screen.z());
+                glVertex3f(b.x(), b.y(), b.z());
                 glTexCoord2f(1, 1);
-                glVertex3f(screen.x()+ICON_OFFSET, screen.y()+ICON_OFFSET, screen.z());
+                glVertex3f(c.x(), c.y(), c.z());
                 glTexCoord2f(0, 1);
-                glVertex3f(screen.x()-ICON_OFFSET, screen.y()+ICON_OFFSET, screen.z());
+                glVertex3f(d.x(), d.y(), d.z());
             }
             glEnd();
+
 
             glDisable(GL_TEXTURE_2D);
 
             glDisable(GL_BLEND);
 
+
+            textureShader->release();
+
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            glLoadMatrixd(cameraProjM.data());
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+            glLoadMatrixd(cameraViewM.data());
+
             QVector3D lookDir = light->lookDir().normalized();
+            glColor4f(.6,.6,.8,1);
+            glLineWidth(2.0f);
+            float coneAngle = light->attributeByName("Cone Angle")->property("value").value<float>();
             glBegin(GL_LINES);
             {
-                Point3 lightStart = project(light->center() + lookDir);
-                Point3 lightEnd = project(light->center() + lookDir + lookDir*10.0f);
-                glVertex3f(lightStart.x(), lightStart.y(), lightStart.z());
-                glVertex3f(lightEnd.x(), lightEnd.y(), lightEnd.z());
+                Point3 lightStart = light->center() + lookDir;
+                Point3 lightEnd = light->center() + lookDir + lookDir*10.0f;
+
+                Vector3 n = (lightEnd - lightStart).normalized();
+                Vector3 u = Vector3::crossProduct(light->upDir(), n);
+                u.normalize();
+                Vector3 v = Vector3::crossProduct(u, n);
+                v.normalize();
+
+                // draw cone angles
+                float radii[] = { tan(coneAngle * PI / 180.0f),
+                                  tan(coneAngle * PI / 180.0f) * ((lightEnd-lightStart).length()+1) };
+                Point3 circleCenters[] = { lightStart, lightEnd };
+
+                const int CONNECTORS = 3;
+                for (int i = 0; i < CONNECTORS; i++) {
+                    float theta = 2 * PI * i / CONNECTORS;
+                    Point3 l1 = (radii[0] * cos(theta) * u) + (radii[0] * sin(theta) * v) + circleCenters[0];
+                    Point3 l2 = (radii[1] * cos(theta) * u) + (radii[1] * sin(theta) * v) + circleCenters[1];
+
+                    glVertex3f(l1.x(), l1.y(), l1.z());
+                    glVertex3f(l2.x(), l2.y(), l2.z());
+
+                }
+
+
+
+                //glVertex3f(lightStart.x(), lightStart.y(), lightStart.z());
+                //glVertex3f(lightEnd.x(), lightEnd.y(), lightEnd.z());
+
+
+                for (int i = 0; i < 2; i++)
+                {
+                    float radius = radii[i];
+                    const int SEGMENTS = 16;
+
+                    Point3 circleCenter = circleCenters[i];
+
+                    for (int j = 0; j < SEGMENTS; j++)
+                    {
+                        float t1 = 2 * PI * ((float)j / SEGMENTS);
+                        float t2 = 2 * PI * ((float)(j+1) / SEGMENTS);
+                        Point3 p1 = (radius * cos(t1) * u) + (radius * sin(t1) * v) + circleCenter;
+                        Point3 p2 = radius * cos(t2) * u + radius * sin(t2) * v + circleCenter;
+
+                        glVertex3f(p1.x(), p1.y(), p1.z());
+                        glVertex3f(p2.x(), p2.y(), p2.z());
+                    }
+                }
             }
             glEnd();
+
+
+
+
         }
     }
 
     textureShader->release();
+
     glDisable(GL_DEPTH_TEST);
 }
 
@@ -402,12 +501,18 @@ void PanelGL::resizeGL(int width, int height)
     buildMeshGrid();
     _validSelectionBuffer = FALSE;
 
+//    std::cout << width << " " << height << std::endl;
+
     if (width && height)
         initFBO(width, height);
+
+    if (_fbo == 0 || _fbo->width() != width || _fbo->height() != height)
+        _fbo = QSharedPointer<QGLFramebufferObject>(new QGLFramebufferObject(width, height, QGLFramebufferObject::CombinedDepthStencil));
 }
 
 void PanelGL::initFBO(int width, int height)
 {
+#if 0
     if (_fbo) {
         glDeleteFramebuffersEXT(1, &_fbo);
         glDeleteTextures( 1, &_beautyTexture);
@@ -419,8 +524,6 @@ void PanelGL::initFBO(int width, int height)
     glGenTextures(1, &_beautyTexture);
     glGenTextures(1, &_indexTexture);
     glGenTextures(1, &_depthTexture);
-
-    glBindFramebufferEXT(GL_FRAMEBUFFER, _fbo);
 
     // setup beauty texture
     glBindTexture(GL_TEXTURE_2D, _beautyTexture);
@@ -473,6 +576,7 @@ void PanelGL::initFBO(int width, int height)
     }
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+#endif
 }
 
 LineRenderer::LineRenderer(QVector<LineSegment> segments, float lineWidth)
@@ -786,8 +890,10 @@ void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
         const int numVertices = mesh->numVertices();
 
         int triangleCount = 0;
-        GLushort indices[numTriangles*3];
-        MeshVertexData vertices[numTriangles*3];
+        QVector<GLushort> indices(numTriangles*3);
+        //GLushort indices[numTriangles*3];
+        QVector<MeshVertexData> vertices(numTriangles*3);// vertices.resize();
+        //MeshVertexData vertices[numTriangles*3];
         QHashIterator<int,Face*> i = mesh->faces();
         while (i.hasNext()) {
             i.next();
@@ -824,7 +930,7 @@ void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
 
         // Transfer vertex data to VBO 0
         glBindBuffer(GL_ARRAY_BUFFER, _vboIds[0]);
-        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, numTriangles*3*sizeof(MeshVertexData), vertices.data(), GL_STREAM_DRAW);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
@@ -1116,18 +1222,11 @@ void PanelGL::showContextMenu(QMouseEvent *event)
         hasLightSelected = hasLightSelected || _scene->light(lightName)->isSelected();
     }
 
-    QMenu* lookThrough = popup.addMenu("Look through");
-    if (hasLightSelected) {
-        lookThrough->addAction("Selected");
-        lookThrough->addSeparator();
-    }
-    foreach(QString cameraName, _scene->cameras()) {
-        lookThrough->addAction(cameraName);
-    }
-
     // add menu options specific to the selected cursor tool
     //
     SunshineUi::cursorTool()->updateMenu(&popup);
+
+
 
     // add menu tools specific to the current environment
     //
@@ -1151,6 +1250,17 @@ void PanelGL::showContextMenu(QMouseEvent *event)
         popup.addAction(action);
     }
 
+    popup.addSeparator();
+
+
+    QMenu* lookThrough = popup.addMenu("Look through");
+    if (hasLightSelected) {
+        lookThrough->addAction("Selected");
+        lookThrough->addSeparator();
+    }
+    foreach(QString cameraName, _scene->cameras()) {
+        lookThrough->addAction(cameraName);
+    }
 
 
     // add general UI actions

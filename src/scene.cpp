@@ -10,9 +10,13 @@
 
 #include "python_bindings.h"
 #include "object_tools.h"
+#include "vertex_tools.h"
 
 #include <QScriptEngine>
 #include <QProcess>
+#include <assimp/assimp.hpp>
+#include <assimp/aiPostProcess.h>
+#include <assimp/aiScene.h>
 
 QList<QString> Scene::assetsByType(int assetType)
 {
@@ -43,24 +47,23 @@ QList<QString> Scene::cameras()
 {
     return assetsByType(AssetType::CAMERA_ASSET);
 }
+//#include <assimp/aiScene.h>
+//#include <assimp/aiPostProcess.h>
 
 QList<QString> Scene::importExtensions()
 {
-    QList<QString> extensions;
-    extensions.append("obj");
-    return extensions;
-  /*
-    QList<QString> extensions;
-    QVariant result = pyContext.call("MeshImporter.extensions");
-    if (!result.isValid())
-        std::cerr << "Scene::importExtensions() - invalid return value";
-    QList<QVariant> exts = result.toList();
-    foreach(QVariant ext, exts) {
-        extensions << ext.toString();
+    Assimp::Importer importer;
+    std::string fExtensions;
+    importer.GetExtensionList(fExtensions);
+
+    QString extensions = QString::fromStdString(fExtensions);
+    QList<QString> extensionList;
+    foreach(QString extension, extensions.split(";")) {
+        extensionList.append(extension.split("*.")[1]);
     }
 
-    return extensions;
-  */
+    //extensions.append("obj");
+    return extensionList;
 }
 
 bool loadFile(QString fileName, QScriptEngine *engine)
@@ -138,39 +141,42 @@ QScriptValue importExtension(QScriptContext *context, QScriptEngine *engine)
 
 void Scene::importFile(QString fileName)
 {
-    //std::cout << static_cast<QObject*>(this) << std::endl;
-    QVariant sceneV = qVariantFromValue(static_cast<QObject*>(this));
-    //QVariant sceneV((QObject*)this);
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile( fileName.toStdString(),
 
-    QVariantList fileArgs;
-    fileArgs << sceneV;//qVariantFromValue(this);
-    fileArgs << fileName;
+                                              aiProcess_FindDegenerates |
+            aiProcess_JoinIdenticalVertices);
 
-    //QScriptEngine engine;
-
-
-
-    QScriptValue importFunc = _engine.evaluate("processFile");
-    QScriptValueList args;
-    QScriptValue sceneVar = _engine.newQObject(this);
-    args << sceneVar << fileName;
-    QScriptValue importResult = importFunc.call(QScriptValue(), args);
-    if (_engine.hasUncaughtException()) {
-        int line = _engine.uncaughtExceptionLineNumber();
-        qDebug() << "uncaught exception at line " << line << ":" << importResult.toString();
+    // If the import failed, report it
+    if(!scene)
+    {
+        std::cerr << "Unable to import file: " << fileName << std::endl;
     }
-    //    pyContext.call("MeshImporter.processFile", fileArgs);
+    else {
+        for (int i = 0; i < scene->mNumMeshes; i++) {
+            aiMesh* mesh = scene->mMeshes[i];
+            PrimitiveParts parts;
 
+            // add vertices
+            for (int j = 0; j < mesh->mNumVertices; j++) {
+                aiVector3D vertex = mesh->mVertices[j];
+                Point3 v(vertex.x, vertex.y, vertex.z);
+                parts.points.append(v);
+            }
 
-    /*
-    try {
-        object processFileFunc = _pyMainModule.attr("MeshImporter").attr("processFile");
-        processFileFunc(shared_from_this(), fileName);
-    } catch (boost::python::error_already_set const &) {
-        QString perror = parse_python_exception();
-        std::cerr << "Error in Python: " << perror.toStdString() << std::endl;
+            // add faces
+            for (int j = 0; j < mesh->mNumFaces; j++) {
+                aiFace face = mesh->mFaces[j];
+                QList<int> indices;
+                for (int k = 0; k < face.mNumIndices; k++)
+                    indices.append(face.mIndices[k]);
+                parts.faces.append(indices);
+            }
+
+            Mesh* m = Mesh::buildByIndex(parts);
+            this->addAsset("mesh", m);
+        }
     }
-    */
 }
 
 QStringList Scene::materialTypes()
@@ -202,6 +208,7 @@ Material* Scene::buildMaterial(QString matType) {
     return new ScriptMaterial(inputs);
 }
 
+#if 0
 QScriptValue Scene::processFile(QScriptEngine &engine, QString filePath)
 {
     //QString meshImporterPath = ":/qs/mesh_importer.qs";
@@ -221,6 +228,7 @@ QScriptValue Scene::processFile(QScriptEngine &engine, QString filePath)
     }
     return result;
 }
+#endif
 
 bool Scene::hasMeshSelected()
 {
@@ -228,6 +236,23 @@ bool Scene::hasMeshSelected()
         Mesh* mesh = this->mesh(meshName);
         if (mesh->isSelected())
             return true;
+    }
+    return false;
+}
+
+bool Scene::hasVertexSelected()
+{
+    foreach(QString meshName, meshes()) {
+        Mesh* mesh = this->mesh(meshName);
+        if (mesh->isSelected()) {
+            QHashIterator<int,Vertex*> vertices = mesh->vertices();
+            while (vertices.hasNext()) {
+                vertices.next();
+                Vertex* vertex = vertices.value();
+                if (vertex->isSelected())
+                    return true;
+            }
+        }
     }
     return false;
 }
@@ -241,7 +266,7 @@ Scene::Scene()
 
     createPythonBindings();
 
-    initScriptEngine();
+    //initScriptEngine();
 
     //evalPythonFile(":/plugins/meshImporter.py");
     //evalPythonFile(":/plugins/objImporter.py");
@@ -254,9 +279,12 @@ Scene::Scene()
     //std::cout << result.toString().toStdString() << std::endl;
 
     _tools << new TranslateTransformable();
+    _tools << new ScaleTransformable();
     _tools << new SplitPolygon();
+    _tools << new VertexNormalizer();
 }
 
+#if 0
 void Scene::initScriptEngine()
 {
     QScriptValue global = _engine.globalObject();
@@ -333,6 +361,7 @@ void Scene::initScriptEngine()
 
     processFile(_engine, ":/qs/material_interface.qs");
 }
+#endif
 
 QString Scene::addAsset(QString name, Bindable* asset)
 {

@@ -10,8 +10,9 @@ QMAKE_CXXFLAGS += $$system(python-config --cflags)
 QMAKE_LIBS += $$system(python-config --libs)
 QT += opengl script
 LIBS += -lGLEW -lGLU
-#LIBS += -laqsis_core
+LIBS += -laqsis_core
 LIBS += -lboost_python
+LIBS += -lassimp
 #LIBS += -lCGAL
 #LIBS += -lCGAL_Core
 #LIBS += -lCGAL_PDB
@@ -47,7 +48,8 @@ HEADERS += src/camera.h \
     src/light.h \
     src/transformable.h \
     src/bindable.h \
-    src/menu_tools.h
+    src/menu_tools.h \
+    src/vertex_tools.h
 FORMS += src/sunshine.ui \
     src/renderwidget.ui \
     src/shader_tree_window.ui \
@@ -84,13 +86,9 @@ SOURCES += src/camera.cpp \
     src/bindable.cpp \
     src/cursor_tools/point_tool.cpp \
     src/cursor_tools/translate_tool.cpp \
-    src/work_tools/split_polygon.cpp
+    src/work_tools/split_polygon.cpp \
+    src/vertex_tools.cpp
 RESOURCES += src/plugins.qrc \
     src/icons.qrc \
     src/textures.qrc \
     src/glsl.qrc
-
-
-
-
-

@@ -5,28 +5,11 @@
 #include <QStandardItemModel>
 #include "attribute_editor.h"
 
-/*
-class Material : public Bindable
+struct AqsisMaterialInfo
 {
-    Q_OBJECT
-public:
-    // maybe move to a factory class later
-    static QList<QString> materialTypes();
-    static Material* buildByType(QString type);
-
-    //virtual MaterialAttributesP attributes() { return _attributes; }
-    virtual QList<Attribute> glslFragmentConstants();// { return constantAttributes; }
-    //Bindable* vertexAttributes() { return _vertexAttributes; }
-    virtual QString glslFragmentCode() = 0;
-    int assetType() { return AssetType::MATERIAL_ASSET; }
-
-protected:
-    //Bindable* constantAttributes;
-    //Bindable* _vertexAttributes;
+    QString path;
+    QStringList atts;
 };
-*/
-
-
 
 class Material : public Bindable
 {
@@ -34,11 +17,26 @@ class Material : public Bindable
 public:
     //static void registerMaterial(QString type);
 //    static void registerNode(QString type);
+    static void registerAqsisShader(QString path);
+    static QStringList materialTypes() { return _materialTypes; }
     static Material* buildByType(QString type);
     int assetType() { return AssetType::MATERIAL_ASSET; }
     QString glslFragmentCode();
 protected:
+    static QStringList _materialTypes;
+    static QHash<QString,AqsisMaterialInfo> _aqsisMaterials;
     QStringList _inputs;
+};
+
+class AqsisMaterial : public Material
+{
+    Q_OBJECT
+public:
+    AqsisMaterial(AqsisMaterialInfo info);
+    QString glslFragmentCode() { return "<not implemented>"; }
+    QString path() { return _info.path; }
+private:
+    AqsisMaterialInfo _info;
 };
 
 class ScriptMaterial : public Material

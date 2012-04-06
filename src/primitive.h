@@ -2,8 +2,8 @@
 #define PRIMITIVE_H
 
 #include "util.h"
-#include <QScriptEngine>
-#include <QScriptContext>
+//#include <QScriptEngine>
+//#include <QScriptContext>
 
 class PrimitiveParts {
 public:
@@ -11,11 +11,11 @@ public:
     QVector<QList<int> > faces;
 };
 typedef QSharedPointer<PrimitiveParts> PrimitivePartsPointer;
-Q_DECLARE_METATYPE(PrimitivePartsPointer);
+//Q_DECLARE_METATYPE(PrimitivePartsPointer);
 
-QScriptValue constructPrimitiveParts(QScriptContext *context, QScriptEngine *engine);
-QScriptValue PrimitiveParts_setVertices(QScriptContext *context, QScriptEngine *);
-QScriptValue PrimitiveParts_setFaces(QScriptContext *context, QScriptEngine *engine);
+//QScriptValue constructPrimitiveParts(QScriptContext *context, QScriptEngine *engine);
+//QScriptValue PrimitiveParts_setVertices(QScriptContext *context, QScriptEngine *);
+//QScriptValue PrimitiveParts_setFaces(QScriptContext *context, QScriptEngine *engine);
 /*
  {
      XmlStreamReaderPointer reader = qscriptvalue_cast<XmlStreamReaderPointer>(context->thisObject());
@@ -46,7 +46,8 @@ static QScriptValue getSetPrimitiveParts(QScriptContext *context, QScriptEngine 
 
 namespace primitive {
     PrimitiveParts cubePrimitive(float width, float height, float depth);
-    PrimitiveParts planePrimitive(float width, float depth);
+    PrimitiveParts planePrimitive(float width, float depth, int uSegments, int vSegments);
+    PrimitiveParts spherePrimitive(float radius);
 };
 
 

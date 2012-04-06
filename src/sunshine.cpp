@@ -6,6 +6,7 @@
 #include <aqsis/ri/ri.h>
 #include "settings.h"
 #include <QFileDialog>
+#include <QCursor>
 #include "panelgl.h"
 #include "sunshineui.h"
 #include "object_tools.h"
@@ -46,11 +47,10 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     //QObject::connect(&(ui->renderButton), SIGNAL(valueChanged(int)),
      //                     &b, SLOT(setValue(int)));
 
-    connect(ui->renderAction, SIGNAL(triggered()),this,SLOT(on_renderRequest()));
-    connect(ui->renderSettingsAction, SIGNAL(triggered()),this,SLOT(on_renderSettingsButton_clicked()));
+    connect(ui->renderAction, SIGNAL(triggered()),this,SLOT(renderRequest()));
+    connect(ui->renderSettingsAction, SIGNAL(triggered()),this,SLOT(renderSettingsButton_clicked()));
 
-
-
+    connect(ui->growAction, SIGNAL(triggered()),this, SLOT(growRequest()));
     connect(ui->shaderGraphAction, SIGNAL(triggered()),this,SLOT(showShaderGraph()));
 
     _renderWidget = 0;
@@ -88,8 +88,8 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
     }
     firstButton->setChecked(TRUE);
     connect(_cursorButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),
-            this, SLOT(on_cursorToolChanged(QAbstractButton*)));
-    on_cursorToolChanged(firstButton);
+            this, SLOT(cursorToolChanged(QAbstractButton*)));
+    cursorToolChanged(firstButton);
 
     _propertyEditorModel = new AttributeEditor();
     ui->propertyTable->setModel(_propertyEditorModel);
@@ -97,13 +97,29 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
 
     _renderSettings = new RenderSettings();
 
+    // parse default aqsis shaders
+    QString shaderPath(getenv("AQSIS_SHADER_PATH"));
+    if (shaderPath == "")
+        shaderPath = "/usr/local/share/aqsis/shaders/surface";
+    QStringList sPaths = shaderPath.split(":");
+    foreach(QString path, sPaths) {
+        std::cout << "shader dir: " << path << std::endl;
+        QStringList entries = QDir(path).entryList();
+        foreach(QString entry, entries) {
+            Material::registerAqsisShader(path + "/" + entry);
+        }
+    }
 
     ui->createMenu->addAction("Point Light", this, SLOT(createPointLight()));
     ui->createMenu->addAction("Spot Light", this, SLOT(createSpotLight()));
     ui->createMenu->addSeparator();
     ui->createMenu->addAction("Cube", this, SLOT(createCube()));
     ui->createMenu->addAction("Plane", this, SLOT(createPlane()));
-
+    ui->createMenu->addAction("Sphere", this, SLOT(createSphere()));
+    ui->createMenu->addSeparator();
+    foreach(QString materialName, Material::materialTypes()) {
+        ui->createMenu->addAction(materialName, this, SLOT(createMaterial()));
+    }
 }
 
 Sunshine::~Sunshine()
@@ -187,6 +203,7 @@ void Sunshine::setupDefaultCameras()
 
 void Sunshine::setupDefaultMeshes()
 {
+    /*
     Mesh* first = Mesh::buildByIndex(primitive::cubePrimitive(1.0f, 1.0f, 1.0f));
     first->setCenter(Point3(0,2,0));
     _scene->addAsset("cube1", first);
@@ -196,6 +213,9 @@ void Sunshine::setupDefaultMeshes()
     _scene->addAsset("cube2", second);
 
     Mesh* plane = Mesh::buildByIndex(primitive::planePrimitive(12,24));
+    _scene->addAsset("plane", plane);
+    */
+    Mesh* plane = Mesh::buildByIndex(primitive::planePrimitive(12,12,2,3));
     _scene->addAsset("plane", plane);
 }
 
@@ -220,142 +240,29 @@ void Sunshine::setupDefaultLights()
     //spot->orient(Point3(8,4,-8), Point3(0,0,0), Vector3(0,1,0));
 }
 
-void Sunshine::on_renderRequest()
+void Sunshine::renderRequest()
 {
-
-    RenderUtil::renderGL(_panels[0]);
-
-
-    /*
     if (_renderWidget == NULL)
         _renderWidget = new RenderWidget();
 
-    char* fileName = "/tmp/test.tif";
-    _renderWidget->show();
+    //_renderWidget->show();
 
-    std::cout << (*_renderSettingsWidget)["xres"].toInt() << std::endl;
-    //std::cout << _renderSettingsWidget->getValue("xres").toString().toStdString() << std::endl;
+    //RenderUtil::renderGL(_panels[0]);
+    const int XRES = SunshineUi::renderSettings()->attributeByName("Image Width")->property("value").value<int>();
+    const int YRES = SunshineUi::renderSettings()->attributeByName("Image Height")->property("value").value<int>();
+    //const int XRES = 637;
+    //const int YRES = 408;
 
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    RenderUtil::renderAqsis(_scene, XRES, YRES);
+    QApplication::restoreOverrideCursor();
 
-    Camera* activeCamera = _scene->fetchCamera("persp");
-
-    RiBegin(RI_NULL);
-
-    // Output image
-    RiDisplay(fileName, "file", "rgb", RI_NULL);
-    RiFormat((*_renderSettingsWidget)["xres"].toInt(),
-             (*_renderSettingsWidget)["yres"].toInt(),
-             1);
-
-
-    //Camera* activeCamera = Register::cameras()->next();
-
-    //while (meshes.hasNext()) {
-    //    meshes.next();
-
-    // Camera type & position
-    float fov = activeCamera->fov();
-    //float fov = 45;
-    RiProjection("perspective", "fov", &fov, RI_NULL);
-
-    // flip coordinate system across YZ
-    RtMatrix flipYZ;
-    activeCamera->flipYZ(flipYZ);
-    RiTransform(flipYZ);
-
-    // setup directional light
-    {
-        Point3 eye = activeCamera->eye();
-        Point3 shineAt = eye + -activeCamera->lookDir().normalized();
-        RtPoint from = {eye.x(),eye.y(),eye.z()};
-        RtPoint to = {shineAt.x(),shineAt.y(),shineAt.z()};
-        RiLightSource("distantlight", "from", from, "to", to, RI_NULL);
-    }
-    //    RiLightSource("pointlight", "intensity", &intensity, RI_NULL);
-
-    RotatePair pair = activeCamera->aim(activeCamera->lookDir());
-    RiRotate(pair.rot1.x(), pair.rot1.y(), pair.rot1.z(), pair.rot1.w());
-    RiRotate(pair.rot2.x(), pair.rot2.y(), pair.rot2.z(), pair.rot2.w());
-
-    RiTranslate(-activeCamera->eye().x(),
-                -activeCamera->eye().y(),
-                -activeCamera->eye().z());
-
-    RiWorldBegin();
-    {
-        // setup basic material
-        float intensity = 1.0f;
-        float Ks = 1.0f;
-        RiSurface("plastic", "Ks", &Ks, RI_NULL);
-
-        // add meshes to scene
-        QHashIterator<int,Mesh*> meshes = _scene->meshes();
-        while (meshes.hasNext()) {
-            meshes.next();
-            int meshKey = meshes.key();
-            Mesh* mesh = meshes.value();
-            RiTransformBegin(); // object-to-world
-            {
-                const int numTriangles = mesh->numTriangles();
-                QHashIterator<int,Face*> i = mesh->faces();
-                while (i.hasNext()) { // render each face
-                    i.next();
-                    Face* face = i.value();
-                    QListIterator<Triangle> j = face->buildTriangles();
-                    while (j.hasNext()) { // render each triangle
-                        Triangle triangle = j.next();
-                        RtPoint points[3] = { { triangle.a->vert()->pos().x(),
-                                                triangle.a->vert()->pos().y(),
-                                                triangle.a->vert()->pos().z() },
-                                              { triangle.b->vert()->pos().x(),
-                                                triangle.b->vert()->pos().y(),
-                                                triangle.b->vert()->pos().z() },
-                                              { triangle.c->vert()->pos().x(),
-                                                triangle.c->vert()->pos().y(),
-                                                triangle.c->vert()->pos().z() } };
-                        RtPoint normals[3] = { { triangle.a->normal().x(),
-                                                 triangle.a->normal().y(),
-                                                 triangle.a->normal().z() },
-                                               { triangle.b->normal().x(),
-                                                 triangle.b->normal().y(),
-                                                 triangle.b->normal().z() },
-                                               { triangle.c->normal().x(),
-                                                 triangle.c->normal().y(),
-                                                 triangle.c->normal().z() } };
-                        RiPolygon(3, "P", (RtPointer)points, "N", (RtPointer)normals, RI_NULL );
-                    }
-                }
-
-            }
-            RiTransformEnd();
-        }
-
-        // Geometry
-        for (int j = 0; j < 20; ++j) {
-            const int ringNum = 5;
-            for(int i = 0; i < ringNum; ++i) {
-                RiTransformBegin();
-                RiRotate(i*360/ringNum, 0, 0, 1);
-                RiTranslate(1, 0, 0);
-                RiSphere(0.2f, -0.2f, 0.2f, 360, RI_NULL);
-                RiTransformEnd();
-            }
-            RiRotate(10, 0, 0, 1);
-            RiScale(0.8f, 0.8f, 0.8f);
-            RiTranslate(0, 0, 0.3);
-        }
-    }
-    RiWorldEnd();
-
-    RiEnd();
-
-   _renderWidget->open(QString(fileName));
-   */
+    //_renderWidget->open(QString(fileName));
 }
 
 
 
-void Sunshine::on_renderSettingsButton_clicked()
+void Sunshine::renderSettingsButton_clicked()
 {
     _propertyEditorModel->update(_renderSettings);
 
@@ -371,7 +278,7 @@ void Sunshine::on_importAction_triggered()
     foreach (QString ext, extensions) {
         extFilter += QString("*") + ext + " ";
     }
-    //std::cout << extFilter << std::endl;
+    std::cout << extFilter << std::endl;
 
     QString importDir = QDir::homePath();
     QString modelDir = importDir + "/Models";
@@ -386,24 +293,29 @@ void Sunshine::on_importAction_triggered()
         _scene->importFile(fileName);
 }
 
-void Sunshine::on_layoutModeButton_released()
+void Sunshine::layoutModeButton_released()
 {
     updateMode();
 }
 
-void Sunshine::on_modelModeButton_released()
+void Sunshine::modelModeButton_released()
 {
     updateMode();
 }
 
-void Sunshine::on_lineSelectButton_released()
+void Sunshine::lineSelectButton_released()
 {
 
 }
 
-void Sunshine::on_boxSelectButton_clicked()
+void Sunshine::boxSelectButton_clicked()
 {
 
+}
+
+void Sunshine::growRequest()
+{
+    std::cout << "try to expand selection of faces, edges, or vertices" << std::endl;
 }
 
 void Sunshine::updateMode()
@@ -446,12 +358,12 @@ namespace SunshineUi {
     void expandMaterialIndex(QModelIndex index, bool expand) { activeMainWindow->expandMaterialIndex(index, expand); }
 }
 
-void Sunshine::on_selectOccludedButton_clicked()
+void Sunshine::selectOccludedButton_clicked()
 {
     this->updatePanels();
 }
 
-void Sunshine::on_cursorToolChanged(QAbstractButton* button)
+void Sunshine::cursorToolChanged(QAbstractButton* button)
 {
     // clear out the frame/layout
     QLayoutItem* child;
@@ -582,8 +494,23 @@ void Sunshine::createCube()
 
 void Sunshine::createPlane()
 {
-    Mesh* mesh = Mesh::buildByIndex(primitive::planePrimitive(8,8));
+    Mesh* mesh = Mesh::buildByIndex(primitive::planePrimitive(8,8,1,1));
     _scene->addAsset("plane",mesh);
+}
+
+void Sunshine::createSphere()
+{
+    Mesh* mesh = Mesh::buildByIndex(primitive::spherePrimitive(1.0));
+    _scene->addAsset("sphere", mesh);
+}
+
+void Sunshine::createMaterial()
+{
+    QAction* action = qobject_cast<QAction*>(sender());
+    if (action != 0) {
+        Material* material = Material::buildByType(action->text());
+        _scene->addAsset(action->text(), material);
+    }
 }
 
 void Sunshine::showShaderGraph()
