@@ -3,6 +3,7 @@
 #include <QLabel>
 #include <aqsis/aqsis.h>
 #include <QDir>
+#include <QElapsedTimer>
 
 class Filter
 {
@@ -39,6 +40,21 @@ class RenderContext
 private:
     GLuint textureUnit;
 };
+
+QString formattedTime(qint64 milliseconds)
+{
+    int seconds = milliseconds / 1000;
+    int hours = seconds / 3600;
+    seconds -= hours * 3600;
+    int minutes = seconds / 60;
+    seconds -= minutes * 60;
+
+    QString hoursStr = QString("%1").arg(hours, 2, 10, QChar('0')).toUpper();
+    QString minsStr = QString("%1").arg(minutes, 2, 10, QChar('0')).toUpper();
+    QString secondsStr = QString("%1").arg(seconds, 2, 10, QChar('0')).toUpper();
+
+    return QString("%1h:%2m:%3s").arg(hoursStr).arg(minsStr).arg(secondsStr);
+}
 
 void setShaderUniforms(QGLShaderProgram* shader, Bindable* obj, QList<Attribute> attributes);
 
@@ -106,6 +122,7 @@ namespace RenderUtil {
         float fov = camera->fov();
         //float fov = 45;
 
+        RiClipping(1.0f, 1000.0f); // eventually query empirically
         RiProjection("perspective", "fov", &fov, RI_NULL);
 
         // flip coordinate system across YZ
@@ -166,9 +183,66 @@ namespace RenderUtil {
                     QVector<RtToken> tokens;
                     QVector<RtPointer> params;
 
+                    QVector<std::string> stringThing(1000);
+                    QVector<QVector<float> > floatAtts(1000);
+                    QVector<QVector<float> > colorAtts(1000);
+
+                    // set default color
+                    {
+                        RtColor c;
+                        c[0] = 1.0f;
+                        c[1] = 1.0f;
+                        c[2] = 1.0f;
+                        RiColor(c);
+                    }
+
                     QList<Attribute> atts = aqsisMat->attributes();
+                    foreach(Attribute attribute, atts) {
+                        if (attribute->property("var").toString().compare("baseColor") == 0) {
+                            QColor color = attribute->property("value").value<QColor>();
+                            RtColor c;
+                            c[0] = color.redF();
+                            c[1] = color.greenF();
+                            c[2] = color.blueF();
+
+                            RiColor(c);
+                            std::cout << "setting color" << std::endl;
+                        }
+                        else if (attribute->type() == "float") {
+                            float f;
+
+                            if (attribute->property("getter").isValid())
+                                f = getBoundValue<float>(aqsisMat, attribute);
+                            else
+                                f = attribute->property("value").value<float>();
+
+                            QVector<float> floatVec;
+                            floatVec.append(f);
+                            floatAtts.append(floatVec);
+                            stringThing.append(attribute->property("var").toString().toStdString());
+
+                            tokens.append((char*)stringThing.last().c_str());
+                            params.append((floatAtts.data() + floatAtts.size() - 1)->data());
+                        }
+                        else if (attribute->type() == "color") {
+                            QColor color = attribute->property("value").value<QColor>();
+                            QVector<float> floatVec;
+                            floatVec << color.redF() << color.greenF() << color.blueF();
+                            floatAtts.append(floatVec);
+                            stringThing.append(attribute->property("var").toString().toStdString());
+
+                            tokens.append((char*)stringThing.last().c_str());
+                            params.append((floatAtts.data() + floatAtts.size() - 1)->data());
+                        }
+                    }
 
                     const int numParams = tokens.size();
+
+                    for (int i = 0; i < numParams; i++)
+                        std::cout << (tokens.data())[i] << " : " << ((float*)(params[i]))[0] << std::endl;
+
+                    //float Ks = 0.5f;
+                    //RiSurface("metal", "Ks", &Ks, RI_NULL);
                     RiSurfaceV(shaderName, numParams, tokens.data(), params.data());
                 }
                 else // default to something
@@ -246,6 +320,10 @@ namespace RenderUtil {
 
     void renderAqsis(Scene* scene, const int XRES, const int YRES)
     {
+        QString report = "Report...\n\n";
+        QList<QPair<QString,qint64> > timedTasks;
+        QElapsedTimer timer;
+        timer.start();
 
         QHash<QString,QString> envPaths;
 
@@ -271,8 +349,12 @@ namespace RenderUtil {
         // render shadow passes
         foreach(QString lightName, scene->lights())
         {
+            qint64 lightBeginTime = timer.elapsed();
             Light* light = scene->light(lightName);
             light->prepass(scene);
+            qint64 lightEndTime = timer.elapsed();
+            QString taskName = QString("light prepass '%1'").arg(lightName);
+            timedTasks.append(QPair<QString,qint64>(taskName, lightEndTime-lightBeginTime));
         }
 
         RiBegin(RI_NULL);
@@ -281,21 +363,27 @@ namespace RenderUtil {
         RiOption("shadow", "bias", (RtPointer)&shadowBias, RI_NULL);
 
         // Output image
-        RiDisplay(fileName, "framebuffer", "rgba", RI_NULL);
+        RiDisplay(fileName, "file", "rgba", RI_NULL);
         RiFormat(XRES, YRES, 1);
 
         renderScene(scene, activeCamera);
 
         RiEnd();
 
-        /*
+        qint64 totalElapsed = timer.elapsed();
+        report += QString("Total Render Time: ") + formattedTime(totalElapsed) + "\n\n";
+        for (int i = 0; i < timedTasks.count(); i++) {
+            QPair<QString,qint64> timedTask = timedTasks.at(i);
+            report += timedTask.first + " completed in " + formattedTime(timedTask.second) + "\n";
+        }
+
         QLabel* label = new QLabel();
         label->setStyleSheet("QLabel { background-color : #444444; }");
         label->setPixmap(QPixmap::fromImage(QImage(fileName)));
         label->show();
+        label->setToolTip(report);
 
         label->move(200, 400);
-        */
 
        //_renderWidget->open(QString(fileName));
     }

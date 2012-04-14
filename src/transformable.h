@@ -23,6 +23,7 @@ public:
     void               updateLook();
     void               orient(Point3 eye, Point3 reference, Vector3 up);
     float              distance() { return _distance; }
+    void               setDistance(float d) { _distance = d; }
 
     Q_INVOKABLE QVector3D           center() { return _center; }
     Q_INVOKABLE void               setCenter(QVector3D c) { _center = c; }

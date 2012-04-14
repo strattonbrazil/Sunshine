@@ -72,6 +72,7 @@ private slots:
     void                       on_materialSelection_changed(const QModelIndex &, const QModelIndex &);
     void                       on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &);
     void                       growRequest();
+    void                       showSceneHierarchyContextMenu(const QPoint &p);
 
     void                       showShaderGraph();
     void                       shaderTreeContextMenu(const QPoint &p);

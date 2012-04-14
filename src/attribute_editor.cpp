@@ -2,9 +2,11 @@
 
 #include <QStyledItemDelegate>
 #include <QLineEdit>
+#include <QCheckBox>
 
 // editor should check if its a C++-managed attribute and get/set it accordingly
 //
+
 
 AttributeEditor::AttributeEditor(QWidget *parent) :
     QStandardItemModel(parent), _instance(0)
@@ -98,8 +100,12 @@ bool AttributeEditor::setData(const QModelIndex &index, const QVariant &inValue,
     // perform any necessary clamping or adjustments
     QVariant outValue = inValue;
     if (attribute->property("type").toString() == "float") {
-        float val = std::max(attribute->property("min").toFloat(), inValue.toFloat());
-        outValue = QVariant(std::min(attribute->property("max").toFloat(), val));
+        float val = inValue.toFloat();
+        if (attribute->property("min").isValid())
+            val = std::max(attribute->property("min").toFloat(), inValue.toFloat());
+        if (attribute->property("max").isValid())
+            val = std::min(attribute->property("max").toFloat(), val);
+        outValue = QVariant(val);
     }
     else if (attribute->property("type").toString() == "int") {
         int val = std::max(attribute->property("min").toInt(), inValue.toInt());
@@ -145,6 +151,9 @@ QWidget* AttributeItemDelegate::createEditor(QWidget *parent, const QStyleOption
             return QStyledItemDelegate::createEditor(parent, option, index);
         else
             return 0;
+    }
+    else if (attribute->type() == "bool") {
+        return new QCheckBox(parent);
     }
     else {
         return QStyledItemDelegate::createEditor(parent, option, index);
@@ -271,6 +280,23 @@ void AttributeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem 
         QRect colorRect = option.rect.adjusted(2,2,-2,-2);
         painter->fillRect(colorRect, color);
     }
+    else if (attribute->type() == "bool") {
+        QStyleOptionViewItemV4 options = option;
+        initStyleOption(&options, index);
+
+        bool checked = index.model()->data(index, Qt::DisplayRole).toBool();
+        QStyleOptionButton check_box_style_option;
+        check_box_style_option.state |= QStyle::State_Enabled;
+        check_box_style_option.rect = option.rect;//CheckBoxRect(option);
+        if (checked)
+            check_box_style_option.state |= QStyle::State_On;
+        else
+            check_box_style_option.state |= QStyle::State_Off;
+
+        QStyle *style = QApplication::style();
+        //style->drawControl(QStyle::CE_CheckBox, &options, painter);
+        style->drawControl(QStyle::CE_CheckBox, &check_box_style_option, painter);
+    }
     else if (attribute->type() == "point3") {
         QVector3D p;
         if (attribute->property("getter").isValid())
@@ -341,3 +367,4 @@ void AttributeItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem 
         QStyledItemDelegate::paint(painter, option, index);
     }
 }
+

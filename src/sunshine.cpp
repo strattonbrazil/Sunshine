@@ -106,7 +106,8 @@ Sunshine::Sunshine(QWidget *parent) : QMainWindow(parent), ui(new Ui::Sunshine)
         std::cout << "shader dir: " << path << std::endl;
         QStringList entries = QDir(path).entryList();
         foreach(QString entry, entries) {
-            Material::registerAqsisShader(path + "/" + entry);
+            if (entry.endsWith(".slx"))
+                Material::registerAqsisShader(path + "/" + entry);
         }
     }
 
@@ -167,6 +168,9 @@ void Sunshine::clearScene()
     ui->sceneHierarchyTree->setModel(_scene->hierarchyModel());
     connect(ui->sceneHierarchyTree->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
             this, SLOT(on_sceneHierarchySelection_changed(const QModelIndex &, const QModelIndex &)));
+    connect(ui->sceneHierarchyTree, SIGNAL(customContextMenuRequested(const QPoint&)),
+            this, SLOT(showSceneHierarchyContextMenu(const QPoint&)));
+    ui->sceneHierarchyTree->setContextMenuPolicy(Qt::CustomContextMenu);
 
     //_shaderTreeWindow->setMaterialModel(_scene->shaderTreeModel());
 
@@ -316,6 +320,14 @@ void Sunshine::boxSelectButton_clicked()
 void Sunshine::growRequest()
 {
     std::cout << "try to expand selection of faces, edges, or vertices" << std::endl;
+}
+
+void Sunshine::showSceneHierarchyContextMenu(const QPoint &p)
+{
+    QMenu menu;
+    menu.addAction("Look through");
+    QAction* action = menu.exec(ui->sceneHierarchyTree->mapToGlobal(p));
+
 }
 
 void Sunshine::updateMode()

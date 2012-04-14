@@ -143,9 +143,10 @@ SpotLight::SpotLight()
     QString castShadows("{ 'var' : 'castShadows', 'name' : 'Casts Shadows', 'type' : 'bool', 'value' : true }");
     //QString shadowBias("{ 'var' : 'shadowBias', 'name' : 'Shadow Bias', 'type' : 'float', 'min' : -100.0, 'max' : 100.0, 'value' : 0.1 }");
     //QString spotDir("{ 'var' : 'spotDir', 'name' : 'Spot Direction', 'type' : 'vector3', 'getter' : 'spotDir', 'glslFragmentConstant' : true }");
+    QString shadowResolution("{ 'var' : 'shadowResolution', 'name' : 'Shadow Resolution', 'type' : 'int', 'min' : 32, 'max' : 4096, 'value' : 1024 }");
 
     QStringList atts;
-    atts << color << intensity << coneAngle << castShadows;// << shadowBias;// << spotDir;
+    atts << color << intensity << coneAngle << castShadows << shadowResolution;// << shadowBias;// << spotDir;
 
     addAttributes(atts);
 
@@ -207,8 +208,6 @@ void SpotLight::prepare(Scene* scene)
 
     bool castsShadow = attributeByName("Casts Shadows")->property("value").value<bool>();
 
-    std::cout << "casts shadow: " << castsShadow << std::endl;
-
     if (castsShadow)
     {
         QString shadowPath = QString(getenv("AQSIS_TEXTURE_PATH")).split(":")[0] + "/" + scene->assetName(this) + ".shd";
@@ -221,7 +220,6 @@ void SpotLight::prepare(Scene* scene)
 
 //RiOption("shadow", "bias", (RtPointer)&shadowBias, RI_NULL);
 
-        std::cout << "shadow path: " << cShadowPath << std::endl;
   //      std::cout << "shadow bias: " << shadowBias << std::endl;
         RiDeclare("shadowname", "uniform string");
         RiLightSource("shadowspot", "from", from, "to", to, "intensity", &intensity, "coneangle", &coneAngle, "lightcolor", &c, "shadowname", shadowPaths, RI_NULL);
@@ -252,11 +250,19 @@ void SpotLight::prepass(Scene* scene)
 
         std::cout << "writing shadow map: " << picFile << std::endl;
 
+        float shadowResolution = attributeByName("Shadow Resolution")->property("value").value<int>();
+
         RiBegin(RI_NULL);
         RiDisplay(picName, "zfile", "z", RI_NULL);
-        RiFormat(512, 512, 1);
+        RiFormat(shadowResolution, shadowResolution, 1);
+        RiPixelSamples(1, 1);
+        RtFloat jitterVal = 0;
+        const char* midpoint = "midpoint";
+        RiHider("hidden", "jitter", &jitterVal, "depthfilter", &midpoint, RI_NULL);
+        RiSurface("null", RI_NULL);
 
         float coneAngle = attributeByName("Cone Angle")->property("value").value<float>();
+
 
         Camera camera;
         camera.setCenter(this->center());

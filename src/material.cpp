@@ -6,6 +6,16 @@
 QHash<QString,AqsisMaterialInfo> Material::_aqsisMaterials;
 QStringList Material::_materialTypes;
 
+const void REPLACE_LAST_TOKEN(QStringList &atts, QString token, QString replacement)
+{
+    // last param had no default value
+    if (atts.size() > 0 && atts.last().contains(token)) {
+        QString withoutToken = atts.last().replace(token, replacement);
+        atts.removeLast();
+        atts.append(withoutToken);
+    }
+}
+
 void Material::registerAqsisShader(QString path)
 {
     QStringList args;
@@ -20,6 +30,7 @@ void Material::registerAqsisShader(QString path)
     QStringList lines = output.split("\n");
 
     QRegExp parameterP("\"([a-zA-Z]+)\" \"([a-zA-Z ]+)\"");
+    QRegExp defaultFloatP("Default value: ([-+]?[0-9]*\.?[0-9]+)");
 
     QHash<QString,QString> typeToJson;
     typeToJson["parameter uniform float"] = "float";
@@ -27,23 +38,41 @@ void Material::registerAqsisShader(QString path)
 
     bool validSurface = false;
     QStringList atts;
+    QString paramName;
+    QString paramType;
     foreach(QString line, lines) {
+        //std::cout << line << std::endl;
+        if (line.contains("Cs"))
+            std::cout << line << std::endl;
         if (line.startsWith("surface"))
             validSurface = true;
         if (parameterP.indexIn(line) != -1) {
-            QString paramName = parameterP.cap(1);
-            QString paramType = parameterP.cap(2);
+            //REPLACE_LAST_TOKEN(atts, "DEFAULT_VALUE_TOKEN", "");
+
+            paramName = parameterP.cap(1);
+            paramType = parameterP.cap(2);
 
             if (typeToJson.contains(paramType)) {
-                QString att = QString("{ 'var' : '%1', 'name' : '%1', 'type' : '%2' }").arg(paramName, typeToJson[paramType]);
+                QString att = QString("{ 'var' : '%1', 'name' : '%1', 'type' : '%2', DEFAULT_VALUE_TOKEN}").arg(paramName, typeToJson[paramType]);
                 atts << att;
             }
-            else
+            else {
                 std::cerr << "Unsupported type: " << paramType << " on " << paramName << std::endl;
+            }
+        }
+        else if (paramType.compare("parameter uniform float") == 0 && defaultFloatP.indexIn(line) != -1) {
+            REPLACE_LAST_TOKEN(atts, "DEFAULT_VALUE_TOKEN", QString("'value' : %1").arg(defaultFloatP.cap(1).toFloat()));
         }
 
         //tokens = line.split("\n")
     }
+    REPLACE_LAST_TOKEN(atts, "DEFAULT_VALUE_TOKEN", "");
+
+    //for (int i = 0; i < atts.count(); i++)
+     //   std::cout << atts.at(i) << std::endl;
+
+    QString att = QString("{ 'var' : 'baseColor', 'name' : 'Base Color', 'type' : 'color' }");
+    atts.prepend(att);
 
     if (validSurface) {
         AqsisMaterialInfo info;

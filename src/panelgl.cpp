@@ -1415,20 +1415,28 @@ void PanelGL::frameSelection()
         dstBounds = selectedBounds;
 
     if (dstBounds.isValid()) {
+        // calculate new distance
+        float radius = dstBounds.maxRadius();
+        float dstDistance = radius / tan(_camera->fov() / 180.0f);
+        float startDistance = _camera->distance();
+        float distanceDiff = dstDistance - startDistance;
+
         const int ANIM_LENGTH = 100; // in milliseconds
         Point3 startEye = _camera->eye();
-        Point3 dstEye = dstBounds.midpoint() + -1*_camera->lookDir();
+
+        Point3 dstEye = dstBounds.midpoint() + -1*_camera->lookDir().normalized()*dstDistance;
         Vector3 offset = dstEye - startEye;
         QTime timer;
         timer.start();
         while (timer.elapsed() < ANIM_LENGTH) {
             float t = timer.elapsed() / (float)ANIM_LENGTH;
-            //std::cout << startEye + offset*t << std::endl;
             _camera->setCenter(startEye + offset*t);
+            _camera->setDistance(startDistance + distanceDiff*t);
             //std::cout << t << std::endl;
             repaint();
         }
         _camera->setCenter(dstEye);
+        _camera->setDistance(dstDistance);
     }
 }
 

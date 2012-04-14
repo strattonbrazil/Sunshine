@@ -148,6 +148,11 @@ void Box3D::includeBox(Box3D b)
 
 }
 
+float Box3D::maxRadius()
+{
+    return (this->max() - midpoint()).length();
+}
+
 #include "light.h"
 
 

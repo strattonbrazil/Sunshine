@@ -59,6 +59,7 @@ public:
     Point3 midpoint() { return Point3(0.5 * (_min.x() + _max.x()),
                                       0.5 * (_min.y() + _max.y()),
                                       0.5 * (_min.z() + _max.z())); }
+    float maxRadius();
 private:
     Point3 _min;
     Point3 _max;
