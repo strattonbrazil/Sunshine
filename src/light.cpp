@@ -1,6 +1,6 @@
 #include "light.h"
-#include <aqsis/aqsis.h>
-#include <aqsis/ri/ri.h>
+//#include <aqsis/aqsis.h>
+//#include <aqsis/ri/ri.h>
 #include <sunshine.h>
 #include "render_util.h"
 
@@ -189,6 +189,7 @@ QString SpotLight::glslFragmentEnd()
 
 void SpotLight::prepare(Scene* scene)
 {
+#if 0
     /*
     Attribute castShadows = attributeByName("Casts Shadows");
     if (castShadows && castShadows->property("value").isValid()) {
@@ -229,12 +230,12 @@ void SpotLight::prepare(Scene* scene)
 
     //LightSource "shadowspot" 1 "intensity" 50 "from" [1 5 0] "to" [0 0 0]
     //                              "shadowname" ["spot1.tx"]
-
+#endif
 }
 
 void SpotLight::prepass(Scene* scene)
 {
-
+#if 0
     // render shadow map
     bool castsShadow = attributeByName("Casts Shadows")->property("value").value<bool>();
     if (castsShadow) {
@@ -281,6 +282,7 @@ void SpotLight::prepass(Scene* scene)
         std::cout << "converting " << picName << " to " << texName << std::endl;
         //
     }
+#endif
 }
 
 AmbientLight::AmbientLight()
@@ -311,6 +313,7 @@ QString AmbientLight::glslFragmentEnd()
 
 void AmbientLight::prepare(Scene* scene)
 {
+#if 0
     RtFloat intensity = attributeByName("Intensity")->property("value").value<float>();
     QColor color = attributeByName("Color")->property("value").value<QColor>();
             //getBoundValue<QVector3D>(this, attributeByName("Color"));
@@ -319,6 +322,7 @@ void AmbientLight::prepare(Scene* scene)
     std::cout << color.redF() << " " << color.greenF() << " " << color.blueF() << std::endl;
 
     RiLightSource("ambientlight", "intensity", &intensity, "lightcolor", &c, RI_NULL);
+#endif
 }
 
 void AmbientLight::prepass(Scene* scene)

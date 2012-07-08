@@ -2,8 +2,6 @@
 #include "ui_sunshine.h"
 #include "scene.h"
 #include "primitive.h"
-#include <aqsis/aqsis.h>
-#include <aqsis/ri/ri.h>
 #include "settings.h"
 #include <QFileDialog>
 #include <QCursor>
@@ -19,13 +17,6 @@
 void say_hello(const char* name) {
     std::cout << "Hello " <<  name << "!\n";
 }
-
-#include <boost/python.hpp>
-#include <boost/python/module.hpp>
-#include <boost/python/def.hpp>
-#include <boost/python/class.hpp>
-
-using namespace boost::python;
 
 Sunshine* activeMainWindow = 0;
 

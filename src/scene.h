@@ -10,14 +10,6 @@
 #include <QScriptValue>
 #include <QScriptEngine>
 
-/*
-#include <boost/python.hpp>
-#include <boost/python/module.hpp>
-#include <boost/python/def.hpp>
-#include <boost/python/class.hpp>
-#include <boost/enable_shared_from_this.hpp>
-*/
-
 #include "exceptions.h"
 #include "worktool.h"
 #include "contextmenu.h"

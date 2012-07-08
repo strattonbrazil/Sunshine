@@ -119,20 +119,6 @@ QMatrix4x4 Camera::getProjMatrix(Camera* camera, int width, int height, float of
 }
 */
 
-void Camera::lookTransform(RtMatrix &t)
-{
-    /*
-    QMatrix4x4 m = getViewMatrix(Camera*(this), -1, -1);
-    for (int i = 0; i < 4; i++) {
-        QVector4D row = m.row(i);
-        t[0][i] = row.x();
-        t[1][i] = row.y();
-        t[2][i] = row.z();
-        t[3][i] = row.w();
-    }
-    */
-}
-
 #define PI 3.14159265359
 RotatePair Camera::aim(Vector3 dir)
 { // based on VTK aim
@@ -177,6 +163,7 @@ RotatePair Camera::aim(Vector3 dir)
     return pair;
 }
 
+/*
 void Camera::flipYZ(RtMatrix m)
 {
     for (int i = 0; i < 4; i++) {
@@ -191,6 +178,7 @@ void Camera::flipYZ(RtMatrix m)
         }
     }
 }
+*/
 
 void Camera::mousePressed(Transformable* camera, CameraScratch &scratch, QMouseEvent *event)
 {
