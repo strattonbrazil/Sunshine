@@ -1,15 +1,14 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-//#include <CGAL/config.h>
-//#include <CGAL/Simple_cartesian.h>
-//#include <CGAL/Polyhedron_3.h>
 #include <QHash>
 #include <QString>
 #include <boost/shared_ptr.hpp>
-//#include <CGAL/basic.h>
 #include "primitive.h"
 #include "material.h"
+
+#include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Mesh/Traits.hh>
 
 class Vertex;
 class Edge;
@@ -20,6 +19,21 @@ class Scene;
 #include "scene.h"
 
 //QScriptValue Mesh_buildByIndex(QScriptContext *context, QScriptEngine *engine);
+
+struct MyTraits : public OpenMesh::DefaultTraits
+{
+  // store barycenter of neighbors in this member
+  VertexTraits
+  {
+  private:
+    Point  cog_;
+  public:
+    VertexT() : cog_( Point(0.0f, 0.0f, 0.0f ) ) { }
+    const Point& cog() const { return cog_; }
+    void set_cog(const Point& _p) { cog_ = _p; }
+  };
+};
+typedef OpenMesh::PolyMesh_ArrayKernelT<MyTraits> SunshineMesh;
 
 class Mesh : public Transformable
 {
@@ -52,6 +66,7 @@ private:
     bool                         _validNormals;
     bool                         _selected;
     Material*                    _material;
+    SunshineMesh*                _mesh;
     Q_DISABLE_COPY(Mesh)
     //QHash<QString,QHash<QPoint,QVariantList> > _faceVertAttributes;
 };

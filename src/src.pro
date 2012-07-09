@@ -9,6 +9,8 @@ INCLUDEPATH += .
 QT += opengl script
 LIBS += -lGLEW -lGLU
 LIBS += -lassimp
+LIBS += -L/usr/local/lib/OpenMesh
+LIBS += -lOpenMeshCored
 #load(qttest_p4)
 
 OBJECTS_DIR = ../build

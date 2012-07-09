@@ -92,8 +92,10 @@ Mesh::Mesh() : Transformable()
     _validNormals = FALSE;
     _selected = FALSE;
     _material = 0;
+    _mesh = new SunshineMesh();
 }
 
+/*
 Mesh::Mesh(QHash<int,Vertex*> vertices, QHash<int,Edge*> edges, QHash<int,Face*> faces) : Transformable()
 {
     _vertices = vertices;
@@ -102,6 +104,7 @@ Mesh::Mesh(QHash<int,Vertex*> vertices, QHash<int,Edge*> edges, QHash<int,Face*>
     _validNormals = FALSE;
     _material = 0;
 }
+*/
 
 Mesh* Mesh::buildByIndex(PrimitiveParts parts)
 {
