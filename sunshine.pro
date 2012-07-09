@@ -1,9 +1,4 @@
 TEMPLATE = subdirs
-SUBDIRS = OpenMesh \
-          src
-
-
-# build must be last:
+SUBDIRS = src
 CONFIG += ordered
 
-#SUBDIRS += build
