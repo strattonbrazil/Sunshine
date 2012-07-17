@@ -22,6 +22,7 @@ QList<ContextAction*> VertexNormalizer::actions()
 
 bool VertexNormalizer::init(PanelGL *panel, QString command, int button)
 {
+#if 0
     ContextMenu popup;
     popup.addAction("Smooth Normals");
     popup.addAction("Flatten Normals");
@@ -34,13 +35,11 @@ bool VertexNormalizer::init(PanelGL *panel, QString command, int button)
         foreach(QString meshName, panel->scene()->meshes()) {
             Mesh* mesh = panel->scene()->mesh(meshName);
             if (mesh->isSelected()) {
-                QHashIterator<int,Vertex*> vertices = mesh->vertices();
-                while (vertices.hasNext()) {
-                    vertices.next();
-                    Vertex* vertex = vertices.value();
+                for (SunshineMesh::VertexIter v_it = mesh->_mesh->vertices_begin(); v_it != mesh->_mesh->vertices_end(); ++v_it) {
+                    OpenMesh::VertexHandle vertex = v_it.handle();
                     Vector3 normal;
-                    if (vertex->isSelected()) {
-                        Edge* edge = vertex->edge();
+                    if (mesh->isSelected(vertex)) {
+                        OpenMesh::EdgeHandle edge = mesh->_mesh->from_vertex_handle(vertex);
                         QSet<int> processedEdges;
                         std::cout << "starting: " << edge << std::endl;
                         do {
@@ -87,6 +86,6 @@ bool VertexNormalizer::init(PanelGL *panel, QString command, int button)
     else if (action->text() == "Flatten Normals") {
 
     }
-
+#endif
     return TRUE;
 }

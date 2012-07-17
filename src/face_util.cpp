@@ -16,17 +16,19 @@ namespace FaceUtil {
                 continue;
 
             QMatrix4x4 objectToWorld = mesh->objectToWorld();
-            QHashIterator<int,Face*> i = mesh->faces();
-            while (i.hasNext()) {
-                i.next();
-                Face* face = i.value();
-                QListIterator<Triangle> j = face->buildTriangles();
+            for (SunshineMesh::FaceIter f_it = mesh->_mesh->faces_begin(); f_it != mesh->_mesh->faces_end(); ++f_it) {
+                OpenMesh::FaceHandle face = f_it.handle();
+                QListIterator<Triangle> j = buildTriangles(mesh, face);
                 while (j.hasNext()) {
                     Triangle triangle = j.next();
 
-                    Point3 v0 = objectToWorld.map(triangle.a->vert()->pos());
-                    Point3 v1 = objectToWorld.map(triangle.b->vert()->pos());
-                    Point3 v2 = objectToWorld.map(triangle.c->vert()->pos());
+                    OpenMesh::Vec3f p0 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.a));
+                    OpenMesh::Vec3f p1 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.b));
+                    OpenMesh::Vec3f p2 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.c));
+
+                    Point3 v0 = objectToWorld.map(Vector3(p0[0], p0[1], p0[2]));
+                    Point3 v1 = objectToWorld.map(Vector3(p1[0], p1[1], p1[2]));
+                    Point3 v2 = objectToWorld.map(Vector3(p2[0], p2[1], p2[2]));
 
                     Vector3 edge1 = v1 - v0;
                     Vector3 edge2 = v2 - v0;
@@ -79,10 +81,13 @@ namespace FaceUtil {
         float validMax = -1.0f;
 
         foreach (Triangle triangle, triangles) {
-            QMatrix4x4 objectToWorld = triangle.a->mesh()->objectToWorld();
-            Point3 v0 = objectToWorld.map(triangle.a->vert()->pos());
-            Point3 v1 = objectToWorld.map(triangle.b->vert()->pos());
-            Point3 v2 = objectToWorld.map(triangle.c->vert()->pos());
+            QMatrix4x4 objectToWorld = triangle.mesh->objectToWorld();
+            OpenMesh::Vec3f p0 = triangle.mesh->_mesh->point(triangle.mesh->_mesh->from_vertex_handle(triangle.a));
+            OpenMesh::Vec3f p1 = triangle.mesh->_mesh->point(triangle.mesh->_mesh->from_vertex_handle(triangle.b));
+            OpenMesh::Vec3f p2 = triangle.mesh->_mesh->point(triangle.mesh->_mesh->from_vertex_handle(triangle.c));
+            Point3 v0 = objectToWorld.map(Vector3(p0[0], p0[1], p0[2]));
+            Point3 v1 = objectToWorld.map(Vector3(p1[0], p1[1], p1[2]));
+            Point3 v2 = objectToWorld.map(Vector3(p2[0], p2[1], p2[2]));
 
             Vector3 edge1 = v1 - v0;
             Vector3 edge2 = v2 - v0;
@@ -105,14 +110,14 @@ namespace FaceUtil {
                         float t = Vector3::dotProduct(edge2, qvec) * invDet;
 
                         if (t < validMin && t > 0) {
-                            faceHit.nearFace = triangle.a->face();
-                            faceHit.nearMesh = triangle.a->mesh();
+                            faceHit.nearFace = triangle.mesh->_mesh->face_handle(triangle.a);
+                            faceHit.nearMesh = triangle.mesh;
                             faceHit.range.setX(t);
                             validMin = t;
                         }
                         if (t > validMax) {
-                            faceHit.farFace = triangle.a->face();
-                            faceHit.farMesh = triangle.a->mesh();
+                            faceHit.farFace = triangle.mesh->_mesh->face_handle(triangle.a);
+                            faceHit.farMesh = triangle.mesh;
                             faceHit.range.setY(t);
                             validMax = t;
                         }

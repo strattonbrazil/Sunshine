@@ -18,7 +18,7 @@ void SplitPolygon::mousePressed(PanelGL *panel, QMouseEvent *event)
     QList<Triangle> triangles = panel->_meshGrid.trianglesByPoint(QPoint(event->pos().x(), panel->height()-event->pos().y()));
     FaceUtil::FaceHit faceHit = FaceUtil::closestFace(triangles, rayOrig, rayDir, false);
 
-    if (faceHit.nearFace != 0) {
+    if (faceHit.nearFace.is_valid()) {
 
     }
 }

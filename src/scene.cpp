@@ -245,11 +245,9 @@ bool Scene::hasVertexSelected()
     foreach(QString meshName, meshes()) {
         Mesh* mesh = this->mesh(meshName);
         if (mesh->isSelected()) {
-            QHashIterator<int,Vertex*> vertices = mesh->vertices();
-            while (vertices.hasNext()) {
-                vertices.next();
-                Vertex* vertex = vertices.value();
-                if (vertex->isSelected())
+            for (SunshineMesh::VertexIter v_it = mesh->_mesh->vertices_begin(); v_it != mesh->_mesh->vertices_end(); ++v_it) {
+                OpenMesh::VertexHandle vertex = v_it.handle();
+                if (mesh->isSelected(vertex))
                     return true;
             }
         }

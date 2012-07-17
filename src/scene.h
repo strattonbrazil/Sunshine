@@ -26,6 +26,8 @@ class SceneHierarchyModel : public QStandardItemModel
 
 };
 
+class Mesh;
+
 class Scene : public QObject
 {
     Q_OBJECT

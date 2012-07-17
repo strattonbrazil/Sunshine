@@ -83,7 +83,10 @@ namespace VertexUtil {
             //std::cout << "# of triangles: " << triangles.size() << std::endl;
 
             foreach(Triangle triangle, triangles) {
-                Vertex* vertices[3] = { triangle.a->vert(), triangle.b->vert(), triangle.c->vert() };
+                OpenMesh::VertexHandle vertices[3] = {
+                    triangle.mesh->_mesh->from_vertex_handle(triangle.a),
+                    triangle.mesh->_mesh->from_vertex_handle(triangle.b),
+                    triangle.mesh->_mesh->from_vertex_handle(triangle.c) };
                 for (int i = 0; i < 3; i++) {
                     Point3 vertScreen = triangle.screenP[i];
                     QPoint vertPoint((int)(vertScreen.x() + .5),(int)(vertScreen.y() + .5));
@@ -91,7 +94,7 @@ namespace VertexUtil {
                     QPoint cursorDiff = vertPoint - cursorFlipped;
                     if (abs(cursorDiff.x()) < X*.5 && abs(cursorDiff.y()) < X*.5) {
                         VertexHit hit;
-                        hit.mesh = triangle.a->mesh();
+                        hit.mesh = triangle.mesh;
                         hit.vertex = vertices[i];
                         return hit;
                     }
@@ -125,7 +128,9 @@ namespace VertexUtil {
     }
 }
 
-Vertex* closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, Mesh* mesh, Face* face)
+/*
+OpenMesh::VertexHandle closestVertexOnFace(Point3 rayOrig, Vector3 rayDir, Mesh* mesh, Face* face)
 {
     return 0;
 }
+*/

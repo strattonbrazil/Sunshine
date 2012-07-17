@@ -80,8 +80,8 @@ void PanelGL::init()
     }
 
     _hoverMesh = 0;
-    _hoverFace = 0;
-    _hoverVert = 0;
+    _hoverFace.invalidate();
+    _hoverVert.invalidate();
     _workTool = 0;
 }
 
@@ -894,17 +894,15 @@ void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
         //GLushort indices[numTriangles*3];
         QVector<MeshVertexData> vertices(numTriangles*3);// vertices.resize();
         //MeshVertexData vertices[numTriangles*3];
-        QHashIterator<int,Face*> i = mesh->faces();
-        while (i.hasNext()) {
-            i.next();
-            Face* face = i.value();
+        for (SunshineMesh::FaceIter f_it = mesh->_mesh->faces_begin(); f_it != mesh->_mesh->faces_end(); ++f_it) {
+            OpenMesh::FaceHandle face = f_it.handle();
             QVector4D color;
             if (drawSettings & DrawSettings::USE_OBJECT_COLOR) {
                 color = UNSELECTED_COLOR;
             } else {
-                if (face->isSelected() && face != panel->_hoverFace)
+                if (mesh->isSelected(face) && face != panel->_hoverFace)
                     color = SELECTED_COLOR;
-                else if (face->isSelected() && face == panel->_hoverFace && mesh == panel->_hoverMesh && drawSettings & DrawSettings::HIGHLIGHT_FACES)
+                else if (mesh->isSelected(face) && face == panel->_hoverFace && mesh == panel->_hoverMesh && drawSettings & DrawSettings::HIGHLIGHT_FACES)
                     color = SELECTED_HOVER_COLOR;
                 else if (face == panel->_hoverFace && mesh == panel->_hoverMesh && drawSettings & DrawSettings::HIGHLIGHT_FACES)
                     color = UNSELECTED_HOVER_COLOR;
@@ -912,18 +910,21 @@ void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
                     color = UNSELECTED_COLOR;
             }
 
-            QListIterator<Triangle> j = face->buildTriangles();
+            QListIterator<Triangle> j = buildTriangles(mesh, face);
             while (j.hasNext()) {
                 Triangle triangle = j.next();
-                vertices[triangleCount*3+0] = MeshVertexData(triangle.a->vert()->pos(),
-                                                             color, triangle.a->normal(),
-                                                             triangle.b->next() != triangle.c);
-                vertices[triangleCount*3+1] = MeshVertexData(triangle.b->vert()->pos(),
-                                                             color, triangle.b->normal(),
-                                                             triangle.c->next() != triangle.a);
-                vertices[triangleCount*3+2] = MeshVertexData(triangle.c->vert()->pos(),
-                                                             color, triangle.c->normal(),
-                                                             triangle.a->next() != triangle.b);
+                OpenMesh::Vec3f p0 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.a));
+                OpenMesh::Vec3f p1 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.b));
+                OpenMesh::Vec3f p2 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.c));
+                vertices[triangleCount*3+0] = MeshVertexData(Vector3(p0[0], p0[1], p0[2]),
+                                                             color, mesh->normal(triangle.a),
+                                                             mesh->_mesh->next_halfedge_handle(triangle.b) != triangle.c);
+                vertices[triangleCount*3+1] = MeshVertexData(Vector3(p1[0], p1[1], p1[2]),
+                                                             color, mesh->normal(triangle.b),
+                                                             mesh->_mesh->next_halfedge_handle(triangle.c) != triangle.a);
+                vertices[triangleCount*3+2] = MeshVertexData(Vector3(p2[0], p2[1], p2[2]),
+                                                             color, mesh->normal(triangle.c),
+                                                             mesh->_mesh->next_halfedge_handle(triangle.a) != triangle.b);
                 triangleCount++;
             }
         }
@@ -938,22 +939,20 @@ void MeshRenderer::loadVBOs(PanelGL* panel, Mesh* mesh)
     // load the vertices
     {
         const int numVertices = mesh->numVertices();
-
-        QHashIterator<int,Vertex*> i = mesh->vertices();
-        int vertexCount = 0;
         VertexData vertices[numVertices];
-        while (i.hasNext()) {
-            i.next();
-            Vertex* vertex = i.value();
+        int vertexCount = 0;
+        for (SunshineMesh::VertexIter v_it = mesh->_mesh->vertices_begin(); v_it != mesh->_mesh->vertices_end(); ++v_it) {
+            OpenMesh::VertexHandle vertex = v_it.handle();
             float colorIndex;
-            if (vertex->isSelected() && vertex == panel->_hoverVert) colorIndex = 3.5;
-            else if (vertex->isSelected() && vertex != panel->_hoverVert) colorIndex = 2.5;
+            if (mesh->isSelected(vertex) && vertex == panel->_hoverVert) colorIndex = 3.5;
+            else if (mesh->isSelected(vertex) && vertex != panel->_hoverVert) colorIndex = 2.5;
             else if (vertex == panel->_hoverVert) colorIndex = 1.5;
             else colorIndex = 0.5;
             float visible = 1.0;
-            if (drawSettings & DrawSettings::CULL_BORING_VERTICES && !(vertex->isSelected()) && vertex != panel->_hoverVert)
+            if (drawSettings & DrawSettings::CULL_BORING_VERTICES && !(mesh->isSelected(vertex)) && vertex != panel->_hoverVert)
                 visible = 0.0;
-            vertices[vertexCount] = VertexData(vertex->pos(), colorIndex, visible);
+            OpenMesh::Vec3f p = mesh->_mesh->point(vertex);
+            vertices[vertexCount] = VertexData(Point3(p[0], p[1], p[2]), colorIndex, visible);
             vertexCount++;
         }
 
@@ -1080,8 +1079,11 @@ void PanelGL::mouseMoveEvent(QMouseEvent* event)
         VertexUtil::VertexHit vertexHit = VertexUtil::closestVertex(this, event, false);
 
         _hoverMesh = faceHit.nearMesh ? faceHit.nearMesh : 0;
-        _hoverFace = faceHit.nearFace ? faceHit.nearFace : 0;
-        _hoverVert = vertexHit.vertex ? vertexHit.vertex : 0;
+        if (faceHit.nearFace.is_valid()) _hoverFace = faceHit.nearFace;
+        else _hoverFace.invalidate();
+
+        if (vertexHit.vertex.is_valid()) _hoverVert = vertexHit.vertex;
+        else _hoverVert.invalidate();
 
         CursorTool* cursorTool = SunshineUi::cursorTool();
         cursorTool->mouseMoved(this, event);
@@ -1140,22 +1142,18 @@ void PanelGL::keyReleaseEvent(QKeyEvent *event)
         else if (SunshineUi::workMode() == WorkMode::VERTEX) {
             foreach(QString meshName, scene()->meshes()) {
                 Mesh* mesh = scene()->mesh(meshName);
-                QHashIterator<int,Vertex*> vertices = mesh->vertices();
-                while (vertices.hasNext()) {
-                    int key = vertices.key();
-                    Vertex* vertex = vertices.value();
-                    vertex->setSelected(false);
+                for (SunshineMesh::VertexIter v_it = mesh->_mesh->vertices_begin(); v_it != mesh->_mesh->vertices_end(); ++v_it) {
+                    OpenMesh::VertexHandle vertex = v_it.handle();
+                    mesh->setSelected(vertex, false);
                 }
             }
         }
         else if (SunshineUi::workMode() == WorkMode::FACE) {
             foreach(QString meshName, scene()->meshes()) {
                 Mesh* mesh = scene()->mesh(meshName);
-                QHashIterator<int,Face*> faces = mesh->faces();
-                while (faces.hasNext()) {
-                    int key = faces.key();
-                    Face* face = faces.value();
-                    face->setSelected(false);
+                for (SunshineMesh::FaceIter f_it = mesh->_mesh->faces_begin(); f_it != mesh->_mesh->faces_end(); ++f_it) {
+                    OpenMesh::FaceHandle face = f_it.handle();
+                    mesh->setSelected(face, false);
                 }
             }
         }
@@ -1377,17 +1375,17 @@ void PanelGL::buildMeshGrid()
         Mesh* mesh = _scene->mesh(meshName);
 
         QMatrix4x4 objToWorld = mesh->objectToWorld();
-        QHashIterator<int,Face*> i = mesh->faces();
-        while (i.hasNext()) {
-            i.next();
-            Face* face = i.value();
-            QListIterator<Triangle> j = face->buildTriangles();
+        for (SunshineMesh::FaceIter f_it = mesh->_mesh->faces_begin(); f_it != mesh->_mesh->faces_end(); ++f_it) {
+            OpenMesh::FaceHandle face = f_it.handle();
+            QListIterator<Triangle> j = buildTriangles(mesh, face);
             while (j.hasNext()) {
                 Triangle triangle = j.next();
-
-                triangle.screenP[0] = project(objToWorld.map(triangle.a->vert()->pos()));
-                triangle.screenP[1] = project(objToWorld.map(triangle.b->vert()->pos()));
-                triangle.screenP[2] = project(objToWorld.map(triangle.c->vert()->pos()));
+                OpenMesh::Vec3f p0 = triangle.mesh->_mesh->point(triangle.mesh->_mesh->from_vertex_handle(triangle.a));
+                OpenMesh::Vec3f p1 = triangle.mesh->_mesh->point(triangle.mesh->_mesh->from_vertex_handle(triangle.b));
+                OpenMesh::Vec3f p2 = triangle.mesh->_mesh->point(triangle.mesh->_mesh->from_vertex_handle(triangle.c));
+                triangle.screenP[0] = project(objToWorld.map(Vector3(p0[0], p0[1], p0[2])));
+                triangle.screenP[1] = project(objToWorld.map(Vector3(p1[0], p1[1], p1[2])));
+                triangle.screenP[2] = project(objToWorld.map(Vector3(p2[0], p2[1], p2[2])));
 
                 triangles << triangle;
             }

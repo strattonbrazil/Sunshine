@@ -58,9 +58,11 @@ void DrawBoxTool::updateWorkspacePlane()
     float minZ = std::min(_pick.z(), _current.z());
     float maxZ = std::max(_pick.z(), _current.z());
 
+    /*
     Face* face = _plane->face(0);
     face->edge()->vert()->setPos(Point3(maxX,0,maxZ));
     face->edge()->next()->vert()->setPos(Point3(maxX,0,minZ));
     face->edge()->next()->next()->vert()->setPos(Point3(minX,0,minZ));
     face->edge()->next()->next()->next()->vert()->setPos(Point3(minX,0,maxZ));
+    */
 }

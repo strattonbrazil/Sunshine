@@ -620,21 +620,22 @@ namespace RenderUtil {
         const uint blockSize = sizeof(QVector3D) * 2; // bytes of data per vertex
         GLbyte vertices[numTriangles*3*blockSize];
         //Point3 vertices[numTriangles*3];
-        QHashIterator<int,Face*> i = mesh->faces();
-        while (i.hasNext()) {
-            i.next();
-            Face* face = i.value();
+        for (SunshineMesh::FaceIter f_it = mesh->_mesh->faces_begin(); f_it != mesh->_mesh->faces_end(); ++f_it) {
+            OpenMesh::FaceHandle face = f_it.handle();
 
-            QListIterator<Triangle> j = face->buildTriangles();
+            QListIterator<Triangle> j = buildTriangles(mesh, face);
             while (j.hasNext()) {
                 Triangle triangle = j.next();
-                *(Point3*)(vertices + triangleCount*3*blockSize + 0*blockSize) = triangle.a->vert()->pos();
-                *(Point3*)(vertices + triangleCount*3*blockSize + 1*blockSize) = triangle.b->vert()->pos();
-                *(Point3*)(vertices + triangleCount*3*blockSize + 2*blockSize) = triangle.c->vert()->pos();
+                OpenMesh::Vec3f p0 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.a));
+                OpenMesh::Vec3f p1 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.b));
+                OpenMesh::Vec3f p2 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangle.c));
+                *(Point3*)(vertices + triangleCount*3*blockSize + 0*blockSize) = Point3(p0[0], p0[1], p0[2]);
+                *(Point3*)(vertices + triangleCount*3*blockSize + 1*blockSize) = Point3(p1[0], p1[1], p1[2]);
+                *(Point3*)(vertices + triangleCount*3*blockSize + 2*blockSize) = Point3(p2[0], p2[1], p2[2]);
 
-                *(Vector3*)(vertices + triangleCount*3*blockSize + 0*blockSize+sizeof(Vector3)) = triangle.a->normal();
-                *(Vector3*)(vertices + triangleCount*3*blockSize + 1*blockSize+sizeof(Vector3)) = triangle.b->normal();
-                *(Vector3*)(vertices + triangleCount*3*blockSize + 2*blockSize+sizeof(Vector3)) = triangle.c->normal();
+                *(Vector3*)(vertices + triangleCount*3*blockSize + 0*blockSize+sizeof(Vector3)) = mesh->normal(triangle.a);
+                *(Vector3*)(vertices + triangleCount*3*blockSize + 1*blockSize+sizeof(Vector3)) = mesh->normal(triangle.b);
+                *(Vector3*)(vertices + triangleCount*3*blockSize + 2*blockSize+sizeof(Vector3)) = mesh->normal(triangle.c);
 
                 /*
                 Vector3 triangle.a->normal();

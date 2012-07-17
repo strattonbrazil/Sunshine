@@ -7,14 +7,12 @@ namespace FaceUtil {
     class FaceHit {
     public:
         FaceHit() {
-            nearFace = 0;
-            farFace = 0;
             nearMesh = 0;
             farMesh = 0;
         }
 
-        Face* nearFace;
-        Face* farFace;
+        OpenMesh::FaceHandle nearFace;
+        OpenMesh::FaceHandle farFace;
         Mesh* nearMesh;
         Mesh* farMesh;
         Vector3 range;

@@ -88,8 +88,8 @@ public:
 
     // for preselection
     Mesh*                    _hoverMesh;
-    Face*                    _hoverFace;
-    Vertex*                  _hoverVert;
+    OpenMesh::FaceHandle     _hoverFace;
+    OpenMesh::VertexHandle   _hoverVert;
     MeshGrid                 _meshGrid;
 
 public slots:

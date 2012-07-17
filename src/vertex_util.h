@@ -6,7 +6,7 @@
 namespace VertexUtil {
     class VertexHit {
     public:
-        Vertex* vertex;
+        OpenMesh::VertexHandle vertex;
         Mesh* mesh;
     };
 

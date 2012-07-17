@@ -31,8 +31,10 @@ void TranslateTool::mousePressed(PanelGL *panel, QMouseEvent *event)
             VertexUtil::VertexHit vertexHit = VertexUtil::closestVertex(panel, event, false);
 
             // determine origin of move
-            if (vertexHit.vertex != 0)
-                _origin = vertexHit.mesh->objectToWorld().map(vertexHit.vertex->pos());
+            if (vertexHit.vertex.is_valid()) {
+                OpenMesh::Vec3f pos = vertexHit.mesh->_mesh->point(vertexHit.vertex);
+                _origin = vertexHit.mesh->objectToWorld().map(Point3(pos[0], pos[1], pos[2]));
+            }
             else
                 _origin = rayOrig + faceHit.range.x() * rayDir;
 
@@ -65,7 +67,7 @@ void TranslateTool::mouseDragged(PanelGL *panel, QMouseEvent *event)
 
         Vector3 offset;
 
-        if (faceHit.nearFace != 0 && !(faceHit.nearMesh->isSelected())) {
+        if (faceHit.nearFace.is_valid() && !(faceHit.nearMesh->isSelected())) {
             Point3 dst = rayOrig + rayDir * faceHit.range.x();
             offset = dst - _origin;
         } else {
