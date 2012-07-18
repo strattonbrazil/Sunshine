@@ -122,22 +122,6 @@ namespace primitive {
             }
         }
 
-        /*
-        float hx = width / 2;
-        float hz = depth / 2;
-
-        // create the vertices
-        Point3 p0(hx,0,hz);
-        Point3 p1(hx,0,-hz);
-        Point3 p2(-hx,0,-hz);
-        Point3 p3(-hx,0,hz);
-
-        QList<int> f0 = QList<int>() << 0 << 1 << 2 << 3;
-
-        PrimitiveParts parts;
-        parts.points = QVector<Point3>() << p0 << p1 << p2 << p3;
-        parts.faces = QVector<QList<int> >() << f0;
-        */
         return parts;
     }
 

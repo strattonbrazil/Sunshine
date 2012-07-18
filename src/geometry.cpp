@@ -59,8 +59,7 @@ void Mesh::setSelected(OpenMesh::FaceHandle face, bool s)
 
 Vector3 Mesh::normal(OpenMesh::HalfedgeHandle edge)
 {
-    SunshineMesh::Normal n(_mesh->normal(edge));
-    return Vector3(n[0], n[1], n[2]);
+    return _mesh->data(edge).normal();
 }
 
 const int Mesh::numTriangles()
@@ -133,7 +132,15 @@ QListIterator<Triangle> buildTriangles(Mesh* mesh, OpenMesh::FaceHandle face)
             OpenMesh::VertexHandle v3 = mesh->_mesh->from_vertex_handle(thirdEdge);
 
             triangles << Triangle(mesh, firstEdge, secondEdge, thirdEdge);
+            secondEdge = thirdEdge;
+
+            OpenMesh::Vec3f p0 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangles.last().a));
+            OpenMesh::Vec3f p1 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangles.last().b));
+            OpenMesh::Vec3f p2 = mesh->_mesh->point(mesh->_mesh->from_vertex_handle(triangles.last().c));
         }
+
+
+
     }
 
     return QListIterator<Triangle>(triangles);

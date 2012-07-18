@@ -38,6 +38,14 @@ struct MyTraits : public OpenMesh::DefaultTraits
       void setSelected(bool s) { _selected = s; }
       bool isSelected() { return _selected; }
   };
+
+  HalfedgeTraits
+  {
+      private:
+      Vector3 _normal;
+      public:
+      Vector3 normal() { return _normal; }
+  };
 };
 typedef OpenMesh::PolyMesh_ArrayKernelT<MyTraits> SunshineMesh;
 
